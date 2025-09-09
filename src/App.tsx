@@ -1,7 +1,19 @@
 import { useState } from "react";
+import { 
+  Container, 
+  Title, 
+  Text, 
+  Button, 
+  TextInput, 
+  Group, 
+  Stack,
+  Anchor,
+  Image,
+  Card,
+  Center
+} from "@mantine/core";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
@@ -13,38 +25,73 @@ function App() {
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <Container size="md" py={40}>
+      <Center>
+        <Stack align="center" gap="xl">
+          <Title order={1} ta="center">
+            Welcome to Tauri + React
+          </Title>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+          <Group gap="xl">
+            <Anchor href="https://vite.dev" target="_blank">
+              <Image 
+                src="/vite.svg" 
+                alt="Vite logo" 
+                w={80} 
+                h={80}
+              />
+            </Anchor>
+            <Anchor href="https://tauri.app" target="_blank">
+              <Image 
+                src="/tauri.svg" 
+                alt="Tauri logo" 
+                w={80} 
+                h={80}
+              />
+            </Anchor>
+            <Anchor href="https://react.dev" target="_blank">
+              <Image 
+                src={reactLogo} 
+                alt="React logo" 
+                w={80} 
+                h={80}
+              />
+            </Anchor>
+          </Group>
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+          <Text ta="center" c="dimmed">
+            Click on the Tauri, Vite, and React logos to learn more.
+          </Text>
+
+          <Card withBorder padding="lg" radius="md" w={400}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                greet();
+              }}
+            >
+              <Stack gap="md">
+                <TextInput
+                  placeholder="Enter a name..."
+                  value={name}
+                  onChange={(e) => setName(e.currentTarget.value)}
+                  size="md"
+                />
+                <Button type="submit" size="md" fullWidth>
+                  Greet
+                </Button>
+              </Stack>
+            </form>
+            
+            {greetMsg && (
+              <Text mt="md" ta="center" fw={500}>
+                {greetMsg}
+              </Text>
+            )}
+          </Card>
+        </Stack>
+      </Center>
+    </Container>
   );
 }
 
