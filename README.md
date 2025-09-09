@@ -14,14 +14,7 @@ React + TypeScript + Rust の組み合わせで、軽量かつ高速なネイテ
 
 - **Node.js** 18+ 
 - **Rust** 1.70+
-- **Ban** (パッケージマネージャー)
-
-### 推奨IDE・拡張機能
-
-- **IDE**: [VS Code](https://code.visualstudio.com/)
-- **拡張機能**:
-  - [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode)
-  - [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- **Bun** (パッケージマネージャー)
 
 ## ⚡ クイックスタート
 
@@ -38,13 +31,13 @@ ban tauri dev
 
 ## 📝 利用可能なコマンド
 
-| コマンド | 説明 |
-|---------|------|
-| `ban dev` | Vite開発サーバー起動 |
-| `ban build` | プロダクションビルド |
-| `ban preview` | ビルド結果をプレビュー |
-| `ban tauri dev` | Tauriアプリ開発モード |
-| `ban tauri build` | Tauriアプリをビルド |
+| コマンド              | 説明            |
+|-------------------|---------------|
+| `ban dev`         | Vite開発サーバー起動  |
+| `ban build`       | プロダクションビルド    |
+| `ban preview`     | ビルド結果をプレビュー   |
+| `ban tauri dev`   | Tauriアプリ開発モード |
+| `ban tauri build` | Tauriアプリをビルド  |
 
 ## 📁 プロジェクト構造
 
@@ -76,14 +69,6 @@ sapphire/
 ## 📚 ドキュメント
 
 詳細な情報については [docs/project-overview.md](./docs/project-overview.md) をご覧ください。
-
-## 🤝 コントリビューション
-
-1. このリポジトリをフォーク
-2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. プルリクエストを作成
 
 ## 📄 ライセンス
 
