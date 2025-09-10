@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:v2.tauri.app)",
+      "Bash(bun run test:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
