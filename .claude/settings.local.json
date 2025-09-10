@@ -3,7 +3,8 @@
     "allow": [
       "WebSearch",
       "WebFetch(domain:v2.tauri.app)",
-      "Bash(bun run test:*)"
+      "Bash(bun run test:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
