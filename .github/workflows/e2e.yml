@@ -31,7 +31,13 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libglib2.0-dev libgdk-pixbuf2.0-dev libcairo2-dev libpango1.0-dev libatk1.0-dev
+        sudo apt-get install -y build-essential pkg-config
+        sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        sudo apt-get install -y libglib2.0-0 libglib2.0-dev
+        sudo apt-get install -y libgdk-pixbuf-2.0-0 libgdk-pixbuf2.0-dev
+        sudo apt-get install -y libcairo2 libcairo2-dev
+        sudo apt-get install -y libpango-1.0-0 libpango1.0-dev
+        sudo apt-get install -y libatk1.0-0 libatk1.0-dev
         # WebKitWebDriverのインストール
         sudo apt-get install -y webkit2gtk-driver
         
@@ -63,8 +69,59 @@ jobs:
     - name: Build Tauri app for testing
       run: bun run tauri build
       
+    - name: Start Tauri app (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        # Start the built Tauri app in background
+        ./src-tauri/target/release/sapphire &
+        # Wait for app to start
+        sleep 3
+        
+    - name: Start Tauri app (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        # Start the built Tauri app in background on Windows
+        Start-Process -FilePath ".\src-tauri\target\release\sapphire.exe" -WindowStyle Hidden
+        # Wait for app to start
+        Start-Sleep -Seconds 3
+      shell: powershell
+      
+    - name: Start Tauri WebDriver (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        # Start tauri-driver in background
+        tauri-driver --port 9515 &
+        # Wait for driver to be ready
+        sleep 5
+        
+    - name: Start Tauri WebDriver (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        # Start tauri-driver in background on Windows
+        Start-Process -FilePath "tauri-driver" -ArgumentList "--port", "9515" -WindowStyle Hidden
+        # Wait for driver to be ready
+        Start-Sleep -Seconds 5
+      shell: powershell
+      
     - name: Run E2E tests
       run: bun run test:e2e
+      
+    - name: Stop Tauri WebDriver (Linux/macOS)
+      if: always() && matrix.os != 'windows-latest'
+      run: |
+        # Kill tauri-driver process
+        pkill -f tauri-driver || true
+        # Kill Tauri app process
+        pkill -f sapphire || true
+        
+    - name: Stop Tauri WebDriver (Windows)
+      if: always() && matrix.os == 'windows-latest'
+      run: |
+        # Kill tauri-driver process on Windows
+        Get-Process | Where-Object {$_.ProcessName -eq "tauri-driver"} | Stop-Process -Force
+        # Kill Tauri app process
+        Get-Process | Where-Object {$_.ProcessName -eq "sapphire"} | Stop-Process -Force
+      shell: powershell
       env:
         CI: true
         
