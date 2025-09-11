@@ -1,10 +1,9 @@
-name: CI/CD Pipeline
+name: Release Build
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+    tags:
+      - 'v*.*.*'
 
 permissions:
   contents: write
@@ -13,10 +12,7 @@ permissions:
 jobs:
   test:
     name: Test Suite
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest]
+    runs-on: windows-latest
         
     steps:
     - name: Checkout repository
@@ -40,9 +36,9 @@ jobs:
           ~/.cargo/git
           node_modules
           src-tauri/target
-        key: ${{ runner.os }}-${{ matrix.os }}-deps-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
+        key: ${{ runner.os }}-release-deps-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
         restore-keys: |
-          ${{ runner.os }}-${{ matrix.os }}-deps-
+          ${{ runner.os }}-release-deps-
           
     - name: Install dependencies
       run: bun install
@@ -58,62 +54,6 @@ jobs:
       
     - name: Build project
       run: bun run build
-
-  check-version:
-    name: Check Version Change
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    outputs:
-      version_changed: ${{ steps.check_version.outputs.changed }}
-      new_version: ${{ steps.check_version.outputs.version }}
-      
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
-        
-    - name: Check if package.json version changed
-      id: check_version
-      run: |
-        # Get current version
-        CURRENT_VERSION=$(node -p "require('./package.json').version")
-        
-        # Get previous version (from previous commit)
-        git show HEAD~1:package.json > package.json.prev 2>/dev/null || echo '{"version":"0.0.0"}' > package.json.prev
-        PREVIOUS_VERSION=$(node -p "require('./package.json.prev').version" 2>/dev/null || echo "0.0.0")
-        
-        echo "Current version: $CURRENT_VERSION"
-        echo "Previous version: $PREVIOUS_VERSION"
-        
-        if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
-          echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
-          echo "changed=true" >> $GITHUB_OUTPUT
-          echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
-        else
-          echo "Version unchanged"
-          echo "changed=false" >> $GITHUB_OUTPUT
-          echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Create and push tag for new version
-      if: steps.check_version.outputs.changed == 'true'
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        
-        TAG_NAME="${{ steps.check_version.outputs.version }}"
-        
-        # Check if tag already exists
-        if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-          echo "Tag $TAG_NAME already exists, skipping tag creation"
-        else
-          echo "Creating tag $TAG_NAME"
-          git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
-          git push origin "$TAG_NAME"
-          echo "Tag $TAG_NAME created and pushed"
-        fi
 
   build-windows:
     name: Build Windows App
@@ -140,9 +80,9 @@ jobs:
           ~/.cargo/git
           node_modules
           src-tauri/target
-        key: windows-build-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
+        key: windows-release-build-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
         restore-keys: |
-          windows-build-
+          windows-release-build-
           
     - name: Install dependencies
       run: bun install
@@ -153,7 +93,7 @@ jobs:
     - name: Upload Windows build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: tauri-app-windows
+        name: tauri-app-windows-release
         path: |
           src-tauri/target/release/bundle/msi/*.msi
           src-tauri/target/release/bundle/nsis/*.exe
@@ -199,9 +139,9 @@ jobs:
           ~/.cargo/git
           node_modules
           src-tauri/target
-        key: android-build-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
+        key: android-release-build-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
         restore-keys: |
-          android-build-
+          android-release-build-
           
     - name: Install dependencies
       run: bun install
@@ -210,16 +150,66 @@ jobs:
       run: |
         bun run tauri android init
         
-    - name: Build Tauri Android app
-      run: bun run tauri android build
+    - name: Build Tauri Android app (Release)
+      run: bun run tauri android build --release
       env:
         NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
       
     - name: Upload Android build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: tauri-app-android
+        name: tauri-app-android-release
         path: |
-          src-tauri/gen/android/app/build/outputs/apk/debug/*.apk
           src-tauri/gen/android/app/build/outputs/apk/release/*.apk
         retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-android]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+        
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: tauri-app-windows-release
+        path: ./windows-artifacts/
+        
+    - name: Download Android artifacts  
+      uses: actions/download-artifact@v4
+      with:
+        name: tauri-app-android-release
+        path: ./android-artifacts/
+        
+    - name: Get version from tag
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Release ${{ steps.get_version.outputs.version }}
+        body: |
+          🚀 **Sapphire Release ${{ steps.get_version.outputs.version }}**
+          
+          ## 📦 Downloads
+          - **Windows**: Download the `.msi` or `.exe` installer below
+          - **Android**: Download the `.apk` file below
+          
+          ## 🔄 Changes
+          See the full changelog below for all changes included in this release.
+          
+          ---
+          *This release was automatically built and published via GitHub Actions.*
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        files: |
+          ./windows-artifacts/msi/*.msi
+          ./windows-artifacts/nsis/*.exe
+          ./android-artifacts/*.apk
