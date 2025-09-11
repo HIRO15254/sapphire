@@ -16,7 +16,8 @@
     "lint": "biome check . && cd src-tauri && cargo clippy -- -D warnings",
     "lint:fix": "biome check . --write && cd src-tauri && cargo clippy --fix --allow-dirty --allow-staged",
     "format": "biome format . --write && cd src-tauri && cargo fmt",
-    "format:check": "biome format . && cd src-tauri && cargo fmt --check"
+    "format:check": "biome format . && cd src-tauri && cargo fmt --check",
+    "format:check:ci": "biome format . --diagnostic-level=warn && cd src-tauri && cargo fmt --check"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
