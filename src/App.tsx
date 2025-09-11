@@ -70,7 +70,7 @@ function App() {
     try {
       const database = await Database.load("sqlite:sapphire.db");
       setDb(database);
-      
+
       // Create tables
       await database.execute(`
         CREATE TABLE IF NOT EXISTS users (
@@ -103,7 +103,9 @@ function App() {
   const loadUsers = useCallback(async () => {
     if (!db) return;
     try {
-      const result = await db.select<User[]>("SELECT id, name, email, created_at FROM users ORDER BY created_at DESC");
+      const result = await db.select<User[]>(
+        "SELECT id, name, email, created_at FROM users ORDER BY created_at DESC"
+      );
       setUsers(result);
     } catch (error) {
       showNotification("Failed to load users", "error");
@@ -114,7 +116,9 @@ function App() {
   const loadNotes = useCallback(async () => {
     if (!db) return;
     try {
-      const result = await db.select<Note[]>("SELECT id, title, content, user_id, created_at, updated_at FROM notes ORDER BY updated_at DESC");
+      const result = await db.select<Note[]>(
+        "SELECT id, title, content, user_id, created_at, updated_at FROM notes ORDER BY updated_at DESC"
+      );
       setNotes(result);
     } catch (error) {
       showNotification("Failed to load notes", "error");
@@ -129,7 +133,10 @@ function App() {
     }
 
     try {
-      await db.execute("INSERT INTO users (name, email) VALUES ($1, $2)", [newUser.name, newUser.email]);
+      await db.execute("INSERT INTO users (name, email) VALUES ($1, $2)", [
+        newUser.name,
+        newUser.email,
+      ]);
       setNewUser({ name: "", email: "" });
       showNotification("User created successfully");
       loadUsers();
@@ -194,10 +201,10 @@ function App() {
       try {
         // Initialize database
         await initDatabase();
-        
+
         // Wait a bit for database to be ready
         await new Promise((resolve) => setTimeout(resolve, 100));
-        
+
         // Load data
         await loadUsers();
         await loadNotes();
