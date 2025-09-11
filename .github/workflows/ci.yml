@@ -43,14 +43,14 @@ jobs:
     - name: Install dependencies
       run: bun install
       
+    - name: Run lint check (Frontend + Rust)
+      run: bun run lint
+      
+    - name: Run format check (Frontend + Rust)
+      run: bun run format:check
+      
     - name: Run all tests
       run: bun run test:all
-      
-    - name: Lint Rust code
-      run: cd src-tauri && cargo fmt --all -- --check
-      
-    - name: Clippy check
-      run: cd src-tauri && cargo clippy -- -D warnings
       
     - name: Build project
       run: bun run build

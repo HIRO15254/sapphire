@@ -1,12 +1,12 @@
-import '@testing-library/jest-dom';
+import "@testing-library/jest-dom";
 
 // Mock Tauri API
-Object.defineProperty(window, '__TAURI_INTERNALS__', {
+Object.defineProperty(window, "__TAURI_INTERNALS__", {
   value: {},
 });
 
 // Mock window.ipc for Tauri
-Object.defineProperty(window, '__TAURI_IPC__', {
+Object.defineProperty(window, "__TAURI_IPC__", {
   value: {
     invoke: vi.fn(),
   },
@@ -20,9 +20,9 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Mock window.matchMedia for Mantine
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,

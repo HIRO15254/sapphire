@@ -12,7 +12,11 @@
     "test:ui": "vitest --ui",
     "test:rust": "cd src-tauri && cargo test",
     "test:all": "bun run test:run && bun run test:rust",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "lint": "biome check . && cd src-tauri && cargo clippy -- -D warnings",
+    "lint:fix": "biome check . --write && cd src-tauri && cargo clippy --fix --allow-dirty --allow-staged",
+    "format": "biome format . --write && cd src-tauri && cargo fmt",
+    "format:check": "biome format . && cd src-tauri && cargo fmt --check"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -24,17 +28,18 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.3",
     "@tauri-apps/cli": "^2",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
-    "typescript": "~5.8.3",
-    "vite": "^7.0.4",
-    "vitest": "^2.1.8",
     "@vitest/ui": "^2.1.8",
     "jsdom": "^25.0.1",
-    "@testing-library/react": "^16.1.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/user-event": "^14.5.2"
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4",
+    "vitest": "^2.1.8"
   }
 }

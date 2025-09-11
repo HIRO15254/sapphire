@@ -1,19 +1,19 @@
-import { useState } from "react";
-import { 
-  Container, 
-  Title, 
-  Text, 
-  Button, 
-  TextInput, 
-  Group, 
-  Stack,
+import {
   Anchor,
-  Image,
+  Button,
   Card,
-  Center
+  Center,
+  Container,
+  Group,
+  Image,
+  Stack,
+  Text,
+  TextInput,
+  Title,
 } from "@mantine/core";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
+import { useState } from "react";
+import reactLogo from "./assets/react.svg";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
@@ -34,28 +34,13 @@ function App() {
 
           <Group gap="xl">
             <Anchor href="https://vite.dev" target="_blank">
-              <Image 
-                src="/vite.svg" 
-                alt="Vite logo" 
-                w={80} 
-                h={80}
-              />
+              <Image src="/vite.svg" alt="Vite logo" w={80} h={80} />
             </Anchor>
             <Anchor href="https://tauri.app" target="_blank">
-              <Image 
-                src="/tauri.svg" 
-                alt="Tauri logo" 
-                w={80} 
-                h={80}
-              />
+              <Image src="/tauri.svg" alt="Tauri logo" w={80} h={80} />
             </Anchor>
             <Anchor href="https://react.dev" target="_blank">
-              <Image 
-                src={reactLogo} 
-                alt="React logo" 
-                w={80} 
-                h={80}
-              />
+              <Image src={reactLogo} alt="React logo" w={80} h={80} />
             </Anchor>
           </Group>
 
@@ -82,7 +67,7 @@ function App() {
                 </Button>
               </Stack>
             </form>
-            
+
             {greetMsg && (
               <Text mt="md" ta="center" fw={500}>
                 {greetMsg}
