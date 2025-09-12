@@ -32,11 +32,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  },
-  "plugins": {},
-  "android": {
-    "minSdkVersion": 24,
-    "compileSdkVersion": 34,
-    "targetSdkVersion": 34
   }
 }
