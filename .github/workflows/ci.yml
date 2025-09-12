@@ -161,6 +161,8 @@ jobs:
 
   build-android:
     runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: "27.0.12077973"
     steps:
       - uses: actions/checkout@v4
 
@@ -170,10 +172,10 @@ jobs:
       - name: Setup Rust targets
         run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          version: 10
+          bun-version: latest
 
       - name: Install dependencies
         run: |
@@ -198,7 +200,7 @@ jobs:
 
       - name: Setup Android Environment
         run: |
-          echo "NDK_HOME=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}/" > $GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}/" >> $GITHUB_ENV
 
       - name: Build
         run: bun run tauri android build --ci
