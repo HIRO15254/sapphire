@@ -6,7 +6,8 @@
       "Bash(bun run test:*)",
       "Bash(git add:*)",
       "Bash(cargo check:*)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(bun test:*)"
     ],
     "deny": [],
     "ask": []
