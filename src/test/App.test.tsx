@@ -6,9 +6,9 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
+import { invoke } from "@tauri-apps/api/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { invoke } from "@tauri-apps/api/core";
 import App from "../App";
 
 // Get the mocked function
@@ -100,11 +100,11 @@ describe("App Component", () => {
     const button = screen.getByRole("button", { name: "Greet" });
 
     await user.type(input, "John");
-    
+
     // Clear previous calls and set up specific mock for greet
     mockInvoke.mockClear();
     mockInvoke.mockResolvedValue(expectedGreeting);
-    
+
     await user.click(button);
 
     // Verify the Tauri command was called correctly
