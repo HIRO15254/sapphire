@@ -202,14 +202,21 @@ jobs:
         run: |
           echo "NDK_HOME=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}/" >> $GITHUB_ENV
 
-      - name: Build
-        run: bun run tauri android build --ci
+      - name: Build Android APK
+        run: |
+          echo "Building Android APK..."
+          bun run tauri android build --ci
+          echo "Build completed. Checking output directories..."
+          find src-tauri/gen/android -name "*.apk" -type f || echo "No APK files found"
+          ls -la src-tauri/gen/android/app/build/outputs/ || echo "outputs directory not found"
 
       - name: Upload Android build artifacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: tauri-app-android
           path: |
-            src-tauri/gen/android/app/build/outputs/apk/debug/*.apk
-            src-tauri/gen/android/app/build/outputs/apk/release/*.apk
+            src-tauri/gen/android/app/build/outputs/**/*.apk
+            src-tauri/gen/android/app/build/outputs/**/*.aab
           retention-days: 30
+          if-no-files-found: warn
