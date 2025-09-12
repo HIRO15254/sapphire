@@ -1,8 +1,8 @@
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
-use rusqlite::{Connection, params};
-use std::sync::Mutex;
 use std::fs;
-use tauri::{State, AppHandle, Manager};
+use std::sync::Mutex;
+use tauri::{AppHandle, Manager, State};
 
 // Data structures
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -46,14 +46,14 @@ impl Database {
             .path()
             .app_data_dir()
             .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-        
+
         // Ensure the directory exists
         fs::create_dir_all(&app_data_dir)?;
-        
+
         // Create the database file path
         let db_path = app_data_dir.join("sapphire.db");
         let conn = Connection::open(&db_path)?;
-        
+
         // Create tables
         conn.execute(
             "CREATE TABLE IF NOT EXISTS users (
@@ -82,7 +82,6 @@ impl Database {
     }
 }
 
-
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -92,23 +91,26 @@ fn greet(name: &str) -> String {
 #[tauri::command]
 async fn get_users(db: State<'_, Database>) -> Result<Vec<User>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = conn.prepare("SELECT id, name, email, created_at FROM users ORDER BY created_at DESC")
+    let mut stmt = conn
+        .prepare("SELECT id, name, email, created_at FROM users ORDER BY created_at DESC")
         .map_err(|e| e.to_string())?;
-    
-    let user_iter = stmt.query_map([], |row| {
-        Ok(User {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            email: row.get(2)?,
-            created_at: row.get(3)?,
+
+    let user_iter = stmt
+        .query_map([], |row| {
+            Ok(User {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                email: row.get(2)?,
+                created_at: row.get(3)?,
+            })
         })
-    }).map_err(|e| e.to_string())?;
-    
+        .map_err(|e| e.to_string())?;
+
     let mut users = Vec::new();
     for user in user_iter {
         users.push(user.map_err(|e| e.to_string())?);
     }
-    
+
     Ok(users)
 }
 
@@ -118,8 +120,9 @@ async fn create_user(db: State<'_, Database>, user: CreateUser) -> Result<(), St
     conn.execute(
         "INSERT INTO users (name, email) VALUES (?1, ?2)",
         params![user.name, user.email],
-    ).map_err(|e| e.to_string())?;
-    
+    )
+    .map_err(|e| e.to_string())?;
+
     Ok(())
 }
 
@@ -128,7 +131,7 @@ async fn delete_user(db: State<'_, Database>, id: i64) -> Result<(), String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM users WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
-    
+
     Ok(())
 }
 
@@ -137,23 +140,25 @@ async fn get_notes(db: State<'_, Database>) -> Result<Vec<Note>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT id, title, content, user_id, created_at, updated_at FROM notes ORDER BY updated_at DESC")
         .map_err(|e| e.to_string())?;
-    
-    let note_iter = stmt.query_map([], |row| {
-        Ok(Note {
-            id: row.get(0)?,
-            title: row.get(1)?,
-            content: row.get(2)?,
-            user_id: row.get(3)?,
-            created_at: row.get(4)?,
-            updated_at: row.get(5)?,
+
+    let note_iter = stmt
+        .query_map([], |row| {
+            Ok(Note {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                content: row.get(2)?,
+                user_id: row.get(3)?,
+                created_at: row.get(4)?,
+                updated_at: row.get(5)?,
+            })
         })
-    }).map_err(|e| e.to_string())?;
-    
+        .map_err(|e| e.to_string())?;
+
     let mut notes = Vec::new();
     for note in note_iter {
         notes.push(note.map_err(|e| e.to_string())?);
     }
-    
+
     Ok(notes)
 }
 
@@ -163,8 +168,9 @@ async fn create_note(db: State<'_, Database>, note: CreateNote) -> Result<(), St
     conn.execute(
         "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
         params![note.title, note.content, note.user_id],
-    ).map_err(|e| e.to_string())?;
-    
+    )
+    .map_err(|e| e.to_string())?;
+
     Ok(())
 }
 
@@ -173,7 +179,7 @@ async fn delete_note(db: State<'_, Database>, id: i64) -> Result<(), String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM notes WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
-    
+
     Ok(())
 }
 
@@ -182,7 +188,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let db = Database::new(&app.handle()).expect("Failed to initialize database");
+            let db = Database::new(app.handle()).expect("Failed to initialize database");
             app.manage(db);
             Ok(())
         })

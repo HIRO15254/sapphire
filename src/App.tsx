@@ -7,7 +7,6 @@ import {
   Container,
   Group,
   Image,
-  Notification,
   Stack,
   Table,
   Tabs,
@@ -16,6 +15,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { showNotification } from "@mantine/notifications";
 import { IconTrash } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useState } from "react";
@@ -47,21 +47,12 @@ function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newUser, setNewUser] = useState({ name: "", email: "" });
   const [newNote, setNewNote] = useState({ title: "", content: "", user_id: 0 });
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>("demo");
 
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
     setGreetMsg(await invoke("greet", { name }));
   }
-
-  const showNotification = (message: string, type: "success" | "error" = "success") => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   // Database is now initialized on Rust side
 
@@ -70,79 +61,127 @@ function App() {
       const result = await invoke<User[]>("get_users");
       setUsers(result);
     } catch (error) {
-      showNotification("Failed to load users", "error");
+      showNotification({
+        title: "Error",
+        message: "Failed to load users",
+        color: "red",
+      });
       console.error(error);
     }
-  }, [showNotification]);
+  }, []);
 
   const loadNotes = useCallback(async () => {
     try {
       const result = await invoke<Note[]>("get_notes");
       setNotes(result);
     } catch (error) {
-      showNotification("Failed to load notes", "error");
+      showNotification({
+        title: "Error",
+        message: "Failed to load notes",
+        color: "red",
+      });
       console.error(error);
     }
-  }, [showNotification]);
+  }, []);
 
   const createUser = async () => {
     if (!newUser.name || !newUser.email) {
-      showNotification("Please fill in all fields", "error");
+      showNotification({
+        title: "Error",
+        message: "Please fill in all fields",
+        color: "red",
+      });
       return;
     }
 
     try {
       await invoke("create_user", { user: newUser });
       setNewUser({ name: "", email: "" });
-      showNotification("User created successfully");
+      showNotification({
+        title: "Success",
+        message: "User created successfully",
+        color: "green",
+      });
       loadUsers();
     } catch (error) {
       console.error("Failed to create user:", error);
       const errorMessage = typeof error === "string" ? error : "Unknown error occurred";
-      showNotification(`Failed to create user: ${errorMessage}`, "error");
+      showNotification({
+        title: "Error",
+        message: `Failed to create user: ${errorMessage}`,
+        color: "red",
+      });
     }
   };
 
   const deleteUser = async (id: number) => {
     try {
       await invoke("delete_user", { id });
-      showNotification("User deleted successfully");
+      showNotification({
+        title: "Success",
+        message: "User deleted successfully",
+        color: "green",
+      });
       loadUsers();
       loadNotes(); // Refresh notes in case they were linked to this user
     } catch (error) {
       console.error("Failed to delete user:", error);
       const errorMessage = typeof error === "string" ? error : "Unknown error occurred";
-      showNotification(`Failed to delete user: ${errorMessage}`, "error");
+      showNotification({
+        title: "Error",
+        message: `Failed to delete user: ${errorMessage}`,
+        color: "red",
+      });
     }
   };
 
   const createNote = async () => {
     if (!newNote.title || newNote.user_id === 0) {
-      showNotification("Please fill in title and select a user", "error");
+      showNotification({
+        title: "Error",
+        message: "Please fill in title and select a user",
+        color: "red",
+      });
       return;
     }
 
     try {
       await invoke("create_note", { note: newNote });
       setNewNote({ title: "", content: "", user_id: 0 });
-      showNotification("Note created successfully");
+      showNotification({
+        title: "Success",
+        message: "Note created successfully",
+        color: "green",
+      });
       loadNotes();
     } catch (error) {
       console.error("Failed to create note:", error);
       const errorMessage = typeof error === "string" ? error : "Unknown error occurred";
-      showNotification(`Failed to create note: ${errorMessage}`, "error");
+      showNotification({
+        title: "Error",
+        message: `Failed to create note: ${errorMessage}`,
+        color: "red",
+      });
     }
   };
 
   const deleteNote = async (id: number) => {
     try {
       await invoke("delete_note", { id });
-      showNotification("Note deleted successfully");
+      showNotification({
+        title: "Success",
+        message: "Note deleted successfully",
+        color: "green",
+      });
       loadNotes();
     } catch (error) {
       console.error("Failed to delete note:", error);
       const errorMessage = typeof error === "string" ? error : "Unknown error occurred";
-      showNotification(`Failed to delete note: ${errorMessage}`, "error");
+      showNotification({
+        title: "Error",
+        message: `Failed to delete note: ${errorMessage}`,
+        color: "red",
+      });
     }
   };
 
@@ -153,25 +192,18 @@ function App() {
         await loadNotes();
       } catch (error) {
         console.error("Failed to load data:", error);
-        showNotification("Failed to load application data", "error");
+        showNotification({
+          title: "Error",
+          message: "Failed to load application data",
+          color: "red",
+        });
       }
     };
     loadData();
-  }, [loadUsers, loadNotes, showNotification]);
+  }, [loadUsers, loadNotes]);
 
   return (
     <Container size="xl" py={40}>
-      {notification && (
-        <Notification
-          color={notification.type === "error" ? "red" : "green"}
-          title={notification.type === "error" ? "Error" : "Success"}
-          onClose={() => setNotification(null)}
-          mb="md"
-        >
-          {notification.message}
-        </Notification>
-      )}
-
       <Title order={1} ta="center" mb="xl">
         Sapphire - SQLite Database Demo
       </Title>
