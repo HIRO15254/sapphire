@@ -18,7 +18,6 @@ import {
 } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
-import Database from "@tauri-apps/plugin-sql";
 import { useCallback, useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 
@@ -43,8 +42,7 @@ function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
 
-  // Database states
-  const [db, setDb] = useState<Database | null>(null);
+  // Database states are now handled by Rust
   const [users, setUsers] = useState<User[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [newUser, setNewUser] = useState({ name: "", email: "" });
@@ -65,78 +63,36 @@ function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Initialize database on app start
-  const initDatabase = useCallback(async () => {
-    try {
-      const database = await Database.load("sqlite:sapphire.db");
-      setDb(database);
-
-      // Create tables
-      await database.execute(`
-        CREATE TABLE IF NOT EXISTS users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          email TEXT UNIQUE NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-
-      await database.execute(`
-        CREATE TABLE IF NOT EXISTS notes (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title TEXT NOT NULL,
-          content TEXT,
-          user_id INTEGER NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-        );
-      `);
-
-      console.log("Database initialized successfully");
-    } catch (error) {
-      console.error("Failed to initialize database:", error);
-      showNotification("Failed to initialize database", "error");
-    }
-  }, [showNotification]);
+  // Database is now initialized on Rust side
 
   const loadUsers = useCallback(async () => {
-    if (!db) return;
     try {
-      const result = await db.select<User[]>(
-        "SELECT id, name, email, created_at FROM users ORDER BY created_at DESC"
-      );
+      const result = await invoke<User[]>("get_users");
       setUsers(result);
     } catch (error) {
       showNotification("Failed to load users", "error");
       console.error(error);
     }
-  }, [db, showNotification]);
+  }, [showNotification]);
 
   const loadNotes = useCallback(async () => {
-    if (!db) return;
     try {
-      const result = await db.select<Note[]>(
-        "SELECT id, title, content, user_id, created_at, updated_at FROM notes ORDER BY updated_at DESC"
-      );
+      const result = await invoke<Note[]>("get_notes");
       setNotes(result);
     } catch (error) {
       showNotification("Failed to load notes", "error");
       console.error(error);
     }
-  }, [db, showNotification]);
+  }, [showNotification]);
 
   const createUser = async () => {
-    if (!db || !newUser.name || !newUser.email) {
+    if (!newUser.name || !newUser.email) {
       showNotification("Please fill in all fields", "error");
       return;
     }
 
     try {
-      await db.execute("INSERT INTO users (name, email) VALUES ($1, $2)", [
-        newUser.name,
-        newUser.email,
-      ]);
+      await invoke("create_user", { user: newUser });
       setNewUser({ name: "", email: "" });
       showNotification("User created successfully");
       loadUsers();
@@ -148,9 +104,8 @@ function App() {
   };
 
   const deleteUser = async (id: number) => {
-    if (!db) return;
     try {
-      await db.execute("DELETE FROM users WHERE id = $1", [id]);
+      await invoke("delete_user", { id });
       showNotification("User deleted successfully");
       loadUsers();
       loadNotes(); // Refresh notes in case they were linked to this user
@@ -162,17 +117,13 @@ function App() {
   };
 
   const createNote = async () => {
-    if (!db || !newNote.title || newNote.user_id === 0) {
+    if (!newNote.title || newNote.user_id === 0) {
       showNotification("Please fill in title and select a user", "error");
       return;
     }
 
     try {
-      await db.execute("INSERT INTO notes (title, content, user_id) VALUES ($1, $2, $3)", [
-        newNote.title,
-        newNote.content || null,
-        newNote.user_id,
-      ]);
+      await invoke("create_note", { note: newNote });
       setNewNote({ title: "", content: "", user_id: 0 });
       showNotification("Note created successfully");
       loadNotes();
@@ -184,9 +135,8 @@ function App() {
   };
 
   const deleteNote = async (id: number) => {
-    if (!db) return;
     try {
-      await db.execute("DELETE FROM notes WHERE id = $1", [id]);
+      await invoke("delete_note", { id });
       showNotification("Note deleted successfully");
       loadNotes();
     } catch (error) {
@@ -197,24 +147,17 @@ function App() {
   };
 
   useEffect(() => {
-    const initAndLoad = async () => {
+    const loadData = async () => {
       try {
-        // Initialize database
-        await initDatabase();
-
-        // Wait a bit for database to be ready
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        // Load data
         await loadUsers();
         await loadNotes();
       } catch (error) {
-        console.error("Failed to initialize app:", error);
-        showNotification("Failed to initialize application", "error");
+        console.error("Failed to load data:", error);
+        showNotification("Failed to load application data", "error");
       }
     };
-    initAndLoad();
-  }, [initDatabase, loadUsers, loadNotes, showNotification]);
+    loadData();
+  }, [loadUsers, loadNotes, showNotification]);
 
   return (
     <Container size="xl" py={40}>
