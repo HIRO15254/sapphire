@@ -156,7 +156,7 @@ jobs:
 
     - name: Install Android NDK
       run: |
-        sdkmanager --sdk_root=$ANDROID_HOME "ndk;${{ env.NDK_VERSION }}"
+        sdkmanager "ndk;${{ env.NDK_VERSION }}"
 
     - name: Cache dependencies
       uses: actions/cache@v4
@@ -180,7 +180,7 @@ jobs:
     - name: Build Tauri Android app (Release)
       run: bun run tauri android build
       env:
-        NDK_HOME: $ANDROID_HOME/ndk/${{ env.NDK_VERSION }}
+        NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
 
     - name: Upload Android build artifacts
       uses: actions/upload-artifact@v4
