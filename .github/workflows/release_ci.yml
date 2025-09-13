@@ -177,6 +177,13 @@ jobs:
       run: |
         bun run tauri android init
 
+    - name: Setup Android Keystore
+      run: |
+        echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/release.jks
+        echo "storeFile=release.jks" >> src-tauri/gen/android/keystore.properties
+        echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> src-tauri/gen/android/keystore.properties
+        echo "password=${{ secrets.KEY_PASSWORD }}" >> src-tauri/gen/android/keystore.properties
+
     - name: Build Tauri Android app (Release)
       run: bun run tauri android build
       env:
