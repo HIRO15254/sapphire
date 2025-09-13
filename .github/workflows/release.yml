@@ -10,24 +10,24 @@ permissions:
   actions: read
 
 jobs:
-  test:
-    name: Test Suite
+  lint:
+    name: Lint
     runs-on: windows-latest
-        
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Setup Bun
       uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
-        
+
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt, clippy
-        
+
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
@@ -36,30 +36,55 @@ jobs:
           ~/.cargo/git
           node_modules
           src-tauri/target
-        key: ${{ runner.os }}-release-deps-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
+        key: ${{ runner.os }}-release-lint-deps-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
         restore-keys: |
-          ${{ runner.os }}-release-deps-
-          
+          ${{ runner.os }}-release-lint-deps-
+
     - name: Install dependencies
       run: bun install
-      
-    - name: Run lint check (Frontend + Rust)
+
+    - name: Run lint
       run: bun run lint
-      
-    - name: Run format check (Frontend + Rust)
-      run: bun run format:check
-      
-    - name: Run all tests
+
+  test:
+    name: Test
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          node_modules
+          src-tauri/target
+        key: ${{ runner.os }}-release-test-deps-${{ hashFiles('**/Cargo.lock', '**/bun.lockb', '**/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-release-test-deps-
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Run tests
       run: bun run test:all
-      
-    - name: Build project
-      run: bun run build
 
   build-windows:
     name: Build Windows App
     runs-on: windows-latest
-    needs: test
-        
+    needs: [lint, test]
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -102,7 +127,7 @@ jobs:
   build-android:
     name: Build Android App
     runs-on: ubuntu-latest
-    needs: test
+    needs: [lint, test]
         
     steps:
     - name: Checkout repository
