@@ -210,8 +210,9 @@ jobs:
 
       - name: Setup Android Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/release.jks
-          echo "storeFile=release.jks" >> src-tauri/gen/android/keystore.properties
+          mkdir -p src-tauri/gen/android/app
+          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/app/release.jks
+          echo "storeFile=app/release.jks" > src-tauri/gen/android/keystore.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> src-tauri/gen/android/keystore.properties
           echo "password=${{ secrets.KEY_PASSWORD }}" >> src-tauri/gen/android/keystore.properties
 
