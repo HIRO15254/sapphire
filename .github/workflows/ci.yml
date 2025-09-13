@@ -198,9 +198,19 @@ jobs:
       - name: Install Node.js dependencies
         run: bun install
 
+      - name: Generate platform icons
+        run: bun run generate-icons
+
       - name: Setup Android Environment
         run: |
           echo "NDK_HOME=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}/" >> $GITHUB_ENV
+
+      - name: Setup Android Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/release.jks
+          echo "storeFile=release.jks" >> src-tauri/gen/android/keystore.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> src-tauri/gen/android/keystore.properties
+          echo "password=${{ secrets.KEY_PASSWORD }}" >> src-tauri/gen/android/keystore.properties
 
       - name: Build Android APK
         run: |

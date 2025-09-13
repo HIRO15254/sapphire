@@ -1,7 +1,7 @@
 {
   "name": "sapphire",
   "private": true,
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "test:rust": "cd src-tauri && cargo test",
     "test:all": "bun run test:run && bun run test:rust",
     "tauri": "tauri",
+    "generate-icons": "cd src-tauri && tauri icon ../src-tauri/icons/icon.png",
     "lint": "biome check . && cd src-tauri && cargo clippy -- -D warnings",
     "lint:fix": "biome check . --write && cd src-tauri && cargo clippy --fix --allow-dirty --allow-staged",
     "format": "biome format . --write && cd src-tauri && cargo fmt",
