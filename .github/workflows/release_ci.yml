@@ -194,7 +194,7 @@ jobs:
       with:
         name: tauri-app-android-release
         path: |
-          src-tauri/gen/android/app/build/outputs/apk/release/*.apk
+          src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
         retention-days: 30
 
   create-release:
