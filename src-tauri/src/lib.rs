@@ -23,7 +23,7 @@ pub struct Note {
     pub updated_at: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateUser {
     pub name: String,
     pub email: String,
@@ -208,7 +208,53 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rusqlite::Connection;
+    use std::sync::Mutex;
+    use tempfile::NamedTempFile;
 
+    // Test database helper
+    fn create_test_database() -> Database {
+        let temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        let conn = Connection::open(temp_file.path()).expect("Failed to open test database");
+
+        // Create tables
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            [],
+        ).expect("Failed to create users table");
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                content TEXT,
+                user_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )",
+            [],
+        ).expect("Failed to create notes table");
+
+        Database(Mutex::new(conn))
+    }
+
+    // Helper to insert test user
+    fn insert_test_user(db: &Database, name: &str, email: &str) -> i64 {
+        let conn = db.0.lock().unwrap();
+        conn.execute(
+            "INSERT INTO users (name, email) VALUES (?1, ?2)",
+            params![name, email],
+        ).unwrap();
+        conn.last_insert_rowid()
+    }
+
+    // Unit tests for greet command
     #[test]
     fn test_greet_command() {
         let result = greet("World");
@@ -237,5 +283,303 @@ mod tests {
     fn test_greet_with_numbers() {
         let result = greet("User123");
         assert_eq!(result, "Hello, User123! You've been greeted from Rust!");
+    }
+
+    // Database tests
+    #[tokio::test]
+    async fn test_create_and_get_users() {
+        let db = create_test_database();
+
+        // Direct database test
+        let user_data = CreateUser {
+            name: "John Doe".to_string(),
+            email: "john@example.com".to_string(),
+        };
+
+        // Test creating a user directly
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "INSERT INTO users (name, email) VALUES (?1, ?2)",
+                params![user_data.name, user_data.email],
+            ).unwrap();
+        }
+
+        // Test getting users directly
+        let conn = db.0.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT id, name, email, created_at FROM users ORDER BY created_at DESC").unwrap();
+        let user_iter = stmt.query_map([], |row| {
+            Ok(User {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                email: row.get(2)?,
+                created_at: row.get(3)?,
+            })
+        }).unwrap();
+
+        let users: Vec<User> = user_iter.map(|u| u.unwrap()).collect();
+        assert_eq!(users.len(), 1);
+        assert_eq!(users[0].name, "John Doe");
+        assert_eq!(users[0].email, "john@example.com");
+        assert!(users[0].id.is_some());
+        assert!(users[0].created_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_create_user_duplicate_email() {
+        let db = create_test_database();
+
+        // First user should succeed
+        {
+            let conn = db.0.lock().unwrap();
+            let result = conn.execute(
+                "INSERT INTO users (name, email) VALUES (?1, ?2)",
+                params!["John Doe", "john@example.com"],
+            );
+            assert!(result.is_ok());
+        }
+
+        // Second user with same email should fail
+        {
+            let conn = db.0.lock().unwrap();
+            let result = conn.execute(
+                "INSERT INTO users (name, email) VALUES (?1, ?2)",
+                params!["Jane Doe", "john@example.com"], // Same email
+            );
+            assert!(result.is_err());
+            assert!(result.unwrap_err().to_string().contains("UNIQUE constraint failed"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_user() {
+        let db = create_test_database();
+
+        // Create a user
+        let user_id = insert_test_user(&db, "John Doe", "john@example.com");
+
+        // Verify user exists
+        {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM users").unwrap();
+            let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+            assert_eq!(count, 1);
+        }
+
+        // Delete user
+        {
+            let conn = db.0.lock().unwrap();
+            let result = conn.execute("DELETE FROM users WHERE id = ?1", params![user_id]);
+            assert!(result.is_ok());
+        }
+
+        // Verify user is deleted
+        {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM users").unwrap();
+            let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+            assert_eq!(count, 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_nonexistent_user() {
+        let db = create_test_database();
+
+        // Try to delete non-existent user
+        let conn = db.0.lock().unwrap();
+        let result = conn.execute("DELETE FROM users WHERE id = ?1", params![999]);
+        // Should succeed even if user doesn't exist (SQLite behavior)
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 0); // 0 rows affected
+    }
+
+    #[tokio::test]
+    async fn test_create_and_get_notes() {
+        let db = create_test_database();
+
+        // Create a user first
+        let user_id = insert_test_user(&db, "John Doe", "john@example.com");
+
+        // Create a note
+        {
+            let conn = db.0.lock().unwrap();
+            let result = conn.execute(
+                "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
+                params!["Test Note", "This is a test note", user_id],
+            );
+            assert!(result.is_ok());
+        }
+
+        // Get notes
+        let conn = db.0.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT id, title, content, user_id, created_at, updated_at FROM notes ORDER BY updated_at DESC").unwrap();
+        let note_iter = stmt.query_map([], |row| {
+            Ok(Note {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                content: row.get(2)?,
+                user_id: row.get(3)?,
+                created_at: row.get(4)?,
+                updated_at: row.get(5)?,
+            })
+        }).unwrap();
+
+        let notes: Vec<Note> = note_iter.map(|n| n.unwrap()).collect();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].title, "Test Note");
+        assert_eq!(notes[0].content, Some("This is a test note".to_string()));
+        assert_eq!(notes[0].user_id, user_id);
+        assert!(notes[0].id.is_some());
+        assert!(notes[0].created_at.is_some());
+        assert!(notes[0].updated_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_create_note_without_content() {
+        let db = create_test_database();
+
+        // Create a user first
+        let user_id = insert_test_user(&db, "John Doe", "john@example.com");
+
+        // Create a note without content
+        {
+            let conn = db.0.lock().unwrap();
+            let result = conn.execute(
+                "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
+                params!["Title Only", None::<String>, user_id],
+            );
+            assert!(result.is_ok());
+        }
+
+        // Get notes
+        let conn = db.0.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT title, content FROM notes").unwrap();
+        let note_iter = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+        }).unwrap();
+
+        let notes: Vec<(String, Option<String>)> = note_iter.map(|n| n.unwrap()).collect();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].0, "Title Only");
+        assert_eq!(notes[0].1, None);
+    }
+
+    #[tokio::test]
+    async fn test_delete_note() {
+        let db = create_test_database();
+
+        // Create user and note
+        let user_id = insert_test_user(&db, "John Doe", "john@example.com");
+        let note_id = {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
+                params!["Test Note", "Content", user_id],
+            ).unwrap();
+            conn.last_insert_rowid()
+        };
+
+        // Verify note exists
+        {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM notes").unwrap();
+            let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+            assert_eq!(count, 1);
+        }
+
+        // Delete note
+        {
+            let conn = db.0.lock().unwrap();
+            let result = conn.execute("DELETE FROM notes WHERE id = ?1", params![note_id]);
+            assert!(result.is_ok());
+        }
+
+        // Verify note is deleted
+        {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM notes").unwrap();
+            let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+            assert_eq!(count, 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_cascade_delete_notes_when_user_deleted() {
+        let db = create_test_database();
+
+        // Create user
+        let user_id = insert_test_user(&db, "John Doe", "john@example.com");
+
+        // Create multiple notes for the user
+        {
+            let conn = db.0.lock().unwrap();
+            for i in 1..=3 {
+                conn.execute(
+                    "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
+                    params![format!("Note {}", i), format!("Content {}", i), user_id],
+                ).unwrap();
+            }
+        }
+
+        // Verify notes exist
+        {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM notes").unwrap();
+            let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+            assert_eq!(count, 3);
+        }
+
+        // Delete user
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute("DELETE FROM users WHERE id = ?1", params![user_id]).unwrap();
+        }
+
+        // Verify all notes are deleted due to cascade
+        {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM notes").unwrap();
+            let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+            assert_eq!(count, 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_multiple_users_and_notes() {
+        let db = create_test_database();
+
+        // Create multiple users
+        let user1_id = insert_test_user(&db, "User 1", "user1@example.com");
+        let user2_id = insert_test_user(&db, "User 2", "user2@example.com");
+
+        // Create notes for each user
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
+                params!["User 1 Note", "User 1 content", user1_id],
+            ).unwrap();
+            conn.execute(
+                "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
+                params!["User 2 Note", "User 2 content", user2_id],
+            ).unwrap();
+        }
+
+        // Verify both notes exist
+        {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM notes").unwrap();
+            let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+            assert_eq!(count, 2);
+        }
+
+        // Verify users exist
+        {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT COUNT(*) FROM users").unwrap();
+            let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+            assert_eq!(count, 2);
+        }
     }
 }
