@@ -72,19 +72,28 @@ jobs:
 
     - name: Install Edge WebDriver
       run: |
-        # Use chocolatey to install Edge WebDriver
-        choco install selenium-edge-driver -y --no-progress
-        # Add to system PATH permanently
-        $existingPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
-        $newPath = "$existingPath;C:\tools\selenium\edge-driver"
-        [Environment]::SetEnvironmentVariable("PATH", $newPath, "Machine")
-        # Update current session PATH
-        $env:PATH += ";C:\tools\selenium\edge-driver"
-        # Verify installation and show path
-        Write-Host "WebDriver location:"
-        Get-ChildItem "C:\tools\selenium\edge-driver" -Name "msedgedriver.exe"
-        msedgedriver.exe --version
-        Write-Host "Current PATH includes WebDriver: $($env:PATH -like '*edge-driver*')"
+        # Get latest stable version
+        Write-Host "Getting latest Edge WebDriver version..."
+        $latestVersion = Invoke-RestMethod -Uri "https://msedgedriver.azureedge.net/LATEST_STABLE"
+        Write-Host "Latest version: $latestVersion"
+
+        # Download latest stable Edge WebDriver
+        $downloadUrl = "https://msedgedriver.azureedge.net/$latestVersion/edgedriver_win64.zip"
+        Write-Host "Downloading from: $downloadUrl"
+        Invoke-WebRequest -Uri $downloadUrl -OutFile "edgedriver.zip"
+
+        # Extract and setup
+        Expand-Archive -Path "edgedriver.zip" -DestinationPath "edgedriver" -Force
+        $driverPath = Join-Path $PWD "edgedriver"
+
+        # Add to PATH
+        $env:PATH += ";$driverPath"
+        [Environment]::SetEnvironmentVariable("PATH", "$env:PATH", "Process")
+
+        # Verify installation
+        Write-Host "WebDriver location: $driverPath"
+        Get-ChildItem $driverPath -Name "msedgedriver.exe"
+        & "$driverPath\msedgedriver.exe" --version
       shell: powershell
 
     - name: Install tauri-driver
@@ -105,16 +114,32 @@ jobs:
 
     - name: Run E2E tests
       run: |
-        # Refresh PATH from environment
-        $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine")
-        Write-Host "WebDriver in PATH: $(where.exe msedgedriver.exe)"
-        Write-Host "Tauri driver location: $(where.exe tauri-driver.exe)"
+        # Add current WebDriver path to environment
+        $driverPath = Join-Path $PWD "edgedriver"
+        $env:PATH += ";$driverPath"
+
+        Write-Host "Current working directory: $PWD"
+        Write-Host "WebDriver path: $driverPath"
+        Write-Host "WebDriver exists: $(Test-Path (Join-Path $driverPath 'msedgedriver.exe'))"
+
+        # Try to find executables
+        if (Get-Command msedgedriver.exe -ErrorAction SilentlyContinue) {
+          Write-Host "Found msedgedriver: $(Get-Command msedgedriver.exe | Select-Object -ExpandProperty Source)"
+        } else {
+          Write-Host "msedgedriver not found in PATH"
+        }
+
+        if (Get-Command tauri-driver.exe -ErrorAction SilentlyContinue) {
+          Write-Host "Found tauri-driver: $(Get-Command tauri-driver.exe | Select-Object -ExpandProperty Source)"
+        } else {
+          Write-Host "tauri-driver not found in PATH"
+        }
+
         cd e2e-tests
         npm run test:clean
       env:
         TAURI_TEST_MODE: "1"
         CI: "true"
-        PATH: "C:\\tools\\selenium\\edge-driver;${{ env.PATH }}"
       shell: powershell
 
     - name: Upload E2E test results
