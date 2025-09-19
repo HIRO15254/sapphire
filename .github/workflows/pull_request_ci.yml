@@ -72,13 +72,12 @@ jobs:
 
     - name: Install Edge WebDriver
       run: |
-        $EdgeVersion = (Get-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}" -Name "pv").pv
-        Write-Host "Edge version: $EdgeVersion"
-        $url = "https://msedgedriver.azureedge.net/$EdgeVersion/edgedriver_win64.zip"
-        Invoke-WebRequest -Uri $url -OutFile "edgedriver.zip"
-        Expand-Archive -Path "edgedriver.zip" -DestinationPath "." -Force
-        $env:PATH += ";$PWD"
-        Write-Host "WebDriver installed to: $PWD\msedgedriver.exe"
+        # Use chocolatey to install Edge WebDriver
+        choco install selenium-edge-driver -y --no-progress
+        # Add to PATH
+        $env:PATH += ";C:\tools\selenium\edge-driver"
+        # Verify installation
+        msedgedriver.exe --version
       shell: powershell
 
     - name: Install tauri-driver
@@ -99,7 +98,7 @@ jobs:
 
     - name: Run E2E tests
       run: |
-        $env:PATH += ";$PWD"
+        $env:PATH += ";C:\tools\selenium\edge-driver"
         cd e2e-tests
         npm run test:clean
       env:
