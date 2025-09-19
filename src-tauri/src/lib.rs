@@ -41,6 +41,11 @@ pub struct Database(pub Mutex<Connection>);
 
 impl Database {
     pub fn new(app_handle: &AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
+        // Check if running in test mode
+        if std::env::var("TAURI_TEST_MODE").is_ok() {
+            return Self::new_test_e2e(app_handle);
+        }
+
         // Get the app data directory
         let app_data_dir = app_handle
             .path()
@@ -54,7 +59,50 @@ impl Database {
         let db_path = app_data_dir.join("sapphire.db");
         let conn = Connection::open(&db_path)?;
 
-        // Create tables
+        Self::create_tables(&conn)?;
+        Ok(Database(Mutex::new(conn)))
+    }
+
+    fn new_test_e2e(app_handle: &AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
+        // Get the app data directory
+        let app_data_dir = app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+        // Create test database directory
+        let test_db_dir = app_data_dir.join("test_databases");
+        fs::create_dir_all(&test_db_dir)?;
+
+        // Create a unique test database file path
+        let test_id = std::env::var("TAURI_TEST_ID").unwrap_or_else(|_| {
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis();
+            format!("test_{}", timestamp)
+        });
+        let db_path = test_db_dir.join(format!("sapphire_test_{}.db", test_id));
+
+        let conn = Connection::open(&db_path)?;
+        Self::create_tables(&conn)?;
+        Ok(Database(Mutex::new(conn)))
+    }
+
+    pub fn new_with_path(db_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let conn = Connection::open(db_path)?;
+        Self::create_tables(&conn)?;
+        Ok(Database(Mutex::new(conn)))
+    }
+
+    pub fn new_test() -> Result<Self, Box<dyn std::error::Error>> {
+        let conn = Connection::open(":memory:")?;
+        Self::create_tables(&conn)?;
+        Ok(Database(Mutex::new(conn)))
+    }
+
+    fn create_tables(conn: &Connection) -> Result<(), Box<dyn std::error::Error>> {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,7 +126,40 @@ impl Database {
             [],
         )?;
 
-        Ok(Database(Mutex::new(conn)))
+        Ok(())
+    }
+
+    pub fn cleanup_test_databases(app_handle: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+        if let Ok(app_data_dir) = app_handle.path().app_data_dir() {
+            let test_db_dir = app_data_dir.join("test_databases");
+            if test_db_dir.exists() {
+                for entry in fs::read_dir(test_db_dir)? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if path.is_file() {
+                        if let Some(file_name) = path.file_name() {
+                            if let Some(name_str) = file_name.to_str() {
+                                if name_str.starts_with("sapphire_test_") && name_str.ends_with(".db") {
+                                    let _ = fs::remove_file(path);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn cleanup_specific_test_database(app_handle: &AppHandle, test_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+        if let Ok(app_data_dir) = app_handle.path().app_data_dir() {
+            let test_db_dir = app_data_dir.join("test_databases");
+            let db_path = test_db_dir.join(format!("sapphire_test_{}.db", test_id));
+            if db_path.exists() {
+                fs::remove_file(db_path)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -183,6 +264,11 @@ async fn delete_note(db: State<'_, Database>, id: i64) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn cleanup_test_db(app: tauri::AppHandle, test_id: String) -> Result<(), String> {
+    Database::cleanup_specific_test_database(&app, &test_id).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -199,7 +285,8 @@ pub fn run() {
             delete_user,
             get_notes,
             create_note,
-            delete_note
+            delete_note,
+            cleanup_test_db
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -208,40 +295,10 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::Connection;
-    use std::sync::Mutex;
-    use tempfile::NamedTempFile;
 
     // Test database helper
     fn create_test_database() -> Database {
-        let temp_file = NamedTempFile::new().expect("Failed to create temp file");
-        let conn = Connection::open(temp_file.path()).expect("Failed to open test database");
-
-        // Create tables
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )",
-            [],
-        ).expect("Failed to create users table");
-
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS notes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                content TEXT,
-                user_id INTEGER NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-            )",
-            [],
-        ).expect("Failed to create notes table");
-
-        Database(Mutex::new(conn))
+        Database::new_test().expect("Failed to create test database")
     }
 
     // Helper to insert test user

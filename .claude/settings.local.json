@@ -12,7 +12,8 @@
       "Bash(cargo test:*)",
       "Bash(bun add:*)",
       "Bash(bunx vitest run:*)",
-      "Bash(npx vitest run:*)"
+      "Bash(npx vitest run:*)",
+      "Bash(npm run test:e2e:*)"
     ],
     "deny": [],
     "ask": []
