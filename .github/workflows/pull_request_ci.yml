@@ -139,10 +139,21 @@ jobs:
     - name: Install dependencies
       run: bun install
 
-    - name: Check formatting and linting
+    - name: Check Frontend formatting
+      run: bun run biome format --check
+
+    - name: check Frontend linting
+      run: bun run biome lint
+
+    - name: Check Rust formatting
       run: |
-        bun run format:check
-        bun run lint
+          cd src-tauri
+          cargo fmt -- --check
+
+    - name: Check Rust linting
+      run: |
+          cd src-tauri
+          cargo clippy --all-targets --all-features -- -D warnings
 
   build:
     name: Build Test
