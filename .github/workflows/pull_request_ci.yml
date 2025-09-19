@@ -1,0 +1,118 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  test-frontend:
+    name: Frontend Tests
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Run frontend tests with coverage
+      run: bun run test
+
+  test-rust:
+    name: Rust Tests
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          src-tauri/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Run Rust tests
+      run: |
+        cd src-tauri
+        cargo test -- --test-threads=1
+
+
+  # Temporarily disable E2E tests in CI due to WebDriver setup complexity
+  # test-e2e:
+  #   name: E2E Tests
+  #   runs-on: windows-latest
+  #   timeout-minutes: 30
+  #   continue-on-error: true  # Allow CI to pass even if E2E fails
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   # ... E2E test steps would go here ...
+
+  lint:
+    name: Lint & Format Check
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Check Frontend formatting
+      run: bun run biome format .
+
+    - name: Check Frontend linting
+      run: bun run biome lint .
+
+    - name: Check Rust formatting
+      run: |
+          cd src-tauri
+          cargo fmt -- --check
+
+    - name: Check Rust linting
+      run: |
+          cd src-tauri
+          cargo clippy --all-targets --all-features -- -D warnings
+
+  build:
+    name: Build Test
+    runs-on: windows-latest
+    needs: [test-frontend, test-rust, lint]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Build application
+      run: bun run build
