@@ -32,7 +32,6 @@ jobs:
         file: ./coverage/lcov.info
         flags: frontend
         name: frontend-coverage
-
   test-rust:
     name: Rust Tests
     runs-on: ubuntu-latest

@@ -32,7 +32,7 @@ export function SampleUserForm({ user, onUserSaved, onCancel }: SampleUserFormPr
         email: user.email,
       });
     }
-  }, [user]);
+  }, [user, sampleUserForm.setValues]);
 
   const handleSubmit = async (values: typeof sampleUserForm.values) => {
     try {

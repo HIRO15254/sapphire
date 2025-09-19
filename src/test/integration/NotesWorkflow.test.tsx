@@ -8,8 +8,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 import App from "../../App";
-import { fireEvent, render, screen, within } from "../helpers/renderWithProviders";
-import { createTestNote, createTestNotes, createTestUser } from "../helpers/testData";
+import { render, screen } from "../helpers/renderWithProviders";
+import { createTestNotes, createTestUser } from "../helpers/testData";
 
 // Get the mocked function
 const mockInvoke = vi.mocked(invoke);
@@ -22,7 +22,7 @@ describe("Notes Management Workflow", () => {
     mockInvoke.mockReset();
 
     // Default mock implementations
-    mockInvoke.mockImplementation((command: string, args?: any) => {
+    mockInvoke.mockImplementation((command: string, _args?: any) => {
       switch (command) {
         case "get_users":
           return Promise.resolve([testUser]);
@@ -156,7 +156,7 @@ describe("Notes Management Workflow", () => {
     const testNotes = createTestNotes(2, 1);
 
     // Initial state with notes
-    mockInvoke.mockImplementation((command: string, args?: any) => {
+    mockInvoke.mockImplementation((command: string, _args?: any) => {
       if (command === "get_notes") {
         return Promise.resolve(testNotes);
       }
@@ -186,7 +186,7 @@ describe("Notes Management Workflow", () => {
 
     // Mock delete response
     mockInvoke.mockClear();
-    mockInvoke.mockImplementation((command: string, args?: any) => {
+    mockInvoke.mockImplementation((command: string, _args?: any) => {
       if (command === "delete_note") {
         return Promise.resolve();
       }

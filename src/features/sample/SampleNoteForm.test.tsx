@@ -28,7 +28,7 @@ describe("SampleNoteForm Component", () => {
       id: 2,
       name: "Jane Smith",
       email: "jane@example.com",
-      created_at: "2024-01-02"
+      created_at: "2024-01-02",
     },
   ];
 

@@ -1,6 +1,18 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
+// Mock timezone and locale for consistent date formatting in tests
+process.env.TZ = "Asia/Tokyo";
+
+// Mock Intl.DateTimeFormat to ensure consistent locale
+const originalDateTimeFormat = Intl.DateTimeFormat;
+vi.stubGlobal("Intl", {
+  ...Intl,
+  DateTimeFormat: vi.fn().mockImplementation((locale, options) => {
+    return new originalDateTimeFormat("ja-JP", options);
+  }),
+});
+
 // Mock Tauri API
 Object.defineProperty(window, "__TAURI_INTERNALS__", {
   value: {},

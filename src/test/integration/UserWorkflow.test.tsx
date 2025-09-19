@@ -135,7 +135,7 @@ describe("User Management Workflow", () => {
     const testUsers = createTestUsers(2);
 
     // Initial state with users
-    mockInvoke.mockImplementation((command: string, args?: any) => {
+    mockInvoke.mockImplementation((command: string, _args?: any) => {
       if (command === "get_users") {
         return Promise.resolve(testUsers);
       }
@@ -165,7 +165,7 @@ describe("User Management Workflow", () => {
 
     // Mock delete response
     mockInvoke.mockClear();
-    mockInvoke.mockImplementation((command: string, args?: any) => {
+    mockInvoke.mockImplementation((command: string, _args?: any) => {
       if (command === "delete_user") {
         return Promise.resolve();
       }

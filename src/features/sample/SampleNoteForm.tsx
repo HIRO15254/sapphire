@@ -35,7 +35,7 @@ export function SampleNoteForm({ note, users, onNoteSaved, onCancel }: SampleNot
         user_id: note.user_id,
       });
     }
-  }, [note]);
+  }, [note, sampleNoteForm.setValues]);
 
   const handleSubmit = async (values: typeof sampleNoteForm.values) => {
     try {
