@@ -72,8 +72,14 @@ jobs:
 
     - name: Install Edge WebDriver
       run: |
-        cargo install --git https://github.com/chippers/msedgedriver-tool
-        msedgedriver-tool
+        $EdgeVersion = (Get-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}" -Name "pv").pv
+        Write-Host "Edge version: $EdgeVersion"
+        $url = "https://msedgedriver.azureedge.net/$EdgeVersion/edgedriver_win64.zip"
+        Invoke-WebRequest -Uri $url -OutFile "edgedriver.zip"
+        Expand-Archive -Path "edgedriver.zip" -DestinationPath "." -Force
+        $env:PATH += ";$PWD"
+        Write-Host "WebDriver installed to: $PWD\msedgedriver.exe"
+      shell: powershell
 
     - name: Install tauri-driver
       run: cargo install tauri-driver --locked
@@ -93,11 +99,13 @@ jobs:
 
     - name: Run E2E tests
       run: |
+        $env:PATH += ";$PWD"
         cd e2e-tests
         npm run test:clean
       env:
         TAURI_TEST_MODE: "1"
         CI: "true"
+      shell: powershell
 
     - name: Upload E2E test results
       uses: actions/upload-artifact@v4
