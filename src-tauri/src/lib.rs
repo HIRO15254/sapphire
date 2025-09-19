@@ -129,7 +129,9 @@ impl Database {
         Ok(())
     }
 
-    pub fn cleanup_test_databases(app_handle: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn cleanup_test_databases(
+        app_handle: &AppHandle,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(app_data_dir) = app_handle.path().app_data_dir() {
             let test_db_dir = app_data_dir.join("test_databases");
             if test_db_dir.exists() {
@@ -139,7 +141,9 @@ impl Database {
                     if path.is_file() {
                         if let Some(file_name) = path.file_name() {
                             if let Some(name_str) = file_name.to_str() {
-                                if name_str.starts_with("sapphire_test_") && name_str.ends_with(".db") {
+                                if name_str.starts_with("sapphire_test_")
+                                    && name_str.ends_with(".db")
+                                {
                                     let _ = fs::remove_file(path);
                                 }
                             }
@@ -151,7 +155,10 @@ impl Database {
         Ok(())
     }
 
-    pub fn cleanup_specific_test_database(app_handle: &AppHandle, test_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn cleanup_specific_test_database(
+        app_handle: &AppHandle,
+        test_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(app_data_dir) = app_handle.path().app_data_dir() {
             let test_db_dir = app_data_dir.join("test_databases");
             let db_path = test_db_dir.join(format!("sapphire_test_{}.db", test_id));
@@ -307,7 +314,8 @@ mod tests {
         conn.execute(
             "INSERT INTO users (name, email) VALUES (?1, ?2)",
             params![name, email],
-        ).unwrap();
+        )
+        .unwrap();
         conn.last_insert_rowid()
     }
 
@@ -359,20 +367,25 @@ mod tests {
             conn.execute(
                 "INSERT INTO users (name, email) VALUES (?1, ?2)",
                 params![user_data.name, user_data.email],
-            ).unwrap();
+            )
+            .unwrap();
         }
 
         // Test getting users directly
         let conn = db.0.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT id, name, email, created_at FROM users ORDER BY created_at DESC").unwrap();
-        let user_iter = stmt.query_map([], |row| {
-            Ok(User {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                email: row.get(2)?,
-                created_at: row.get(3)?,
+        let mut stmt = conn
+            .prepare("SELECT id, name, email, created_at FROM users ORDER BY created_at DESC")
+            .unwrap();
+        let user_iter = stmt
+            .query_map([], |row| {
+                Ok(User {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    email: row.get(2)?,
+                    created_at: row.get(3)?,
+                })
             })
-        }).unwrap();
+            .unwrap();
 
         let users: Vec<User> = user_iter.map(|u| u.unwrap()).collect();
         assert_eq!(users.len(), 1);
@@ -404,7 +417,10 @@ mod tests {
                 params!["Jane Doe", "john@example.com"], // Same email
             );
             assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("UNIQUE constraint failed"));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("UNIQUE constraint failed"));
         }
     }
 
@@ -471,16 +487,18 @@ mod tests {
         // Get notes
         let conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, title, content, user_id, created_at, updated_at FROM notes ORDER BY updated_at DESC").unwrap();
-        let note_iter = stmt.query_map([], |row| {
-            Ok(Note {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                content: row.get(2)?,
-                user_id: row.get(3)?,
-                created_at: row.get(4)?,
-                updated_at: row.get(5)?,
+        let note_iter = stmt
+            .query_map([], |row| {
+                Ok(Note {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    content: row.get(2)?,
+                    user_id: row.get(3)?,
+                    created_at: row.get(4)?,
+                    updated_at: row.get(5)?,
+                })
             })
-        }).unwrap();
+            .unwrap();
 
         let notes: Vec<Note> = note_iter.map(|n| n.unwrap()).collect();
         assert_eq!(notes.len(), 1);
@@ -512,9 +530,11 @@ mod tests {
         // Get notes
         let conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare("SELECT title, content FROM notes").unwrap();
-        let note_iter = stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
-        }).unwrap();
+        let note_iter = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+            })
+            .unwrap();
 
         let notes: Vec<(String, Option<String>)> = note_iter.map(|n| n.unwrap()).collect();
         assert_eq!(notes.len(), 1);
@@ -533,7 +553,8 @@ mod tests {
             conn.execute(
                 "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
                 params!["Test Note", "Content", user_id],
-            ).unwrap();
+            )
+            .unwrap();
             conn.last_insert_rowid()
         };
 
@@ -575,7 +596,8 @@ mod tests {
                 conn.execute(
                     "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
                     params![format!("Note {}", i), format!("Content {}", i), user_id],
-                ).unwrap();
+                )
+                .unwrap();
             }
         }
 
@@ -590,7 +612,8 @@ mod tests {
         // Delete user
         {
             let conn = db.0.lock().unwrap();
-            conn.execute("DELETE FROM users WHERE id = ?1", params![user_id]).unwrap();
+            conn.execute("DELETE FROM users WHERE id = ?1", params![user_id])
+                .unwrap();
         }
 
         // Verify all notes are deleted due to cascade
@@ -616,11 +639,13 @@ mod tests {
             conn.execute(
                 "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
                 params!["User 1 Note", "User 1 content", user1_id],
-            ).unwrap();
+            )
+            .unwrap();
             conn.execute(
                 "INSERT INTO notes (title, content, user_id) VALUES (?1, ?2, ?3)",
                 params!["User 2 Note", "User 2 content", user2_id],
-            ).unwrap();
+            )
+            .unwrap();
         }
 
         // Verify both notes exist
