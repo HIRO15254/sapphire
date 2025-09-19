@@ -22,15 +22,8 @@ jobs:
       run: bun install
 
     - name: Run frontend tests with coverage
-      run: bun run test:coverage
+      run: bun run test
 
-    - name: Upload coverage to Codecov
-      if: github.event_name != 'pull_request'
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/lcov.info
-        flags: frontend
-        name: frontend-coverage
   test-rust:
     name: Rust Tests
     runs-on: windows-latest
@@ -54,6 +47,7 @@ jobs:
       run: |
         cd src-tauri
         cargo test -- --test-threads=1
+
 
   test-e2e:
     name: E2E Tests
