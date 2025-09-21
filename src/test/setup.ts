@@ -8,7 +8,7 @@ process.env.TZ = "Asia/Tokyo";
 const originalDateTimeFormat = Intl.DateTimeFormat;
 vi.stubGlobal("Intl", {
   ...Intl,
-  DateTimeFormat: vi.fn().mockImplementation((locale, options) => {
+  DateTimeFormat: vi.fn().mockImplementation((_locale, options) => {
     return new originalDateTimeFormat("ja-JP", options);
   }),
 });

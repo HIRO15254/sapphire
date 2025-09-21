@@ -13,7 +13,8 @@
       "Bash(bun add:*)",
       "Bash(bunx vitest run:*)",
       "Bash(npx vitest run:*)",
-      "Bash(npm run test:e2e:*)"
+      "Bash(npm run test:e2e:*)",
+      "Bash(bunx tsc:*)"
     ],
     "deny": [],
     "ask": []

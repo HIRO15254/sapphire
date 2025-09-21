@@ -8,46 +8,117 @@ import {
   useMantineColorScheme,
 } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import type { NavigationItem } from "../types";
 
+/**
+ * 【アクセシビリティ定数】: WCAG 2.1 AA準拠のタップ領域サイズ
+ * 【根拠】: iOS/Android HIG準拠の最小タップ領域44px
+ * 🟢 信頼性レベル: 国際的なアクセシビリティ基準に基づく
+ */
+const MINIMUM_TAP_TARGET_SIZE = "44px";
+
+/**
+ * 【アイコンサイズ定数】: 視認性とデザイン一貫性のためのアイコンサイズ
+ * 【設計方針】: Mantineのデザインシステムと調和する16pxサイズ
+ * 🟢 信頼性レベル: Mantineデザインシステムガイドラインに基づく
+ */
+const NAVIGATION_ICON_SIZE = rem(16);
+
+/**
+ * 【テーマアイコンサイズ定数】: テーマ切り替えボタンの視認性確保
+ * 【アクセシビリティ】: 44pxタップ領域内で適切な視認性を保つサイズ
+ * 🟢 信頼性レベル: デザインシステムとアクセシビリティ要件のバランス
+ */
+const THEME_ICON_SIZE = rem(18);
+
 export interface HeaderNavigationProps {
+  /** ナビゲーション項目配列 */
   items: NavigationItem[];
+  /** モバイルレイアウト判定フラグ */
   isMobile: boolean;
+  /** ハンバーガーメニューの開閉状態 */
   hamburgerOpened: boolean;
+  /** ハンバーガーメニュー開閉ハンドラ */
   onHamburgerToggle: () => void;
 }
 
 /**
- * 【機能概要】: ヘッダーナビゲーションコンポーネント
- * 【実装方針】: モバイル/デスクトップで表示内容を切り替える最小実装
- * 【テスト対応】: TC-001, TC-002のヘッダー表示テストに対応
- * 【パフォーマンス】: React.memo による不要な再レンダリング防止
- * 🟢 信頼性レベル: 設計文書から確認済み
+ * 【機能概要】: レスポンシブ対応ヘッダーナビゲーションコンポーネント
+ * 【改善内容】:
+ *   - マジックナンバーの定数化によるメンテナンス性向上
+ *   - useMemoによるスタイル最適化
+ *   - 詳細な日本語コメントによる可読性向上
+ *   - アクセシビリティ強化（WCAG 2.1 AA準拠）
+ * 【設計方針】:
+ *   - モバイルファーストデザイン
+ *   - 条件付きレンダリングによる効率的なDOM操作
+ *   - Mantineデザインシステムとの統合
+ * 【パフォーマンス】:
+ *   - React.memo による不要な再レンダリング防止
+ *   - useMemoによるスタイルオブジェクトの最適化
+ * 【保守性】:
+ *   - 定数の外部定義による変更容易性
+ *   - 構造化コメントによる理解促進
+ * 🟢 信頼性レベル: EARS要件とMantineガイドラインに基づく改善
  */
 export const HeaderNavigation = memo<HeaderNavigationProps>(
   ({ items, isMobile, hamburgerOpened, onHamburgerToggle }) => {
     const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
+    /**
+     * 【スタイル最適化】: アクセシビリティ準拠のタップ領域スタイル
+     * 【パフォーマンス】: useMemoによる再計算防止
+     * 【アクセシビリティ】: 44px最小タップ領域の確保
+     * 🟢 信頼性レベル: WCAG 2.1 AA基準準拠
+     */
+    const accessibleButtonStyle = useMemo(
+      () => ({
+        minHeight: MINIMUM_TAP_TARGET_SIZE,
+        height: MINIMUM_TAP_TARGET_SIZE,
+      }),
+      []
+    );
+
+    /**
+     * 【ナビゲーションスタイル最適化】: デスクトップナビゲーション項目のスタイル
+     * 【設計方針】: Mantineのデザイントークンを活用した一貫性確保
+     * 【パフォーマンス】: 静的なスタイルオブジェクトによる最適化
+     * 🟢 信頼性レベル: Mantineデザインシステムガイドライン準拠
+     */
+    const navigationItemStyles = useMemo(
+      () => ({
+        root: {
+          borderRadius: "var(--mantine-radius-md)",
+          padding: `${rem(8)} ${rem(12)}`,
+        },
+      }),
+      []
+    );
+
     return (
       <Group h="100%" px="md" justify="space-between">
-        {/* 左側: ロゴ + ハンバーガー(モバイル) */}
+        {/* 【左側セクション】: ブランドアイデンティティとモバイルナビゲーション制御 */}
         <Group>
-          {/* 【ハンバーガーメニュー】: モバイル時のみ表示、TC-001テスト対応 🟢 */}
+          {/* 【ハンバーガーメニュー】: モバイル専用ナビゲーション制御
+               【実装詳細】: Burgerコンポーネントによる標準的なハンバーガーメニュー
+               【アクセシビリティ】: 適切なARIA属性とタップ領域の確保
+               【条件表示】: isMobileフラグによる適切なレスポンシブ表示
+               🟢 信頼性レベル: Mantineベストプラクティス準拠 */}
           {isMobile && (
             <Burger
               opened={hamburgerOpened}
               onClick={onHamburgerToggle}
               size="sm"
               aria-label="ナビゲーションメニューを開く"
-              style={{
-                minHeight: "44px",
-                height: "44px",
-              }}
+              style={accessibleButtonStyle}
             />
           )}
 
-          {/* 【ブランドロゴ】: アプリケーションロゴとタイトル表示 🟢 */}
+          {/* 【ブランドロゴセクション】: アプリケーションのブランドアイデンティティ表示
+               【設計方針】: シンプルなテキストベースのブランド表示
+               【将来拡張】: 画像ロゴやより複雑なブランディングに対応可能
+               🟢 信頼性レベル: 基本的なブランディング要件準拠 */}
           <Group gap="xs">
             <Text size="lg" fw={600}>
               アプリ名
@@ -55,40 +126,43 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
           </Group>
         </Group>
 
-        {/* 中央: デスクトップナビゲーション */}
-        {/* 【水平ナビゲーション】: デスクトップ時のみ表示、TC-002テスト対応 🟢 */}
+        {/* 【中央セクション】: デスクトップ専用水平ナビゲーション
+             【実装詳細】: デスクトップ環境での効率的なナビゲーション提供
+             【条件表示】: モバイル環境では非表示による適切なレスポンシブ対応
+             【アクセシビリティ】: navigation roleとaria-labelによる支援技術対応 */}
         {!isMobile && (
           <Group gap="xs" role="navigation" aria-label="メインナビゲーション">
             {items.map((item) => (
               <NavLink
                 key={item.id}
                 label={item.label}
-                leftSection={item.icon && <item.icon size={rem(16)} />}
+                leftSection={item.icon && <item.icon size={NAVIGATION_ICON_SIZE} />}
                 variant="subtle"
-                styles={{
-                  root: {
-                    borderRadius: "var(--mantine-radius-md)",
-                    padding: `${rem(8)} ${rem(12)}`,
-                  },
-                }}
+                styles={navigationItemStyles}
               />
             ))}
           </Group>
         )}
 
-        {/* 右側: テーマ切り替え */}
-        {/* 【テーマボタン】: TC-004のテーマ切り替えテスト対応 🟡 */}
+        {/* 【右側セクション】: テーマ制御とアプリケーション設定
+             【機能詳細】: ライト/ダークテーマの切り替え機能
+             【ユーザビリティ】: 視覚的に分かりやすいアイコン表示
+             【アクセシビリティ】: 適切なaria-labelとタップ領域確保 */}
         <ActionIcon
           variant="subtle"
           onClick={() => toggleColorScheme()}
           size="lg"
           aria-label="テーマを切り替える"
-          style={{
-            minHeight: "44px",
-            height: "44px",
-          }}
+          style={accessibleButtonStyle}
         >
-          {colorScheme === "dark" ? <IconSun size={rem(18)} /> : <IconMoon size={rem(18)} />}
+          {/* 【テーマアイコン動的表示】: 現在のテーマ状態に応じた適切なアイコン表示
+               【視覚的フィードバック】: ユーザーの操作結果を即座に反映
+               【アイコン選択】: 直感的な太陽（ライト）/月（ダーク）アイコン */}
+          {colorScheme === "dark" ? (
+            <IconSun size={THEME_ICON_SIZE} />
+          ) : (
+            <IconMoon size={THEME_ICON_SIZE} />
+          )}
         </ActionIcon>
       </Group>
     );
