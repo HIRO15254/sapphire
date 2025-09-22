@@ -2,7 +2,7 @@ import {
   ActionIcon,
   Burger,
   Group,
-  NavLink,
+  UnstyledButton,
   rem,
   Text,
   useMantineColorScheme,
@@ -23,14 +23,14 @@ const MINIMUM_TAP_TARGET_SIZE = "44px";
  * 【設計方針】: Mantineのデザインシステムと調和する16pxサイズ
  * 🟢 信頼性レベル: Mantineデザインシステムガイドラインに基づく
  */
-const NAVIGATION_ICON_SIZE = rem(16);
+const NAVIGATION_ICON_SIZE = 16;
 
 /**
  * 【テーマアイコンサイズ定数】: テーマ切り替えボタンの視認性確保
  * 【アクセシビリティ】: 44pxタップ領域内で適切な視認性を保つサイズ
  * 🟢 信頼性レベル: デザインシステムとアクセシビリティ要件のバランス
  */
-const THEME_ICON_SIZE = rem(18);
+const THEME_ICON_SIZE = 18;
 
 export interface HeaderNavigationProps {
   /** ナビゲーション項目配列 */
@@ -133,13 +133,16 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
         {!isMobile && (
           <Group gap="xs" role="navigation" aria-label="メインナビゲーション">
             {items.map((item) => (
-              <NavLink
+              <UnstyledButton
                 key={item.id}
-                label={item.label}
-                leftSection={item.icon && <item.icon size={NAVIGATION_ICON_SIZE} />}
-                variant="subtle"
-                styles={navigationItemStyles}
-              />
+                style={navigationItemStyles.root}
+                aria-label={item.label}
+              >
+                <Group gap="xs" wrap="nowrap">
+                  {item.icon && <item.icon size={NAVIGATION_ICON_SIZE} />}
+                  <Text size="sm">{item.label}</Text>
+                </Group>
+              </UnstyledButton>
             ))}
           </Group>
         )}

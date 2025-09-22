@@ -17,7 +17,7 @@ const NAVIGATION_CONFIG = {
   COLLAPSED_WIDTH: 80,
   /** アニメーション時間 (ms) - NFR-002準拠 */
   TRANSITION_DURATION: 300,
-  /** アイコンサイズ - 設計文書準拠 */
+  /** アイコンサイズ (px) - 設計文書準拠 */
   ICON_SIZE: 16,
   /** アイコンストローク幅 */
   ICON_STROKE: 1.5,
@@ -87,7 +87,7 @@ const createNavLinkProps = (item: NavigationItem, currentPath: string, collapsed
   return {
     label: item.label,
     leftSection: item.icon ? (
-      <item.icon size={rem(NAVIGATION_CONFIG.ICON_SIZE)} stroke={NAVIGATION_CONFIG.ICON_STROKE} />
+      <item.icon size={NAVIGATION_CONFIG.ICON_SIZE} stroke={NAVIGATION_CONFIG.ICON_STROKE} />
     ) : undefined,
     rightSection: item.badge ? (
       <Badge className="mantine-Badge-root">{item.badge}</Badge>

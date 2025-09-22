@@ -7,7 +7,7 @@ const HAMBURGER_MENU_CONSTANTS = {
   DRAWER_SIZE: "300px",
   MAX_WIDTH: rem(320),
   SCROLL_HEIGHT: "calc(100vh - 60px)",
-  ICON_SIZE: rem(20),
+  ICON_SIZE: 16,
   ICON_STROKE: 1.5,
   NAV_MIN_HEIGHT: "44px",
   NAV_PADDING: `${rem(12)} ${rem(16)}`,

@@ -16,10 +16,10 @@ const MINIMUM_TAP_TARGET_SIZE = "44px";
 
 /**
  * 【アイコンサイズ定数】: 視認性とデザイン一貫性のためのアイコンサイズ
- * 【設計方針】: Mantineのデザインシステムと調和する20pxサイズ
+ * 【設計方針】: Mantineのデザインシステムと調和する16pxサイズ
  * 🟢 信頼性レベル: Mantineデザインシステムガイドラインに基づく
  */
-const FOOTER_ICON_SIZE = 20;
+const FOOTER_ICON_SIZE = 16;
 
 /**
  * 【最大表示項目数定数】: UI/UX制約による表示項目数制限
