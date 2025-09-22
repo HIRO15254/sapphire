@@ -19,7 +19,7 @@ export const responsive = {
     fallback: T
   ): T => {
     if (typeof value === "object" && value !== null) {
-      return (value as any)[breakpoint] ?? fallback;
+      return (value as Record<string, T>)[breakpoint] ?? fallback;
     }
     return value ?? fallback;
   },

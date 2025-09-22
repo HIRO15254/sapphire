@@ -1,11 +1,10 @@
-import { IconHome, IconUsers, IconSettings } from "@tabler/icons-react";
-import { fireEvent } from "@testing-library/react";
+import { IconHome, IconSettings, IconUsers } from "@tabler/icons-react";
 import { memo } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "../../../../test/helpers/renderWithProviders";
-import { FooterNavigation } from "./FooterNavigation";
-import type { FooterNavigationProps } from "./FooterNavigation";
 import type { NavigationItem } from "../types";
+import type { FooterNavigationProps } from "./FooterNavigation";
+import { FooterNavigation } from "./FooterNavigation";
 
 /**
  * TASK-103 FooterNavigation TDDテストスイート
@@ -30,7 +29,7 @@ const mockNavigationItems: NavigationItem[] = [
   { id: "settings", label: "設定", path: "/settings", icon: IconSettings },
 ];
 
-const defaultProps: FooterNavigationProps = {
+const _defaultProps: FooterNavigationProps = {
   items: mockNavigationItems,
 };
 
@@ -73,7 +72,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【確認内容】: space-around配置でのGroup表示が適用される 🟢
       expect(screen.getByRole("navigation")).toHaveStyle({
-        justifyContent: "space-around"
+        justifyContent: "space-around",
       });
     });
 
@@ -105,7 +104,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【確認内容】: アイコンサイズが20pxで統一されている 🟢
       const iconElements = screen.getAllByRole("button");
-      iconElements.forEach(button => {
+      iconElements.forEach((button) => {
         const svg = button.querySelector("svg");
         expect(svg).toHaveAttribute("width", "20");
         expect(svg).toHaveAttribute("height", "20");
@@ -129,7 +128,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       // 【結果検証】: 44px以上のタップ領域が確保されていることを確認
       // 【期待値確認】: NFR-201「フッターメニューのタップ領域は44px以上」準拠
 
-      navigationButtons.forEach(button => {
+      navigationButtons.forEach((button) => {
         // 【確認内容】: 44px以上のタップ領域確保（minHeight） 🟢
         expect(button).toHaveStyle({ minHeight: "44px" });
 
@@ -160,12 +159,12 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【確認内容】: SafeArea対応のpaddingBottom設定 🟢
       expect(footerGroup).toHaveStyle({
-        paddingBottom: "env(safe-area-inset-bottom)"
+        paddingBottom: "env(safe-area-inset-bottom)",
       });
 
       // 【確認内容】: borderTop設定による視覚的境界線 🟢
       expect(footerGroup).toHaveStyle({
-        borderTop: "1px solid var(--mantine-color-gray-3)"
+        borderTop: "1px solid var(--mantine-color-gray-3)",
       });
     });
 
@@ -237,7 +236,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       // 【確認内容】: 空の場合でもスタイル設定は維持 🟡
       expect(footerGroup).toHaveStyle({
         justifyContent: "space-around",
-        paddingBottom: "env(safe-area-inset-bottom)"
+        paddingBottom: "env(safe-area-inset-bottom)",
       });
     });
 
@@ -349,7 +348,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【確認内容】: flex: 1による均等分散 🟢
       const buttons = screen.getAllByRole("button");
-      buttons.forEach(button => {
+      buttons.forEach((button) => {
         expect(button).toHaveStyle({ flex: 1 });
       });
     });
@@ -364,7 +363,12 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       // 【初期条件設定】: 多言語対応、詳細な機能名表示シミュレーション
       const longLabelItems: NavigationItem[] = [
         { id: "short", label: "短い", path: "/short", icon: IconHome },
-        { id: "long", label: "非常に長いナビゲーション項目ラベル名", path: "/long", icon: IconUsers },
+        {
+          id: "long",
+          label: "非常に長いナビゲーション項目ラベル名",
+          path: "/long",
+          icon: IconUsers,
+        },
       ];
 
       // 【実際の処理実行】: 長いラベル項目を含むNavigationItemでレンダリング
@@ -386,7 +390,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【確認内容】: レイアウト破綻なし 🟡
       const buttons = screen.getAllByRole("button");
-      buttons.forEach(button => {
+      buttons.forEach((button) => {
         expect(button).toHaveStyle({ flex: 1 });
       });
     });
@@ -477,7 +481,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       // 【期待値確認】: フォーカス移動、キーボードアクション
 
       // 【確認内容】: 各ボタンがフォーカス可能 🟡
-      buttons.forEach(button => {
+      buttons.forEach((button) => {
         expect(button).toHaveAttribute("tabIndex", "0");
 
         // 【確認内容】: フォーカス設定 🟡
@@ -520,7 +524,9 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(renderCount).toBe(1);
 
       // 異なるpropsで再レンダリング -> カウント増加
-      const newProps = { items: [...mockNavigationItems, { id: "new", label: "新規", path: "/new", icon: IconHome }] };
+      const newProps = {
+        items: [...mockNavigationItems, { id: "new", label: "新規", path: "/new", icon: IconHome }],
+      };
       rerender(<TestFooterNavigation {...newProps} />);
       expect(renderCount).toBe(2);
 

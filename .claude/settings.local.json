@@ -14,7 +14,8 @@
       "Bash(bunx vitest run:*)",
       "Bash(npx vitest run:*)",
       "Bash(npm run test:e2e:*)",
-      "Bash(bunx tsc:*)"
+      "Bash(bunx tsc:*)",
+      "Bash(bunx biome check:*)"
     ],
     "deny": [],
     "ask": []

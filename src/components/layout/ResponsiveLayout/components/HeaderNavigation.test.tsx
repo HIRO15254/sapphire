@@ -1,10 +1,10 @@
 import { IconHome, IconUsers } from "@tabler/icons-react";
 import { fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "../../../../test/helpers/renderWithProviders";
-import { HeaderNavigation } from "./HeaderNavigation";
-import type { HeaderNavigationProps } from "./HeaderNavigation";
 import type { NavigationItem } from "../types";
+import type { HeaderNavigationProps } from "./HeaderNavigation";
+import { HeaderNavigation } from "./HeaderNavigation";
 
 /**
  * TASK-102 HeaderNavigation TDDテストスイート
@@ -23,7 +23,7 @@ import type { NavigationItem } from "../types";
  * 【テスト対応】: TC-102-N004のテーマ切り替えテストを通すためのモック設定
  * 🟢 信頼性レベル: Mantine公式ドキュメントに基づく標準的なモック
  */
-const mockToggleColorScheme = vi.fn();
+const _mockToggleColorScheme = vi.fn();
 
 // ===== テスト用データ =====
 
@@ -85,7 +85,9 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
       render(<HeaderNavigation {...defaultProps} isMobile={true} />);
 
       // 水平ナビゲーション非表示
-      expect(screen.queryByRole("navigation", { name: "メインナビゲーション" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("navigation", { name: "メインナビゲーション" })
+      ).not.toBeInTheDocument();
 
       // ハンバーガーメニュー表示
       expect(screen.getByLabelText("ナビゲーションメニューを開く")).toBeInTheDocument();
@@ -175,9 +177,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
 
       const emptyItems: NavigationItem[] = [];
 
-      render(
-        <HeaderNavigation {...defaultProps} items={emptyItems} isMobile={false} />
-      );
+      render(<HeaderNavigation {...defaultProps} items={emptyItems} isMobile={false} />);
 
       // エラーなく表示
       expect(screen.getByText("アプリ名")).toBeInTheDocument();
@@ -205,9 +205,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
         { id: "invalid", label: "", path: "/invalid" }, // 不正
       ];
 
-      render(
-        <HeaderNavigation {...defaultProps} items={itemsWithInvalid} isMobile={false} />
-      );
+      render(<HeaderNavigation {...defaultProps} items={itemsWithInvalid} isMobile={false} />);
 
       // 有効項目のみ表示
       expect(screen.getByText("有効項目")).toBeInTheDocument();
@@ -227,11 +225,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
 
       // onHamburgerToggle を undefined として渡す
       render(
-        <HeaderNavigation
-          {...defaultProps}
-          isMobile={true}
-          onHamburgerToggle={undefined as any}
-        />
+        <HeaderNavigation {...defaultProps} isMobile={true} onHamburgerToggle={undefined as any} />
       );
 
       // onHamburgerToggle undefined でもエラーなし
@@ -259,9 +253,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
         path: `/item-${i}`,
       }));
 
-      render(
-        <HeaderNavigation {...defaultProps} items={manyItems} isMobile={false} />
-      );
+      render(<HeaderNavigation {...defaultProps} items={manyItems} isMobile={false} />);
 
       // 全項目表示確認
       manyItems.forEach((item) => {
@@ -282,9 +274,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
         { id: "long", label: longLabel, path: "/long" },
       ];
 
-      render(
-        <HeaderNavigation {...defaultProps} items={itemsWithLongLabel} isMobile={false} />
-      );
+      render(<HeaderNavigation {...defaultProps} items={itemsWithLongLabel} isMobile={false} />);
 
       expect(screen.getByText(longLabel)).toBeInTheDocument();
     });
@@ -337,7 +327,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
       expect(screen.getByLabelText("テーマを切り替える")).toBeInTheDocument();
 
       // デスクトップモードでナビゲーション領域確認
-      const { rerender } = render(<HeaderNavigation {...defaultProps} isMobile={false} />);
+      render(<HeaderNavigation {...defaultProps} isMobile={false} />);
 
       // ナビゲーション領域 ARIA
       expect(screen.getByRole("navigation", { name: "メインナビゲーション" })).toBeInTheDocument();
@@ -402,9 +392,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        * 🟢 信頼性レベル: 高（TASK-101統合確認済み）
        */
 
-      const { rerender } = render(
-        <HeaderNavigation {...defaultProps} isMobile={false} />
-      );
+      const { rerender } = render(<HeaderNavigation {...defaultProps} isMobile={false} />);
 
       // デスクトップモード確認
       expect(screen.getByRole("navigation", { name: "メインナビゲーション" })).toBeInTheDocument();
@@ -414,7 +402,9 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
       rerender(<HeaderNavigation {...defaultProps} isMobile={true} />);
 
       // モバイルモード確認
-      expect(screen.queryByRole("navigation", { name: "メインナビゲーション" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("navigation", { name: "メインナビゲーション" })
+      ).not.toBeInTheDocument();
       expect(screen.getByLabelText("ナビゲーションメニューを開く")).toBeInTheDocument();
     });
   });

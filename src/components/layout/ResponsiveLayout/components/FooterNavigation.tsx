@@ -66,9 +66,9 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
     return items
       .filter((item) => {
         // 【セキュリティチェック】: 必須プロパティの存在確認
-        if (!item || typeof item !== 'object') return false;
-        if (!item.id || typeof item.id !== 'string') return false;
-        if (!item.label || typeof item.label !== 'string') return false;
+        if (!item || typeof item !== "object") return false;
+        if (!item.id || typeof item.id !== "string") return false;
+        if (!item.label || typeof item.label !== "string") return false;
 
         // 【データ品質チェック】: 空白文字のみのラベル排除
         return item.label.trim() !== "";
@@ -114,13 +114,7 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
   );
 
   return (
-    <Group
-      role="navigation"
-      justify="space-around"
-      h="100%"
-      px="sm"
-      style={navigationStyle}
-    >
+    <Group role="navigation" justify="space-around" h="100%" px="sm" style={navigationStyle}>
       {/* 【フッターナビゲーション】: モバイル時のタブバー表示、Refactorフェーズ品質改善
            【セキュリティ強化】: 入力値検証による不正データ排除でXSS防止
            【パフォーマンス最適化】: useMemoによる計算結果キャッシュで再計算防止

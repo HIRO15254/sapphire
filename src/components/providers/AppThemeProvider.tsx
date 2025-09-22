@@ -1,4 +1,4 @@
-import { MantineProvider, createTheme } from "@mantine/core";
+import { createTheme, MantineProvider } from "@mantine/core";
 import { useLayoutEffect, useMemo } from "react";
 
 type ThemeMode = "light" | "dark" | "auto";

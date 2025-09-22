@@ -1,5 +1,5 @@
 import { Badge, Box, NavLink, rem, ScrollArea } from "@mantine/core";
-import { memo, useMemo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import type { NavigationItem } from "../types";
 
 export interface SideNavigationProps {
@@ -51,20 +51,20 @@ const GROUP_HEADER_STYLES = {
 const useCurrentPath = (): string => {
   return useMemo(() => {
     // 【SSR対応】: サーバーサイドレンダリング時の安全な処理
-    if (typeof window === 'undefined') {
-      return '/';
+    if (typeof window === "undefined") {
+      return "/";
     }
 
     // 【セキュリティ】: パス文字列のサニタイズ（XSS防止）
     const rawPath = window.location.pathname;
 
     // 【入力値検証】: 不正なパス値の検出と正規化
-    if (!rawPath || typeof rawPath !== 'string') {
-      return '/';
+    if (!rawPath || typeof rawPath !== "string") {
+      return "/";
     }
 
     // 【パス正規化】: 基本的なパス形式チェック
-    const sanitizedPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+    const sanitizedPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
 
     return sanitizedPath;
   }, []);
@@ -77,24 +77,17 @@ const useCurrentPath = (): string => {
  * 【型安全性】: 厳密な型チェック
  * 🟢 信頼性レベル: コンポーネント設計パターンから確認済み
  */
-const createNavLinkProps = (
-  item: NavigationItem,
-  currentPath: string,
-  collapsed: boolean
-) => {
+const createNavLinkProps = (item: NavigationItem, currentPath: string, collapsed: boolean) => {
   // 【入力値検証】: NavigationItemの必須フィールドチェック
   if (!item.id || !item.label || !item.path) {
-    console.warn('[SideNavigation] Invalid navigation item:', item);
+    console.warn("[SideNavigation] Invalid navigation item:", item);
     return null;
   }
 
   return {
     label: item.label,
     leftSection: item.icon ? (
-      <item.icon
-        size={rem(NAVIGATION_CONFIG.ICON_SIZE)}
-        stroke={NAVIGATION_CONFIG.ICON_STROKE}
-      />
+      <item.icon size={rem(NAVIGATION_CONFIG.ICON_SIZE)} stroke={NAVIGATION_CONFIG.ICON_STROKE} />
     ) : undefined,
     rightSection: item.badge ? (
       <Badge className="mantine-Badge-root">{item.badge}</Badge>
@@ -116,98 +109,97 @@ const createNavLinkProps = (
  * 【コンポーネント本体】: SideNavigationメインコンポーネント
  * 【最適化】: パフォーマンス最適化とメモ化
  */
-export const SideNavigation = memo<SideNavigationProps>(({
-  items,
-  groupedItems,
-  collapsed = false,
-  onToggleCollapse
-}) => {
-  // 【現在位置取得】: 最適化されたパス取得フック
-  const currentPath = useCurrentPath();
+export const SideNavigation = memo<SideNavigationProps>(
+  ({ items: _items, groupedItems, collapsed = false, onToggleCollapse: _onToggleCollapse }) => {
+    // 【現在位置取得】: 最適化されたパス取得フック
+    const currentPath = useCurrentPath();
 
-  // 【ナビゲーション幅計算】: collapsed状態に基づく幅の動的計算
-  const navigationWidth = useMemo(() => {
-    return collapsed ? NAVIGATION_CONFIG.COLLAPSED_WIDTH : NAVIGATION_CONFIG.EXPANDED_WIDTH;
-  }, [collapsed]);
+    // 【ナビゲーション幅計算】: collapsed状態に基づく幅の動的計算
+    const navigationWidth = useMemo(() => {
+      return collapsed ? NAVIGATION_CONFIG.COLLAPSED_WIDTH : NAVIGATION_CONFIG.EXPANDED_WIDTH;
+    }, [collapsed]);
 
-  // 【スタイル最適化】: インラインスタイルのメモ化
-  const containerStyles = useMemo(() => ({
-    width: `${navigationWidth}px`,
-    height: "100vh",
-    position: "fixed" as const,
-    left: 0,
-    top: 0,
-    backgroundColor: "var(--mantine-color-body)",
-    borderRight: "1px solid var(--mantine-color-gray-3)",
-    transition: `width ${NAVIGATION_CONFIG.TRANSITION_DURATION}ms ease`,
-    display: "flex",
-    flexDirection: "column" as const,
-  }), [navigationWidth]);
-
-  // 【グループレンダリング関数】: 各グループの描画ロジック
-  const renderNavigationGroup = useCallback((groupName: string, groupItems: NavigationItem[]) => {
-    // 【入力値検証】: グループデータの安全性チェック
-    if (!Array.isArray(groupItems) || groupItems.length === 0) {
-      return null;
-    }
-
-    const isDefaultGroup = groupName === "default";
-
-    return isDefaultGroup ? (
-      // 【デフォルトグループ】: ラベルなしで項目のみ表示 🟢
-      <div key={groupName}>
-        {groupItems.map((item) => {
-          const navLinkProps = createNavLinkProps(item, currentPath, collapsed);
-          return navLinkProps ? <NavLink key={item.id} {...navLinkProps} /> : null;
-        })}
-      </div>
-    ) : (
-      // 【ラベル付きグループ】: アクセシビリティ強化版グループ表示 🟢
-      <div
-        key={groupName}
-        role="group"
-        aria-labelledby={`group-${groupName}`}
-      >
-        <div
-          id={`group-${groupName}`}
-          data-testid={`group-header-${groupName}`}
-          style={GROUP_HEADER_STYLES}
-        >
-          {groupName}
-        </div>
-        {groupItems.map((item) => {
-          const navLinkProps = createNavLinkProps(item, currentPath, collapsed);
-          return navLinkProps ? <NavLink key={item.id} {...navLinkProps} /> : null;
-        })}
-      </div>
+    // 【スタイル最適化】: インラインスタイルのメモ化
+    const containerStyles = useMemo(
+      () => ({
+        width: `${navigationWidth}px`,
+        height: "100vh",
+        position: "fixed" as const,
+        left: 0,
+        top: 0,
+        backgroundColor: "var(--mantine-color-body)",
+        borderRight: "1px solid var(--mantine-color-gray-3)",
+        transition: `width ${NAVIGATION_CONFIG.TRANSITION_DURATION}ms ease`,
+        display: "flex",
+        flexDirection: "column" as const,
+      }),
+      [navigationWidth]
     );
-  }, [currentPath, collapsed]);
 
-  // 【グループエントリのメモ化】: Object.entriesの結果をメモ化してパフォーマンス向上
-  const memoizedGroupEntries = useMemo(() => {
-    return Object.entries(groupedItems);
-  }, [groupedItems]);
+    // 【グループレンダリング関数】: 各グループの描画ロジック
+    const renderNavigationGroup = useCallback(
+      (groupName: string, groupItems: NavigationItem[]) => {
+        // 【入力値検証】: グループデータの安全性チェック
+        if (!Array.isArray(groupItems) || groupItems.length === 0) {
+          return null;
+        }
 
-  return (
-    <Box
-      component="nav"
-      role="navigation"
-      aria-label="サイドナビゲーション"
-      data-breakpoint="md"
-      data-navbar="true"
-      data-mantine-theme="true"
-      style={containerStyles}
-      className="mantine-Navbar-root"
-    >
-      {/* 【ScrollArea統合】: パフォーマンス最適化されたスクロール対応 🟢 */}
-      <ScrollArea style={{ flex: 1 }} data-scrollarea="root">
-        {/* 【最適化されたグループ表示】: メモ化とエラーハンドリング強化 🟢 */}
-        {memoizedGroupEntries.map(([groupName, groupItems]) =>
-          renderNavigationGroup(groupName, groupItems)
-        )}
-      </ScrollArea>
-    </Box>
-  );
-});
+        const isDefaultGroup = groupName === "default";
+
+        return isDefaultGroup ? (
+          // 【デフォルトグループ】: ラベルなしで項目のみ表示 🟢
+          <div key={groupName}>
+            {groupItems.map((item) => {
+              const navLinkProps = createNavLinkProps(item, currentPath, collapsed);
+              return navLinkProps ? <NavLink key={item.id} {...navLinkProps} /> : null;
+            })}
+          </div>
+        ) : (
+          // 【ラベル付きグループ】: アクセシビリティ強化版グループ表示 🟢
+          <div key={groupName} role="group" aria-labelledby={`group-${groupName}`}>
+            <div
+              id={`group-${groupName}`}
+              data-testid={`group-header-${groupName}`}
+              style={GROUP_HEADER_STYLES}
+            >
+              {groupName}
+            </div>
+            {groupItems.map((item) => {
+              const navLinkProps = createNavLinkProps(item, currentPath, collapsed);
+              return navLinkProps ? <NavLink key={item.id} {...navLinkProps} /> : null;
+            })}
+          </div>
+        );
+      },
+      [currentPath, collapsed]
+    );
+
+    // 【グループエントリのメモ化】: Object.entriesの結果をメモ化してパフォーマンス向上
+    const memoizedGroupEntries = useMemo(() => {
+      return Object.entries(groupedItems);
+    }, [groupedItems]);
+
+    return (
+      <Box
+        component="nav"
+        role="navigation"
+        aria-label="サイドナビゲーション"
+        data-breakpoint="md"
+        data-navbar="true"
+        data-mantine-theme="true"
+        style={containerStyles}
+        className="mantine-Navbar-root"
+      >
+        {/* 【ScrollArea統合】: パフォーマンス最適化されたスクロール対応 🟢 */}
+        <ScrollArea style={{ flex: 1 }} data-scrollarea="root">
+          {/* 【最適化されたグループ表示】: メモ化とエラーハンドリング強化 🟢 */}
+          {memoizedGroupEntries.map(([groupName, groupItems]) =>
+            renderNavigationGroup(groupName, groupItems)
+          )}
+        </ScrollArea>
+      </Box>
+    );
+  }
+);
 
 SideNavigation.displayName = "SideNavigation";

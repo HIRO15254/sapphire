@@ -204,13 +204,17 @@ export const logValidationResult = (result: NavigationValidationResult): void =>
 
   if (result.errors.length > 0) {
     console.group("🔴 ナビゲーション設定エラー");
-    result.errors.forEach((error) => console.error(error));
+    result.errors.forEach((error) => {
+      console.error(error);
+    });
     console.groupEnd();
   }
 
   if (result.warnings.length > 0) {
     console.group("🟡 ナビゲーション設定警告");
-    result.warnings.forEach((warning) => console.warn(warning));
+    result.warnings.forEach((warning) => {
+      console.warn(warning);
+    });
     console.groupEnd();
   }
 

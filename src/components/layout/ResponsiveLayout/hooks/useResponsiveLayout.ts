@@ -17,29 +17,14 @@ export const useResponsiveLayout = () => {
   // 【レスポンシブ検知】: useMediaQueryでモバイル/デスクトップ判定を実行 🟢
   // 【実装内容】: 768px (48em) 境界での画面サイズ判定、TC-001, TC-002テスト対応
   // 【エラーハンドリング】: TC-102対応 - MediaQuery APIが利用できない環境での処理
-  let isMobile = false;
 
-  if (isSupported) {
-    try {
-      isMobile = useMediaQuery("(max-width: 48em)");
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("MediaQuery hook failed:", error);
-      } else {
-        console.warn("MediaQuery API not supported");
-      }
-      // フォールバック: デスクトップレイアウトをデフォルトとする
-      isMobile = false;
-    }
-  } else {
-    // MediaQuery APIが利用できない環境でのフォールバック
-    if (process.env.NODE_ENV === "development") {
-      console.warn("MediaQuery API not supported in this environment");
-    } else {
-      console.warn("MediaQuery API not supported");
-    }
-    isMobile = false;
-  }
+  // React Hook Rules準拠: useMediaQueryを無条件で呼び出し
+  const mediaQueryResult = useMediaQuery("(max-width: 48em)", false, {
+    getInitialValueInEffect: false,
+  });
+
+  // MediaQuery結果の安全な取得（フォールバック処理）
+  const isMobile = mediaQueryResult ?? false;
 
   // 【状態管理】: ハンバーガーメニューの開閉状態を管理 🟢
   // 【実装内容】: モバイルレイアウトでのDrawer表示制御、TC-001テスト対応
@@ -54,13 +39,12 @@ export const useResponsiveLayout = () => {
     setHamburgerOpened(false);
   }, []);
 
-  // 【デバッグ情報】: 開発環境でのレスポンシブ状態ログ
-  if (process.env.NODE_ENV === "development") {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useMemo(() => {
+  // 【デバッグ情報】: 開発環境でのレスポンシブ状態ログ（フック呼び出しルール準拠）
+  useMemo(() => {
+    if (process.env.NODE_ENV === "development") {
       console.log(`📱 Responsive Layout State: ${isMobile ? "Mobile" : "Desktop"}`);
-    }, [isMobile]);
-  }
+    }
+  }, [isMobile]);
 
   return {
     isMobile,

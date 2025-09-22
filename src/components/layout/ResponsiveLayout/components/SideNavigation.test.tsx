@@ -1,11 +1,10 @@
-import { IconHome, IconUsers, IconSettings, IconBell } from "@tabler/icons-react";
+import { IconBell, IconHome, IconSettings, IconUsers } from "@tabler/icons-react";
 import { fireEvent } from "@testing-library/react";
-import { memo } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "../../../../test/helpers/renderWithProviders";
-import { SideNavigation } from "./SideNavigation";
-import type { SideNavigationProps } from "./SideNavigation";
 import type { NavigationItem } from "../types";
+import type { SideNavigationProps } from "./SideNavigation";
+import { SideNavigation } from "./SideNavigation";
 
 /**
  * TASK-104 SideNavigation TDDテストスイート
@@ -31,13 +30,11 @@ const mockNavigationItems: NavigationItem[] = [
 ];
 
 const mockGroupedItems = {
-  "メイン": [
+  メイン: [
     { id: "home", label: "ホーム", path: "/", icon: IconHome },
     { id: "users", label: "ユーザー", path: "/users", icon: IconUsers },
   ],
-  "設定": [
-    { id: "settings", label: "設定", path: "/settings", icon: IconSettings },
-  ],
+  設定: [{ id: "settings", label: "設定", path: "/settings", icon: IconSettings }],
 };
 
 const defaultProps: SideNavigationProps = {
@@ -67,7 +64,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
         { id: "home", label: "ホーム", path: "/", icon: IconHome },
         { id: "users", label: "ユーザー", path: "/users", icon: IconUsers },
       ];
-      const testGroupedItems = { "メイン": testItems };
+      const testGroupedItems = { メイン: testItems };
 
       // 【実際の処理実行】: SideNavigationコンポーネントをレンダリング
       // 【処理内容】: testItemsとtestGroupedItemsを渡してコンポーネントの基本表示を実行
@@ -97,8 +94,8 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
       // 【テストデータ準備】: 複数グループでの階層構造表示確認
       // 【初期条件設定】: メイン・設定の2グループ構成
       const multiGroupItems = {
-        "メイン": [{ id: "home", label: "ホーム", path: "/" }],
-        "設定": [{ id: "settings", label: "設定", path: "/settings" }]
+        メイン: [{ id: "home", label: "ホーム", path: "/" }],
+        設定: [{ id: "settings", label: "設定", path: "/settings" }],
       };
 
       // 【実際の処理実行】: グループ化されたNavigationItemでSideNavigationをレンダリング
@@ -131,7 +128,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
       // 【初期条件設定】: collapsed=trueでの折りたたみ状態
       const collapsedProps = {
         ...defaultProps,
-        collapsed: true
+        collapsed: true,
       };
 
       // 【実際の処理実行】: collapsed=trueでSideNavigationをレンダリング
@@ -147,7 +144,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
 
       // 【確認内容】: ツールチップ対応が有効化される 🟢
       const navLinks = screen.getAllByRole("link");
-      navLinks.forEach(link => {
+      navLinks.forEach((link) => {
         expect(link).toHaveAttribute("data-tooltip");
       });
     });
@@ -162,9 +159,9 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
       // 【初期条件設定】: 現在のルート '/' での状態確認
       // Mock current location to '/'
       const mockLocation = { pathname: "/" };
-      Object.defineProperty(window, 'location', {
+      Object.defineProperty(window, "location", {
         value: mockLocation,
-        writable: true
+        writable: true,
       });
 
       // 【実際の処理実行】: ルート情報を含むSideNavigationをレンダリング
@@ -189,9 +186,9 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
       // 【テストデータ準備】: 未読件数や重要度を示す視覚的インジケーター
       // 【初期条件設定】: バッジ付きナビゲーション項目
       const badgeItems: NavigationItem[] = [
-        { id: "notifications", label: "通知", path: "/notifications", icon: IconBell, badge: "5" }
+        { id: "notifications", label: "通知", path: "/notifications", icon: IconBell, badge: "5" },
       ];
-      const badgeGroupedItems = { "メイン": badgeItems };
+      const badgeGroupedItems = { メイン: badgeItems };
 
       // 【実際の処理実行】: バッジ付きNavigationItemでSideNavigationをレンダリング
       // 【処理内容】: badgeItemsを渡してバッジ表示機能を確認
@@ -208,7 +205,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
 
       // 【確認内容】: バッジがBadgeコンポーネントとして表示される 🟢
       const badgeElement = screen.getByText("5");
-      expect(badgeElement.closest('.mantine-Badge-root')).toBeInTheDocument();
+      expect(badgeElement.closest(".mantine-Badge-root")).toBeInTheDocument();
     });
   });
 
@@ -225,7 +222,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
       // 【初期条件設定】: 空のナビゲーション項目配列
       const emptyProps = {
         items: [],
-        groupedItems: {}
+        groupedItems: {},
       };
 
       // 【実際の処理実行】: 空データでSideNavigationをレンダリング
@@ -259,7 +256,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
         { id: "test2", label: null as any, path: "/test2" },
         { id: "valid", label: "有効項目", path: "/valid", icon: IconHome },
       ];
-      const invalidGroupedItems = { "テスト": invalidItems };
+      const invalidGroupedItems = { テスト: invalidItems };
 
       // 【実際の処理実行】: 不正データを含むNavigationItemでレンダリング
       // 【処理内容】: invalidItemsを渡してデータ検証とエラーハンドリング動作を確認
@@ -272,7 +269,9 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
       expect(screen.getByText("有効項目")).toBeInTheDocument();
 
       // 【確認内容】: エラーは発生しない 🟡
-      expect(() => render(<SideNavigation items={invalidItems} groupedItems={invalidGroupedItems} />)).not.toThrow();
+      expect(() =>
+        render(<SideNavigation items={invalidItems} groupedItems={invalidGroupedItems} />)
+      ).not.toThrow();
     });
 
     it("TC-104-E003: アイコンコンポーネントの読み込み失敗", () => {
@@ -288,11 +287,13 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
         { id: "test2", label: "テスト2", path: "/test2", icon: null as any },
         { id: "valid", label: "有効項目", path: "/valid", icon: IconHome },
       ];
-      const invalidIconGroupedItems = { "テスト": itemsWithInvalidIcon };
+      const invalidIconGroupedItems = { テスト: itemsWithInvalidIcon };
 
       // 【実際の処理実行】: 不正アイコンを含むNavigationItemでレンダリング
       // 【処理内容】: itemsWithInvalidIconを渡してアイコン依存関係のエラーハンドリングを確認
-      render(<SideNavigation items={itemsWithInvalidIcon} groupedItems={invalidIconGroupedItems} />);
+      render(
+        <SideNavigation items={itemsWithInvalidIcon} groupedItems={invalidIconGroupedItems} />
+      );
 
       // 【結果検証】: アイコンエラーでもナビゲーション機能が継続することを確認
       // 【期待値確認】: 外部依存関係問題への耐性、機能継続性
@@ -303,7 +304,11 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
       expect(screen.getByTestId("navlink-valid")).toBeInTheDocument();
 
       // 【確認内容】: エラーは発生しない 🟡
-      expect(() => render(<SideNavigation items={itemsWithInvalidIcon} groupedItems={invalidIconGroupedItems} />)).not.toThrow();
+      expect(() =>
+        render(
+          <SideNavigation items={itemsWithInvalidIcon} groupedItems={invalidIconGroupedItems} />
+        )
+      ).not.toThrow();
     });
   });
 
@@ -335,7 +340,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
 
       // 【確認内容】: デスクトップでのみ表示される設定 🟢
       expect(navbarElement).toHaveStyle({
-        display: "flex"
+        display: "flex",
       });
     });
 
@@ -347,13 +352,13 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
 
       // 【テストデータ準備】: 機能豊富なアプリケーション、管理者向け画面シミュレーション
       // 【初期条件設定】: 画面高さを明らかに超える項目数（50項目）
-      const manyItems: NavigationItem[] = Array.from({length: 50}, (_, i) => ({
+      const manyItems: NavigationItem[] = Array.from({ length: 50 }, (_, i) => ({
         id: `item-${i}`,
         label: `項目${i + 1}`,
         path: `/item-${i}`,
-        icon: IconHome
+        icon: IconHome,
       }));
-      const manyGroupedItems = { "大量データ": manyItems };
+      const manyGroupedItems = { 大量データ: manyItems };
 
       // 【実際の処理実行】: 大量データでSideNavigationをレンダリング
       // 【処理内容】: manyItemsを渡してScrollArea機能を確認
@@ -394,8 +399,14 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
 
         return (
           <>
-            <SideNavigation {...defaultProps} collapsed={collapsed} onToggleCollapse={handleToggle} />
-            <button onClick={handleToggle}>Toggle</button>
+            <SideNavigation
+              {...defaultProps}
+              collapsed={collapsed}
+              onToggleCollapse={handleToggle}
+            />
+            <button type="button" onClick={handleToggle}>
+              Toggle
+            </button>
           </>
         );
       };
@@ -444,7 +455,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
 
       // 【確認内容】: 各ナビゲーション項目がフォーカス可能 🟢
       const navLinks = screen.getAllByRole("link");
-      navLinks.forEach(link => {
+      navLinks.forEach((link) => {
         expect(link).toHaveAttribute("tabIndex", "0");
 
         // 【確認内容】: フォーカス設定 🟢
@@ -472,14 +483,16 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
           label: "ホーム",
           path: "/",
           icon: IconHome,
-          description: "アプリケーションのメインページ"
-        }
+          description: "アプリケーションのメインページ",
+        },
       ];
-      const descriptiveGroupedItems = { "メイン": itemsWithDescription };
+      const descriptiveGroupedItems = { メイン: itemsWithDescription };
 
       // 【実際の処理実行】: ARIA属性付きNavigationItemでレンダリング
       // 【処理内容】: itemsWithDescriptionを渡してスクリーンリーダー対応を確認
-      render(<SideNavigation items={itemsWithDescription} groupedItems={descriptiveGroupedItems} />);
+      render(
+        <SideNavigation items={itemsWithDescription} groupedItems={descriptiveGroupedItems} />
+      );
 
       // 【結果検証】: スクリーンリーダーでの完全な情報取得が可能であることを確認
       // 【期待値確認】: 適切なARIA属性、各項目の目的と現在位置の明確な伝達
@@ -511,7 +524,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
       const performanceProps = {
         ...defaultProps,
         collapsed: false,
-        onToggleCollapse: vi.fn()
+        onToggleCollapse: vi.fn(),
       };
 
       // 【実際の処理実行】: パフォーマンス測定付きでSideNavigationをレンダリング
@@ -538,7 +551,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
 
       // 【確認内容】: アニメーション設定確認 🟢
       expect(navElement).toHaveStyle({
-        transition: "width 300ms ease"
+        transition: "width 300ms ease",
       });
     });
   });
@@ -628,7 +641,7 @@ describe("SideNavigation Component - TASK-104 TDD Test Suite", () => {
 
       // 【確認内容】: NavLinkコンポーネントのテーマ統合 🟢
       const navLinks = screen.getAllByRole("link");
-      navLinks.forEach(link => {
+      navLinks.forEach((link) => {
         expect(link).toHaveClass("mantine-NavLink-root");
       });
     });

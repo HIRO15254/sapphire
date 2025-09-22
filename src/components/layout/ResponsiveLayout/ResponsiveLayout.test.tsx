@@ -206,8 +206,7 @@ describe("ResponsiveLayout（最上位）コンポーネント", () => {
       const invalidNavigationConfig = {
         primary: [{ id: "1" }], // label, pathが欠けている
         secondary: null,
-      // biome-ignore lint/suspicious/noExplicitAny: テスト用の意図的な不正データ
-      } as any; // TypeScript型チェックを回避
+      } as any; // TypeScript型チェックを回避（テスト用の意図的な不正データ）
 
       // Mock console.warn to capture fallback warnings
       const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
