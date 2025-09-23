@@ -87,7 +87,7 @@ export class NavigationErrorBoundary extends React.Component<
     const enhancedContext = {
       error: error.message,
       stack: error.stack,
-      componentStack: errorInfo.componentStack,
+      componentStack: errorInfo.componentStack || "",
       errorBoundary: "NavigationErrorBoundary",
       retryCount,
       errorId,

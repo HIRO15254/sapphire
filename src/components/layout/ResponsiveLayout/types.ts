@@ -2,7 +2,6 @@
 
 export type { UseResponsiveLayoutReturn } from "./hooks/useResponsiveLayout";
 export type {
-  AccessibilityProps,
   BaseComponentProps,
   FooterNavigationProps,
   HamburgerMenuProps,
@@ -10,7 +9,6 @@ export type {
   NavigationItemStyles,
   NavigationItemVariant,
   SideNavigationProps,
-  TapTargetSize,
 } from "./types/ComponentTypes";
 export type {
   GroupedNavigationItems,
