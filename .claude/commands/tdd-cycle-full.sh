@@ -62,9 +62,10 @@ run_tdd_cycle() {
     fi
     
     echo -e "${GREEN}✅ VERIFY COMPLETE フェーズ完了${NC}"
+    echo -e "${verify_result}
     
     # 結果の判定
-    if echo "$verify_result" | grep -E "(品質基準を満たしています|実装完了|検証完了)" > /dev/null; then
+    if echo "$verify_result" | grep -E "(完全性検証: 合格)" > /dev/null; then
         echo -e "${GREEN}🎉 TDDサイクル完了${NC}: $test_case のTDDサイクルが正常に完了しました"
         return 0
     elif echo "$verify_result" | grep -E "(未実装|品質基準に満たない|追加実装が必要)" > /dev/null; then

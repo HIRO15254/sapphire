@@ -1,3 +1,7 @@
+---
+description: 既存のコードベースから要件定義書を逆生成します。実装された機能を分析し、EARS（Easy Approach to Requirements Syntax）記法を用いて機能要件、非機能要件、ユーザーストーリーを抽出・文書化します。
+---
+
 # rev-requirements
 
 ## 目的
