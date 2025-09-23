@@ -1,5 +1,6 @@
 import { Box, Center, Group, rem, Text, UnstyledButton } from "@mantine/core";
 import { memo, useMemo } from "react";
+import { Link } from "react-router-dom";
 import type { NavigationItem } from "../types";
 
 export interface FooterNavigationProps {
@@ -124,7 +125,13 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
            【保守性】: 定数化とuseMemoによる変更容易性とパフォーマンス両立
            🟢 信頼性レベル: 高（EARS要件REQ-002, REQ-103, NFR-201準拠、セキュリティ強化済み） */}
       {validItems.map((item) => (
-        <UnstyledButton key={item.id} tabIndex={0} style={accessibleButtonStyle}>
+        <UnstyledButton
+          key={item.id}
+          component={Link}
+          to={item.path}
+          tabIndex={0}
+          style={accessibleButtonStyle}
+        >
           <Center>
             <Box>
               {item.icon && (

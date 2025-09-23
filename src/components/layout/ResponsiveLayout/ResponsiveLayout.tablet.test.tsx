@@ -18,7 +18,7 @@ const mockNavConfig: NavigationConfig = {
 };
 
 describe("ResponsiveLayout - タブレットサイズでのナビゲーション問題", () => {
-  const originalMatchMedia = window.matchMedia;
+  const _originalMatchMedia = window.matchMedia;
 
   beforeAll(() => {
     // matchMediaのモック
@@ -65,12 +65,13 @@ describe("ResponsiveLayout - タブレットサイズでのナビゲーション
     expect(screen.getByText("アプリ名")).toBeInTheDocument();
 
     // ハンバーガーメニューボタンが表示されることを確認
-    const burgerButton = container.querySelector('button[data-burger]') ||
-                        container.querySelector('.mantine-Burger-root') ||
-                        screen.queryByRole('button', { name: /menu/i });
+    const burgerButton =
+      container.querySelector("button[data-burger]") ||
+      container.querySelector(".mantine-Burger-root") ||
+      screen.queryByRole("button", { name: /menu/i });
 
-    console.log('Burger button found:', !!burgerButton);
-    console.log('DOM structure:', container.innerHTML.slice(0, 500));
+    console.log("Burger button found:", !!burgerButton);
+    console.log("DOM structure:", container.innerHTML.slice(0, 500));
 
     expect(burgerButton).toBeTruthy();
 
@@ -93,9 +94,10 @@ describe("ResponsiveLayout - タブレットサイズでのナビゲーション
     );
 
     // ハンバーガーメニューボタンが存在することを確認
-    const burgerButton = container.querySelector('button[data-burger]') ||
-                        container.querySelector('.mantine-Burger-root') ||
-                        screen.queryByRole('button', { name: /menu/i });
+    const burgerButton =
+      container.querySelector("button[data-burger]") ||
+      container.querySelector(".mantine-Burger-root") ||
+      screen.queryByRole("button", { name: /menu/i });
     expect(burgerButton).toBeTruthy();
   });
 
@@ -128,9 +130,10 @@ describe("ResponsiveLayout - タブレットサイズでのナビゲーション
     );
 
     // ハンバーガーメニューボタンが表示されることを確認
-    const burgerButton = container.querySelector('button[data-burger]') ||
-                        container.querySelector('.mantine-Burger-root') ||
-                        screen.queryByRole('button', { name: /menu/i });
+    const burgerButton =
+      container.querySelector("button[data-burger]") ||
+      container.querySelector(".mantine-Burger-root") ||
+      screen.queryByRole("button", { name: /menu/i });
     expect(burgerButton).toBeTruthy();
 
     // ハンバーガーメニューをクリック

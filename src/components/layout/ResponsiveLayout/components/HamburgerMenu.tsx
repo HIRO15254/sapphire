@@ -1,12 +1,13 @@
 import { Badge, Drawer, NavLink, rem, ScrollArea, Stack, Text } from "@mantine/core";
 import { memo, useMemo } from "react";
+import { Link } from "react-router-dom";
 import type { NavigationItem } from "../types";
 
 // 【定数定義】: レイアウトとスタイル定数
 const HAMBURGER_MENU_CONSTANTS = {
   DRAWER_SIZE: "300px",
   MAX_WIDTH: rem(320),
-  SCROLL_HEIGHT: "calc(100vh - 60px)",
+  MAX_SCROLL_HEIGHT: "calc(100vh - 60px)",
   ICON_SIZE: 16,
   ICON_STROKE: 1.5,
   NAV_MIN_HEIGHT: "44px",
@@ -41,6 +42,8 @@ const NavigationItemComponent = memo<NavigationItemComponentProps>(({ item, onCl
   return (
     <NavLink
       key={item.id}
+      component={Link}
+      to={item.path}
       label={item.label}
       leftSection={
         item.icon ? (
@@ -87,9 +90,10 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
     );
 
     // 【パフォーマンス最適化】: ScrollAreaスタイルをメモ化
+    // コンテンツに応じた高さで、最大値を制限
     const scrollAreaStyle = useMemo(
       () => ({
-        height: HAMBURGER_MENU_CONSTANTS.SCROLL_HEIGHT,
+        maxHeight: HAMBURGER_MENU_CONSTANTS.MAX_SCROLL_HEIGHT,
       }),
       []
     );
@@ -134,7 +138,7 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
         title="ナビゲーションメニュー"
         styles={drawerStyles}
       >
-        <ScrollArea style={scrollAreaStyle} data-testid="scroll-area">
+        <ScrollArea style={scrollAreaStyle} data-testid="scroll-area" type="auto">
           <Stack gap="md">{renderedGroups}</Stack>
         </ScrollArea>
       </Drawer>

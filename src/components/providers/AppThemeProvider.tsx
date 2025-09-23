@@ -20,7 +20,7 @@ export const AppThemeProvider: React.FC<AppThemeProviderProps> = ({
   theme = "auto",
   primaryColor = "blue",
 }) => {
-  // 【テーマ作成】: Mantineカスタムテーマを作成してプライマリカラーを設定
+  // 【テーマ作成】: Mantine標準テーマを作成してプライマリカラーを設定
   const mantineTheme = useMemo(
     () =>
       createTheme({

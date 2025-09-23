@@ -1,39 +1,8 @@
-import { createTheme, type MantineColorsTuple, rem } from "@mantine/core";
-
-// カスタムカラーパレット
-const primaryColor: MantineColorsTuple = [
-  "#e3f2fd",
-  "#bbdefb",
-  "#90caf9",
-  "#64b5f6",
-  "#42a5f5",
-  "#1976d2", // WCAG AA準拠: コントラスト比 7.76:1
-  "#1565c0",
-  "#0d47a1",
-  "#0a3d91",
-  "#063381",
-];
-
-const grayColor: MantineColorsTuple = [
-  "#f8f9fa",
-  "#f1f3f4",
-  "#e8eaed",
-  "#dadce0",
-  "#bdc1c6",
-  "#80868b", // WCAG AA準拠: コントラスト比 5.74:1
-  "#5f6368",
-  "#3c4043",
-  "#2d3134",
-  "#202124",
-];
+import { createTheme, rem } from "@mantine/core";
 
 export const appTheme = createTheme({
-  /** カラーパレット */
-  primaryColor: "primary",
-  colors: {
-    primary: primaryColor,
-    gray: grayColor,
-  },
+  /** カラーパレット - Mantine公式カラースキーム使用 */
+  primaryColor: "blue",
 
   /** フォント設定 */
   fontFamily: 'system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif',

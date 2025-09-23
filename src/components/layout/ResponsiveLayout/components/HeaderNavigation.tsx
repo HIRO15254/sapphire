@@ -9,6 +9,7 @@ import {
 } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
 import { memo, useMemo } from "react";
+import { Link } from "react-router-dom";
 import type { NavigationItem } from "../types";
 
 /**
@@ -89,7 +90,7 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
                🟢 信頼性レベル: 基本的なブランディング要件準拠 */}
           <Group gap="xs">
             <Text size="lg" fw={600}>
-              アプリ名
+              Sapphire
             </Text>
           </Group>
         </Group>
@@ -101,7 +102,12 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
           <nav>
             <Group gap="xs">
               {items.map((item) => (
-                <UnstyledButton key={item.id} style={navigationItemStyles.root}>
+                <UnstyledButton
+                  key={item.id}
+                  component={Link}
+                  to={item.path}
+                  style={navigationItemStyles.root}
+                >
                   <Group gap="xs" wrap="nowrap">
                     {item.icon && <item.icon size={NAVIGATION_ICON_SIZE} />}
                     <Text size="sm">{item.label}</Text>
