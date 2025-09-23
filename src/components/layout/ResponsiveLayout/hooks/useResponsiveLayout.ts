@@ -15,11 +15,12 @@ export const useResponsiveLayout = () => {
   const isSupported = useMemo(() => isMediaQuerySupported(), []);
 
   // 【レスポンシブ検知】: useMediaQueryでモバイル/デスクトップ判定を実行 🟢
-  // 【実装内容】: 768px (48em) 境界での画面サイズ判定、TC-001, TC-002テスト対応
+  // 【実装内容】: 992px (62em) 境界での画面サイズ判定、Mantineのmdブレークポイントと統一
   // 【エラーハンドリング】: TC-102対応 - MediaQuery APIが利用できない環境での処理
 
   // React Hook Rules準拠: useMediaQueryを無条件で呼び出し
-  const mediaQueryResult = useMediaQuery("(max-width: 48em)", false, {
+  // Mantineのmdブレークポイント(62em = 992px)と統一
+  const mediaQueryResult = useMediaQuery("(max-width: 62em)", false, {
     getInitialValueInEffect: false,
   });
 
