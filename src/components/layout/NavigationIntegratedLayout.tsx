@@ -6,6 +6,7 @@
  */
 
 import { useMantineColorScheme } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import type React from "react";
 import { memo, useCallback, useMemo } from "react";
 import { NavigationProvider, useNavigationContext } from "../../providers/NavigationProvider";
@@ -41,10 +42,34 @@ const NavigationIntegratedLayoutInner = memo<{
   children: React.ReactNode;
   navigationConfig: NavigationConfig;
 }>(({ children, navigationConfig }) => {
-  const { currentPath, isExactActive, navigate, breadcrumbs, closeAllMenus, currentPageTitle } =
+  const { currentPath, navigate, breadcrumbs, closeAllMenus, currentPageTitle } =
     useNavigationContext();
 
   const { colorScheme } = useMantineColorScheme();
+
+  /**
+   * 【キーボードショートカット】: Mantine use-hotkeys によるアクセシビリティ向上
+   */
+  useHotkeys([
+    [
+      "alt+m",
+      () => {
+        const mainContent = document.querySelector('[role="main"]') as HTMLElement;
+        if (mainContent) {
+          mainContent.focus();
+        }
+      },
+    ],
+    [
+      "alt+n",
+      () => {
+        const navigation = document.querySelector('[role="navigation"]') as HTMLElement;
+        if (navigation) {
+          navigation.focus();
+        }
+      },
+    ],
+  ]);
 
   /**
    * 【機能変換】: NavigationConfigからResponsiveLayout用NavigationItemへの変換
@@ -60,7 +85,18 @@ const NavigationIntegratedLayoutInner = memo<{
         icon?: string | React.ComponentType;
         external?: boolean;
         disabled?: boolean;
-        children?: any[];
+        children?: Array<{
+          id: string;
+          label: string;
+          path: string;
+          icon?: string | React.ComponentType;
+          external?: boolean;
+          disabled?: boolean;
+          group?: string;
+          badge?: string | number;
+          hasNotification?: boolean;
+          description?: string;
+        }>;
         group?: string;
         badge?: string | number;
         hasNotification?: boolean;
@@ -110,7 +146,32 @@ const NavigationIntegratedLayoutInner = memo<{
    * 【アクセシビリティ強化】: ResponsiveLayout用のナビゲーション設定に統合機能を追加
    */
   const enhancedNavigationConfig = useMemo(() => {
-    const enhanceItems = (items: any[]) =>
+    const enhanceItems = (
+      items: Array<{
+        id: string;
+        label: string;
+        path: string;
+        icon?: string | React.ComponentType;
+        external?: boolean;
+        disabled?: boolean;
+        children?: Array<{
+          id: string;
+          label: string;
+          path: string;
+          icon?: string | React.ComponentType;
+          external?: boolean;
+          disabled?: boolean;
+          group?: string;
+          badge?: string | number;
+          hasNotification?: boolean;
+          description?: string;
+        }>;
+        group?: string;
+        badge?: string | number;
+        hasNotification?: boolean;
+        description?: string;
+      }>
+    ) =>
       convertToNavigationItems(items).map((item) => ({
         ...item,
         // ナビゲーションクリックハンドラーの統合
@@ -135,29 +196,9 @@ const NavigationIntegratedLayoutInner = memo<{
         現在のページ: {currentPageTitle || currentPath}
       </div>
 
-      {/* 【キーボードナビゲーション】: ショートカットキー対応 */}
-      <div
-        className="sr-only"
-        onKeyDown={(event) => {
-          // Alt + M でメインコンテンツにジャンプ
-          if (event.altKey && event.key === "m") {
-            event.preventDefault();
-            const mainContent = document.querySelector('[role="main"]') as HTMLElement;
-            if (mainContent) {
-              mainContent.focus();
-            }
-          }
-          // Alt + N でナビゲーションにジャンプ
-          if (event.altKey && event.key === "n") {
-            event.preventDefault();
-            const navigation = document.querySelector('[role="navigation"]') as HTMLElement;
-            if (navigation) {
-              navigation.focus();
-            }
-          }
-        }}
-      >
-        スキップリンク
+      {/* 【キーボードナビゲーション】: Mantine use-hotkeys による実装 */}
+      <div className="sr-only">
+        スキップリンク: Alt+M でメインコンテンツ、Alt+N でナビゲーション
       </div>
 
       {/* 【統合コンポーネント】: ResponsiveLayoutにNavigationProviderの状態を連携 */}
@@ -180,6 +221,7 @@ const NavigationIntegratedLayoutInner = memo<{
                   <li key={crumb.id} data-testid={`breadcrumb-${index}`}>
                     {crumb.isClickable ? (
                       <button
+                        type="button"
                         onClick={() => handleNavigationClick(crumb.path)}
                         style={{
                           background: "none",

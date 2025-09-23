@@ -29,7 +29,7 @@ export interface RouteConfig {
   /** 認証が必要かどうか */
   requiresAuth?: boolean;
   /** データのプリロード関数 */
-  preloadData?: () => Promise<any>;
+  preloadData?: () => Promise<unknown>;
 }
 
 /**
@@ -82,7 +82,7 @@ export interface NavigationContextValue {
 
   // ナビゲーション操作
   /** ページ遷移関数 */
-  navigate: (path: string, options?: { state?: any }) => void;
+  navigate: (path: string, options?: { state?: unknown }) => void;
   /** 戻る関数 */
   goBack: () => void;
 
@@ -219,7 +219,7 @@ export interface RoutingContextValue {
   /** ナビゲーション履歴 */
   history: NavigationHistoryItem[];
   /** ページデータ */
-  pageData: Record<string, any>;
+  pageData: Record<string, unknown>;
   /** ページデータ設定関数 */
-  setPageData: (key: string, data: any) => void;
+  setPageData: (key: string, data: unknown) => void;
 }

@@ -8,7 +8,7 @@
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export interface LogContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface LogEntry {
@@ -146,12 +146,13 @@ export class NavigationLogger {
 
     // 開発環境では構造化ログをブラウザ拡張機能用に出力
     if (this.isDevelopment && typeof window !== "undefined") {
-      (window as any).__NAVIGATION_LOGS__ = (window as any).__NAVIGATION_LOGS__ || [];
-      (window as any).__NAVIGATION_LOGS__.push(entry);
+      const windowWithLogs = window as Window & { __NAVIGATION_LOGS__?: LogEntry[] };
+      windowWithLogs.__NAVIGATION_LOGS__ = windowWithLogs.__NAVIGATION_LOGS__ || [];
+      windowWithLogs.__NAVIGATION_LOGS__.push(entry);
 
       // ログ履歴が100件を超えたら古いものを削除
-      if ((window as any).__NAVIGATION_LOGS__.length > 100) {
-        (window as any).__NAVIGATION_LOGS__.shift();
+      if (windowWithLogs.__NAVIGATION_LOGS__.length > 100) {
+        windowWithLogs.__NAVIGATION_LOGS__.shift();
       }
     }
   }

@@ -99,7 +99,7 @@ export const performanceUtils = {
 
     // 結果にメトリクスを付加（デバッグ用）
     if (process.env.NODE_ENV === "development" && typeof result === "object" && result !== null) {
-      (result as any).metrics = metrics;
+      (result as Record<string, unknown>).metrics = metrics;
     }
 
     return result as T & { metrics?: PerformanceMetrics };
@@ -141,7 +141,7 @@ export const performanceUtils = {
       };
 
       if (process.env.NODE_ENV === "development" && typeof result === "object" && result !== null) {
-        (result as any).metrics = metrics;
+        (result as Record<string, unknown>).metrics = metrics;
       }
 
       return result as T & { metrics?: PerformanceMetrics };

@@ -88,7 +88,11 @@ describe("ResponsiveLayout Performance Tests (Red Phase)", () => {
 
     const Child = React.memo(({ onClick }: { onClick: () => void }) => {
       childRenderSpy();
-      return <button onClick={onClick}>Click</button>;
+      return (
+        <button type="button" onClick={onClick}>
+          Click
+        </button>
+      );
     });
 
     const Parent = ({ count }: { count: number }) => {

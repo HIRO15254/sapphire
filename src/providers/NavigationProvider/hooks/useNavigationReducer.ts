@@ -50,7 +50,9 @@ export const navigationReducer = (
           return handlePageTitleSet(state, action);
 
         default:
-          logger.warn("Unknown navigation action type", { type: (action as any).type });
+          logger.warn("Unknown navigation action type", {
+            type: (action as { type: unknown }).type,
+          });
           return state;
       }
     },

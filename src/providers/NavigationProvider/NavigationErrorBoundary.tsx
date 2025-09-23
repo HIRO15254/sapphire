@@ -117,7 +117,20 @@ export class NavigationErrorBoundary extends React.Component<
    * 【機能概要】: 外部エラー監視サービスへの報告
    * 【品質向上】: プロダクション環境での障害監視
    */
-  private async reportErrorToService(_error: Error, context: any): Promise<void> {
+  private async reportErrorToService(
+    _error: Error,
+    context: {
+      error: string;
+      stack?: string;
+      componentStack: string;
+      errorBoundary: string;
+      retryCount: number;
+      errorId?: string;
+      timestamp: number;
+      userAgent: string;
+      url: string;
+    }
+  ): Promise<void> {
     try {
       // 実際のエラー報告サービス統合ポイント
       // 例: Sentry, Bugsnag, LogRocket など
@@ -188,7 +201,9 @@ export class NavigationErrorBoundary extends React.Component<
    */
   componentWillUnmount(): void {
     // タイムアウトのクリーンアップ
-    this.retryTimeouts.forEach((timeout) => clearTimeout(timeout));
+    this.retryTimeouts.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
     this.retryTimeouts = [];
   }
 
@@ -239,6 +254,7 @@ export class NavigationErrorBoundary extends React.Component<
             <div className="error-actions">
               {canRetry && (
                 <button
+                  type="button"
                   onClick={this.handleRetry}
                   data-testid="retry-button"
                   className="retry-button"
@@ -247,6 +263,7 @@ export class NavigationErrorBoundary extends React.Component<
                 </button>
               )}
               <button
+                type="button"
                 onClick={this.handleReload}
                 data-testid="reload-button"
                 className="reload-button"

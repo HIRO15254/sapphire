@@ -29,7 +29,11 @@ const TestUseNavigationComponent = () => {
       <div data-testid="hook-current-path">Current Path: {navigation.currentPath}</div>
       <div data-testid="loading-state">Loading: {navigation.isLoading.toString()}</div>
       <div data-testid="breadcrumb-count">Breadcrumbs: {navigation.breadcrumbs.length}</div>
-      <button data-testid="navigate-btn" onClick={() => navigation.navigate("/users")}>
+      <button
+        type="button"
+        data-testid="navigate-btn"
+        onClick={() => navigation.navigate("/users")}
+      >
         Navigate to Users
       </button>
     </div>

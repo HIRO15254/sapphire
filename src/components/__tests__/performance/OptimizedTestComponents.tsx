@@ -30,7 +30,11 @@ export const OptimizedCallbackParent = memo<{ count: number }>(({ count }) => {
 OptimizedCallbackParent.displayName = "OptimizedCallbackParent";
 
 const OptimizedCallbackChild = memo<{ onClick: () => void }>(({ onClick }) => {
-  return <button onClick={onClick}>Click</button>;
+  return (
+    <button type="button" onClick={onClick}>
+      Click
+    </button>
+  );
 });
 
 OptimizedCallbackChild.displayName = "OptimizedCallbackChild";

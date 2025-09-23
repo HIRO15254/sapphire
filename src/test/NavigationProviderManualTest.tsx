@@ -13,22 +13,22 @@ const testNavigationConfig: NavigationConfig = {
 
 // Test component to verify NavigationProvider functionality
 const TestComponent: React.FC = () => {
-  try {
-    const {
-      currentPath,
-      previousPath,
-      isLoading,
-      breadcrumbs,
-      navigate,
-      goBack,
-      isActive,
-      isExactActive,
-      setPageTitle,
-      getPageTitle,
-      closeAllMenus,
-      isMenuOpen,
-    } = useNavigationContext();
+  const {
+    currentPath,
+    previousPath,
+    isLoading,
+    breadcrumbs,
+    navigate,
+    goBack,
+    isActive,
+    isExactActive,
+    setPageTitle,
+    getPageTitle,
+    closeAllMenus,
+    isMenuOpen,
+  } = useNavigationContext();
 
+  try {
     return (
       <div data-testid="navigation-test-success">
         <h1>NavigationProvider Green Phase Test</h1>
@@ -66,13 +66,27 @@ const TestComponent: React.FC = () => {
 
         <div>
           <h2>操作ボタン</h2>
-          <button onClick={() => navigate("/users")}>Navigate to Users</button>
-          <button onClick={() => navigate("/settings")}>Navigate to Settings</button>
-          <button onClick={() => navigate("/")}>Navigate to Home</button>
-          <button onClick={() => goBack()}>Go Back</button>
-          <button onClick={() => setPageTitle("Test Title")}>Set Page Title</button>
-          <button onClick={() => alert(`Current Title: ${getPageTitle()}`)}>Get Page Title</button>
-          <button onClick={() => closeAllMenus()}>Close All Menus</button>
+          <button type="button" onClick={() => navigate("/users")}>
+            Navigate to Users
+          </button>
+          <button type="button" onClick={() => navigate("/settings")}>
+            Navigate to Settings
+          </button>
+          <button type="button" onClick={() => navigate("/")}>
+            Navigate to Home
+          </button>
+          <button type="button" onClick={() => goBack()}>
+            Go Back
+          </button>
+          <button type="button" onClick={() => setPageTitle("Test Title")}>
+            Set Page Title
+          </button>
+          <button type="button" onClick={() => alert(`Current Title: ${getPageTitle()}`)}>
+            Get Page Title
+          </button>
+          <button type="button" onClick={() => closeAllMenus()}>
+            Close All Menus
+          </button>
         </div>
 
         <div>

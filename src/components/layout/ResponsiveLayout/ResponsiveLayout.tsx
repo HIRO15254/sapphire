@@ -1,5 +1,5 @@
 import { AppShell } from "@mantine/core";
-import { memo, useMemo } from "react";
+import { memo, useId, useMemo } from "react";
 import { FooterNavigation, HamburgerMenu, HeaderNavigation, SideNavigation } from "./components";
 import { useNavigationConfig, useResponsiveLayout } from "./hooks";
 import type { NavigationItem, ResponsiveLayoutProps, UseResponsiveLayoutReturn } from "./types";
@@ -54,6 +54,9 @@ const useSafeResponsiveLayout = (): UseResponsiveLayoutReturn => {
  * @returns レスポンシブレイアウトJSX要素
  */
 const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConfig }) => {
+  // 【ID生成】: 固有IDを生成してアクセシビリティを向上
+  const mainContentId = useId();
+
   // 【カスタムフック】: レスポンシブレイアウトロジックを分離管理 🟢
   const { isMobile, hamburgerOpened, toggleHamburger, closeHamburger } = useSafeResponsiveLayout();
 
@@ -108,7 +111,7 @@ const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConf
         )}
 
         {/* メインコンテンツ */}
-        <AppShell.Main id="main-content">{children}</AppShell.Main>
+        <AppShell.Main id={mainContentId}>{children}</AppShell.Main>
 
         {/* モバイルハンバーガーメニュー */}
         <HamburgerMenu

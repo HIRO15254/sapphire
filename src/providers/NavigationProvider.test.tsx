@@ -33,18 +33,19 @@ const navigationConfig: NavigationConfig = {
 
 // テスト用コンシューマーコンポーネント
 const TestConsumerComponent = () => {
-  try {
-    const context = useNavigationContext();
-    return (
-      <div>
-        <div data-testid="navigation-context-available">Context Available</div>
-        <div>Current Path: {context.currentPath}</div>
-        <div>Loading: {context.isLoading.toString()}</div>
-      </div>
-    );
-  } catch (_error) {
+  const context = useNavigationContext();
+
+  if (!context) {
     return <div data-testid="context-error">Context Error</div>;
   }
+
+  return (
+    <div>
+      <div data-testid="navigation-context-available">Context Available</div>
+      <div>Current Path: {context.currentPath}</div>
+      <div>Loading: {context.isLoading.toString()}</div>
+    </div>
+  );
 };
 
 describe("NavigationProvider TDD Red Phase Tests", () => {
@@ -194,7 +195,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
     const Component3 = () => {
       const { navigate } = useNavigationContext();
       return (
-        <button data-testid="navigate-btn" onClick={() => navigate("/settings")}>
+        <button type="button" data-testid="navigate-btn" onClick={() => navigate("/settings")}>
           Navigate
         </button>
       );
@@ -240,7 +241,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
       return (
         <div>
           <div data-testid="hamburger-open">{isMenuOpen("hamburger").toString()}</div>
-          <button data-testid="navigate-mobile" onClick={() => navigate("/users")}>
+          <button type="button" data-testid="navigate-mobile" onClick={() => navigate("/users")}>
             Navigate to Users
           </button>
         </div>
@@ -285,7 +286,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
         path: "*",
         element: () => (
           <div data-testid="not-found">
-            ページが見つかりません<button>ホームページに戻る</button>
+            ページが見つかりません<button type="button">ホームページに戻る</button>
           </div>
         ),
       }, // 404ページ
@@ -354,6 +355,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
       return (
         <div>
           <button
+            type="button"
             data-testid="measure-update"
             onClick={() => {
               // 【実際の処理実行】: 複数回の状態更新時間測定
@@ -408,7 +410,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
       return (
         <div>
           <div data-testid="test-side-menu-open">{isMenuOpen("side").toString()}</div>
-          <button data-testid="toggle-side" onClick={() => toggleMenu("side")}>
+          <button type="button" data-testid="toggle-side" onClick={() => toggleMenu("side")}>
             Toggle Side Menu
           </button>
           {/* NavigationProvider debug elements are expected to be present */}
@@ -455,13 +457,25 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
         <div>
           <div data-testid="test-page-loading">{isPageLoading.toString()}</div>
           <div data-testid="test-data-loading">{isDataLoading.toString()}</div>
-          <button data-testid="start-page-loading" onClick={() => startLoading("page")}>
+          <button
+            type="button"
+            data-testid="start-page-loading"
+            onClick={() => startLoading("page")}
+          >
             Start Page Loading
           </button>
-          <button data-testid="complete-page-loading" onClick={() => completeLoading("page")}>
+          <button
+            type="button"
+            data-testid="complete-page-loading"
+            onClick={() => completeLoading("page")}
+          >
             Complete Page Loading
           </button>
-          <button data-testid="start-data-loading" onClick={() => startLoading("data")}>
+          <button
+            type="button"
+            data-testid="start-data-loading"
+            onClick={() => startLoading("data")}
+          >
             Start Data Loading
           </button>
           {/* NavigationProvider debug elements are expected to be present */}
@@ -517,7 +531,11 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
             Navigation Provider Present
           </div>
           <div data-testid="current-title">{currentPageTitle}</div>
-          <button data-testid="set-title" onClick={() => setPageTitle("新しいページタイトル")}>
+          <button
+            type="button"
+            data-testid="set-title"
+            onClick={() => setPageTitle("新しいページタイトル")}
+          >
             Set Page Title
           </button>
         </div>
@@ -636,6 +654,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
       return (
         <div>
           <button
+            type="button"
             data-testid="run-performance-test"
             onClick={() => {
               const testResults = [];
@@ -839,7 +858,6 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
     // 🟢 この内容の信頼性レベル: WCAG 2.1 AAアクセシビリティガイドライン
 
     const TestAriaLandmarks = () => {
-      const { isActive } = useNavigationContext();
       return (
         <nav>
           <div>
@@ -907,6 +925,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
             </a>
           </nav>
           <button
+            type="button"
             data-testid="hamburger-button"
             tabIndex={0}
             onClick={() => toggleMenu("hamburger")}
@@ -969,7 +988,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
       return (
         <div>
           <div data-testid="page-announcement">現在のページ: {currentPath}</div>
-          <button data-testid="navigate-to-users" onClick={() => navigate("/users")}>
+          <button type="button" data-testid="navigate-to-users" onClick={() => navigate("/users")}>
             ユーザーページへ
           </button>
         </div>
@@ -1112,6 +1131,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
       return (
         <div>
           <button
+            type="button"
             data-testid="toggle-navigation"
             onClick={() => {
               setIsVisible(!isVisible);
@@ -1240,6 +1260,7 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
       return (
         <div data-theme={colorScheme}>
           <button
+            type="button"
             data-testid="toggle-theme"
             onClick={() => setColorScheme((prev) => (prev === "light" ? "dark" : "light"))}
           >
@@ -1295,10 +1316,15 @@ describe("NavigationProvider TDD Red Phase Tests", () => {
       return (
         <div>
           <div data-testid="test-current-location">{currentPath}</div>
-          <button data-testid="navigate-programmatically" onClick={() => navigate("/users")}>
+          <button
+            type="button"
+            data-testid="navigate-programmatically"
+            onClick={() => navigate("/users")}
+          >
             Navigate to Users
           </button>
           <button
+            type="button"
             data-testid="navigate-with-state"
             onClick={() => navigate("/settings", { state: { from: "navigation" } })}
           >

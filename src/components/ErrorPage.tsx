@@ -17,6 +17,7 @@ export const ErrorPage: React.FC<{
         <p>{message}</p>
         <div className="error-actions">
           <button
+            type="button"
             onClick={() => window.history.back()}
             data-testid="go-back-button"
             className="go-back-button"
@@ -24,7 +25,10 @@ export const ErrorPage: React.FC<{
             戻る
           </button>
           <button
-            onClick={() => (window.location.href = "/")}
+            type="button"
+            onClick={() => {
+              window.location.href = "/";
+            }}
             data-testid="go-home-button"
             className="go-home-button"
           >

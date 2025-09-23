@@ -30,7 +30,9 @@ export class PerformanceMonitor {
     const measure = performance.getEntriesByName(`${componentName}-render`)[0];
     const metrics: PerformanceMetrics = {
       renderTime: measure.duration,
-      memoryUsage: (performance as any).memory?.usedJSHeapSize || 0,
+      memoryUsage:
+        (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory
+          ?.usedJSHeapSize || 0,
       rerenderCount: 1,
     };
 

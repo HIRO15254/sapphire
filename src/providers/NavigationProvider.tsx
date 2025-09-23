@@ -510,7 +510,7 @@ const NavigationProviderInner = memo<{
 
     // 【追加実装】: Enhanced navigate function with options
     const enhancedNavigate = useCallback(
-      (path: string, options?: { state?: any }) => {
+      (path: string, options?: { state?: unknown }) => {
         if (options?.state) {
           navigate(path, { state: options.state });
         } else {
@@ -617,6 +617,7 @@ const NavigationProviderInner = memo<{
               </nav>
 
               <button
+                type="button"
                 data-testid="debug-hamburger-button"
                 aria-expanded={isMenuOpen("hamburger")}
                 aria-label="メニューを開く"
@@ -631,6 +632,7 @@ const NavigationProviderInner = memo<{
               <div
                 data-testid="debug-users-nav-item"
                 role="link"
+                tabIndex={0}
                 style={{ color: isActive("/users") ? "#007bff" : "#333" }}
                 aria-current={isExactActive("/users") ? "page" : undefined}
               >
@@ -641,6 +643,7 @@ const NavigationProviderInner = memo<{
               </div>
 
               <button
+                type="button"
                 data-testid="debug-navigate-to-users"
                 onClick={() => navigateToPath("/users")}
               >
@@ -656,16 +659,23 @@ const NavigationProviderInner = memo<{
                 <div data-testid="integrated-app-content">Application Content</div>
               </div>
 
-              <button data-testid="debug-toggle-navigation" onClick={() => toggleMenu("hamburger")}>
+              <button
+                type="button"
+                data-testid="debug-toggle-navigation"
+                onClick={() => toggleMenu("hamburger")}
+              >
                 ナビゲーション切り替え
               </button>
 
               <div data-testid="debug-navigation-content">Navigation Active</div>
 
-              <button data-testid="debug-toggle-theme">テーマ切り替え</button>
+              <button type="button" data-testid="debug-toggle-theme">
+                テーマ切り替え
+              </button>
               <div data-testid="debug-themed-navigation">Themed Navigation</div>
 
               <button
+                type="button"
                 data-testid="debug-navigate-programmatically"
                 onClick={() => navigateToPath("/dashboard")}
               >
@@ -673,6 +683,7 @@ const NavigationProviderInner = memo<{
               </button>
 
               <button
+                type="button"
                 data-testid="debug-navigate-with-state"
                 onClick={() => navigateToPath("/profile")}
               >
@@ -683,18 +694,21 @@ const NavigationProviderInner = memo<{
               <div data-testid="debug-page-loading">{isPageLoading.toString()}</div>
               <div data-testid="debug-data-loading">{isDataLoading.toString()}</div>
               <button
+                type="button"
                 data-testid="provider-start-page-loading"
                 onClick={() => startLoading("page")}
               >
                 ページローディング開始
               </button>
               <button
+                type="button"
                 data-testid="provider-complete-page-loading"
                 onClick={() => completeLoading("page")}
               >
                 ページローディング完了
               </button>
               <button
+                type="button"
                 data-testid="provider-start-data-loading"
                 onClick={() => startLoading("data")}
               >
@@ -703,6 +717,7 @@ const NavigationProviderInner = memo<{
 
               <div data-testid="debug-current-title">{state.pageMetadata.title}</div>
               <button
+                type="button"
                 data-testid="debug-set-title"
                 onClick={() => setPageTitle("新しいページタイトル")}
               >
@@ -718,7 +733,9 @@ const NavigationProviderInner = memo<{
                 {state.breadcrumbs.some((b) => b.label === "レベル5").toString()}
               </div>
 
-              <button data-testid="debug-run-performance-test">Run Performance Test</button>
+              <button type="button" data-testid="debug-run-performance-test">
+                Run Performance Test
+              </button>
               <div data-testid="debug-performance-results">[]</div>
 
               <div data-testid="debug-primary-1-active">{isActive("/primary/0").toString()}</div>
