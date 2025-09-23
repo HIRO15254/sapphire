@@ -13,7 +13,9 @@
       "Bash(bunx vitest run:*)",
       "Bash(bunx tsc:*)",
       "Bash(bunx biome check:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(bun run:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [
       "Bash(bun test:*)",

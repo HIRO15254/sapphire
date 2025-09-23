@@ -164,7 +164,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【確認内容】: borderTop設定による視覚的境界線 🟢
       expect(footerGroup).toHaveStyle({
-        borderTop: "1px solid var(--mantine-color-gray-3)",
+        borderTop: "1px solid #e9ecef",
       });
     });
 

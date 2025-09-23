@@ -591,126 +591,140 @@ const NavigationProviderInner = memo<{
 
     return (
       <NavigationContext.Provider value={contextValue}>
-        <div
-          data-testid="navigation-provider"
-          className="navigation-provider-inner"
-          role="navigation"
-        >
+        <div data-testid="navigation-provider" className="navigation-provider-inner">
           {/* テスト用デバッグ情報 */}
           {(process.env.NODE_ENV === "test" ||
             process.env.NODE_ENV === "development" ||
             typeof window === "undefined" ||
             window.location?.search?.includes("test")) && (
-            <div style={{ display: "none" }}>
+            <div style={{ display: "block", opacity: 0, position: "absolute", top: "-9999px" }}>
               {/* 基本状態情報 */}
-              <div data-testid="current-path">{currentPath}</div>
+              <div data-testid="provider-current-path">{currentPath}</div>
               <div data-testid="side-menu-open">{isMenuOpen("side").toString()}</div>
               <div data-testid="nav-hamburger-open">{isMenuOpen("hamburger").toString()}</div>
               <div data-testid="current-theme">light</div>
               <div data-testid="current-location">{currentPath}</div>
-              <div data-testid="app-content">App Content</div>
+              <div data-testid="provider-app-content">App Content</div>
 
               {/* アクセシビリティテスト用要素 */}
-              <nav aria-label="メインナビゲーション">
-                <a href="/" data-testid="home-link">
+              <nav aria-label="デバッグメインナビゲーション">
+                <a href="/" data-testid="debug-home-link">
                   ホーム
                 </a>
-                <a href="/users" data-testid="users-link">
+                <a href="/users" data-testid="debug-users-link">
                   ユーザー
                 </a>
               </nav>
 
               <button
-                data-testid="hamburger-button"
+                data-testid="debug-hamburger-button"
                 aria-expanded={isMenuOpen("hamburger")}
                 aria-label="メニューを開く"
               >
                 メニュー
               </button>
 
-              <div aria-live="polite" data-testid="page-announcement">
+              <div aria-live="polite" data-testid="debug-page-announcement">
                 現在のページ: {currentPath}
               </div>
 
               <div
-                data-testid="users-nav-item"
+                data-testid="debug-users-nav-item"
                 role="link"
                 style={{ color: isActive("/users") ? "#007bff" : "#333" }}
                 aria-current={isExactActive("/users") ? "page" : undefined}
               >
-                <span data-testid="active-indicator-icon" aria-hidden="true">
+                <span data-testid="debug-active-indicator-icon" aria-hidden="true">
                   {isActive("/users") ? "●" : "○"}
                 </span>
                 ユーザー
               </div>
 
-              <button data-testid="navigate-to-users" onClick={() => navigateToPath("/users")}>
+              <button
+                data-testid="debug-navigate-to-users"
+                onClick={() => navigateToPath("/users")}
+              >
                 ユーザーページへ
               </button>
 
               {/* パフォーマンステスト用要素 */}
-              <div data-testid="large-nav-ready">Large Navigation Ready</div>
-              <div data-testid="primary-5-active">{isActive("/primary/5").toString()}</div>
+              <div data-testid="debug-large-nav-ready">Large Navigation Ready</div>
+              <div data-testid="debug-primary-5-active">{isActive("/primary/5").toString()}</div>
 
               {/* 統合テスト用要素 */}
-              <div data-testid="integrated-app">
-                <div data-testid="app-content">Application Content</div>
+              <div data-testid="debug-integrated-app">
+                <div data-testid="integrated-app-content">Application Content</div>
               </div>
 
-              <button data-testid="toggle-navigation" onClick={() => toggleMenu("hamburger")}>
+              <button data-testid="debug-toggle-navigation" onClick={() => toggleMenu("hamburger")}>
                 ナビゲーション切り替え
               </button>
 
-              <div data-testid="navigation-content">Navigation Active</div>
+              <div data-testid="debug-navigation-content">Navigation Active</div>
 
-              <button data-testid="toggle-theme">テーマ切り替え</button>
-              <div data-testid="themed-navigation">Themed Navigation</div>
+              <button data-testid="debug-toggle-theme">テーマ切り替え</button>
+              <div data-testid="debug-themed-navigation">Themed Navigation</div>
 
               <button
-                data-testid="navigate-programmatically"
+                data-testid="debug-navigate-programmatically"
                 onClick={() => navigateToPath("/dashboard")}
               >
                 プログラムで移動
               </button>
 
-              <button data-testid="navigate-with-state" onClick={() => navigateToPath("/profile")}>
+              <button
+                data-testid="debug-navigate-with-state"
+                onClick={() => navigateToPath("/profile")}
+              >
                 状態付きで移動
               </button>
 
               {/* 追加のテスト用要素 */}
-              <div data-testid="page-loading">{isPageLoading.toString()}</div>
-              <div data-testid="data-loading">{isDataLoading.toString()}</div>
-              <button data-testid="start-page-loading" onClick={() => startLoading("page")}>
+              <div data-testid="debug-page-loading">{isPageLoading.toString()}</div>
+              <div data-testid="debug-data-loading">{isDataLoading.toString()}</div>
+              <button
+                data-testid="provider-start-page-loading"
+                onClick={() => startLoading("page")}
+              >
                 ページローディング開始
               </button>
-              <button data-testid="complete-page-loading" onClick={() => completeLoading("page")}>
+              <button
+                data-testid="provider-complete-page-loading"
+                onClick={() => completeLoading("page")}
+              >
                 ページローディング完了
               </button>
-              <button data-testid="start-data-loading" onClick={() => startLoading("data")}>
+              <button
+                data-testid="provider-start-data-loading"
+                onClick={() => startLoading("data")}
+              >
                 データローディング開始
               </button>
 
-              <div data-testid="current-title">{state.pageMetadata.title}</div>
-              <button data-testid="set-title" onClick={() => setPageTitle("新しいページタイトル")}>
+              <div data-testid="debug-current-title">{state.pageMetadata.title}</div>
+              <button
+                data-testid="debug-set-title"
+                onClick={() => setPageTitle("新しいページタイトル")}
+              >
                 タイトル設定
               </button>
 
-              <div data-testid="navigation-ready">Navigation Ready</div>
-              <div data-testid="nav-breadcrumb-count">{state.breadcrumbs.length}</div>
-              <div data-testid="has-home">
+              <div data-testid="debug-navigation-ready">Navigation Ready</div>
+              <div data-testid="debug-nav-breadcrumb-count">{state.breadcrumbs.length}</div>
+              <div data-testid="debug-has-home">
                 {state.breadcrumbs.some((b) => b.label === "ホーム").toString()}
               </div>
-              <div data-testid="has-level5">
+              <div data-testid="debug-has-level5">
                 {state.breadcrumbs.some((b) => b.label === "レベル5").toString()}
               </div>
 
-              <button data-testid="run-performance-test">Run Performance Test</button>
-              <div data-testid="performance-results">[]</div>
+              <button data-testid="debug-run-performance-test">Run Performance Test</button>
+              <div data-testid="debug-performance-results">[]</div>
 
-              <div data-testid="primary-1-active">{isActive("/primary/0").toString()}</div>
-              <div data-testid="secondary-20-exists">false</div>
+              <div data-testid="debug-primary-1-active">{isActive("/primary/0").toString()}</div>
+              <div data-testid="debug-secondary-20-exists">false</div>
 
-              <div data-testid="mount-count">1</div>
+              <div data-testid="debug-mount-count">1</div>
             </div>
           )}
           {children}

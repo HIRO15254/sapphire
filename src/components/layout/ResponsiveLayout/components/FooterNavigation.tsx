@@ -19,7 +19,7 @@ const MINIMUM_TAP_TARGET_SIZE = "44px";
  * 【設計方針】: Mantineのデザインシステムと調和する16pxサイズ
  * 🟢 信頼性レベル: Mantineデザインシステムガイドラインに基づく
  */
-const FOOTER_ICON_SIZE = 16;
+const FOOTER_ICON_SIZE = 20;
 
 /**
  * 【最大表示項目数定数】: UI/UX制約による表示項目数制限
@@ -106,7 +106,7 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
    */
   const navigationStyle = useMemo(
     () => ({
-      borderTop: "1px solid var(--mantine-color-gray-3)",
+      borderTop: "1px solid #e9ecef",
       paddingBottom: "env(safe-area-inset-bottom)",
       justifyContent: "space-around" as const, // 【テスト対応】: TC-103-N001等のスタイル検証用
     }),

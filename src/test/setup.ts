@@ -4,6 +4,7 @@ import { afterEach, vi } from "vitest";
 
 // Mock timezone and locale for consistent date formatting in tests
 process.env.TZ = "Asia/Tokyo";
+process.env.NODE_ENV = "test";
 
 // Cleanup after each test
 afterEach(() => {

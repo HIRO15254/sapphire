@@ -26,7 +26,7 @@ const TestUseNavigationComponent = () => {
   return (
     <div>
       <div data-testid="hook-ready">useNavigation Ready</div>
-      <div data-testid="current-path">Current Path: {navigation.currentPath}</div>
+      <div data-testid="hook-current-path">Current Path: {navigation.currentPath}</div>
       <div data-testid="loading-state">Loading: {navigation.isLoading.toString()}</div>
       <div data-testid="breadcrumb-count">Breadcrumbs: {navigation.breadcrumbs.length}</div>
       <button data-testid="navigate-btn" onClick={() => navigation.navigate("/users")}>
@@ -62,7 +62,7 @@ describe("useNavigation Hooks", () => {
 
       // 【結果検証】: useNavigationフックが正常に動作
       expect(screen.getByTestId("hook-ready")).toBeInTheDocument();
-      expect(screen.getByTestId("current-path")).toHaveTextContent("Current Path: /");
+      expect(screen.getByTestId("hook-current-path")).toHaveTextContent("Current Path: /");
       expect(screen.getByTestId("loading-state")).toHaveTextContent("Loading: false");
       expect(screen.getByTestId("breadcrumb-count")).toHaveTextContent("Breadcrumbs: 1");
     });

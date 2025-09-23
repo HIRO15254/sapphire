@@ -1,4 +1,4 @@
-import { Badge, Box, NavLink, rem, ScrollArea } from "@mantine/core";
+import { Badge, Box, NavLink, ScrollArea } from "@mantine/core";
 import { memo, useCallback, useMemo } from "react";
 import type { NavigationItem } from "../types";
 

@@ -2,9 +2,9 @@ import {
   ActionIcon,
   Burger,
   Group,
-  UnstyledButton,
   rem,
   Text,
+  UnstyledButton,
   useMantineColorScheme,
 } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
