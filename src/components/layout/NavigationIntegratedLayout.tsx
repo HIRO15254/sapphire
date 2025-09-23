@@ -116,10 +116,8 @@ const NavigationIntegratedLayoutInner = memo<{
         // ナビゲーションクリックハンドラーの統合
         onClick: (event: React.MouseEvent) => handleNavigationClick(item.path, event),
         // アクティブ状態の統合
-        "aria-current": isExactActive(item.path) ? "page" : undefined,
         "data-testid": `nav-item-${item.id}`,
-        // アクセシビリティ属性の追加
-        "aria-describedby": item.description ? `${item.id}-description` : undefined,
+        // 属性の追加
         tabIndex: 0,
         role: "menuitem",
       }));
@@ -128,21 +126,12 @@ const NavigationIntegratedLayoutInner = memo<{
       primary: enhanceItems(navigationConfig.primary),
       secondary: enhanceItems(navigationConfig.secondary),
     };
-  }, [navigationConfig, convertToNavigationItems, handleNavigationClick, isExactActive]);
+  }, [navigationConfig, convertToNavigationItems, handleNavigationClick]);
 
   return (
-    <div
-      data-testid="navigation-integrated-layout"
-      role="application"
-      aria-label="ナビゲーション統合アプリケーション"
-    >
-      {/* 【アクセシビリティ】: スクリーンリーダー用の現在ページ情報 */}
-      <div
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-        data-testid="page-announcement"
-      >
+    <div data-testid="navigation-integrated-layout">
+      {/* 現在ページ情報 */}
+      <div className="sr-only" data-testid="page-announcement">
         現在のページ: {currentPageTitle || currentPath}
       </div>
 
@@ -167,7 +156,6 @@ const NavigationIntegratedLayoutInner = memo<{
             }
           }
         }}
-        aria-label="キーボードショートカット: Alt+M でメインコンテンツ、Alt+N でナビゲーション"
       >
         スキップリンク
       </div>
@@ -177,11 +165,7 @@ const NavigationIntegratedLayoutInner = memo<{
         <div style={{ position: "relative" }} data-testid="app-content">
           {/* 【パンくずリスト】: アクセシビリティ対応のナビゲーション補助 */}
           {breadcrumbs.length > 0 && (
-            <nav
-              aria-label="パンくずリスト"
-              data-testid="breadcrumb-navigation"
-              style={{ padding: "1rem 0" }}
-            >
+            <nav data-testid="breadcrumb-navigation" style={{ padding: "1rem 0" }}>
               <ol
                 style={{
                   display: "flex",
@@ -208,14 +192,12 @@ const NavigationIntegratedLayoutInner = memo<{
                           minHeight: "44px", // WCAG 2.1 AAタップターゲット
                           minWidth: "44px",
                         }}
-                        aria-current={crumb.isActive ? "page" : undefined}
                         tabIndex={0}
                       >
                         {crumb.label}
                       </button>
                     ) : (
                       <span
-                        aria-current="page"
                         style={{
                           padding: "0.25rem 0.5rem",
                           fontWeight: "bold",
@@ -225,9 +207,7 @@ const NavigationIntegratedLayoutInner = memo<{
                       </span>
                     )}
                     {index < breadcrumbs.length - 1 && (
-                      <span style={{ margin: "0 0.25rem" }} aria-hidden="true" role="separator">
-                        /
-                      </span>
+                      <span style={{ margin: "0 0.25rem" }}>/</span>
                     )}
                   </li>
                 ))}
@@ -261,8 +241,6 @@ const NavigationIntegratedLayoutInner = memo<{
               zIndex: 9999,
               borderRadius: "0.25rem 0 0 0",
             }}
-            aria-live="polite"
-            aria-label="デバッグ情報"
           >
             Path: {currentPath} | Theme: {colorScheme} | Breadcrumbs: {breadcrumbs.length}
           </div>

@@ -87,37 +87,6 @@ export type NavigationItemVariant =
   | "default";
 
 /**
- * アクセシビリティ属性の型定義
- * 【機能概要】: WAI-ARIA準拠のアクセシビリティ設定
- * 【型安全性】: ARIA属性の明示的型定義
- */
-export interface AccessibilityProps {
-  /** ARIA ラベル */
-  readonly "aria-label"?: string;
-  /** ARIA 説明参照 */
-  readonly "aria-describedby"?: string;
-  /** ARIA 展開状態 */
-  readonly "aria-expanded"?: boolean;
-  /** ARIA 制御対象 */
-  readonly "aria-controls"?: string;
-  /** ARIA 現在状態 */
-  readonly "aria-current"?: "page" | "step" | "location" | "date" | "time" | boolean;
-}
-
-/**
- * タップ領域の最小サイズ設定
- * 【機能概要】: アクセシビリティガイドライン準拠のタップ領域確保
- * 【型安全性】: 数値による明示的サイズ指定
- * 🟢 信頼性レベル: WCAG 2.1 AA基準から確認済み
- */
-export interface TapTargetSize {
-  /** 最小幅（px） */
-  readonly minWidth: number;
-  /** 最小高さ（px） */
-  readonly minHeight: number;
-}
-
-/**
  * コンポーネント共通プロパティ型
  * 【機能概要】: 全ナビゲーションコンポーネント共通の設定項目
  * 【型安全性】: 共通インターフェースの統一
@@ -129,8 +98,4 @@ export interface BaseComponentProps {
   readonly style?: React.CSSProperties;
   /** テストID（テスト用途） */
   readonly "data-testid"?: string;
-  /** アクセシビリティ属性 */
-  readonly accessibility?: AccessibilityProps;
-  /** タップ領域サイズ設定 */
-  readonly tapTargetSize?: TapTargetSize;
 }

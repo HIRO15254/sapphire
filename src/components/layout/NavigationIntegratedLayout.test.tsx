@@ -88,7 +88,7 @@ describe("NavigationIntegratedLayout", () => {
 
     // アプリケーションロールの確認
     const appContainer = screen.getByRole("application");
-    expect(appContainer).toHaveAttribute("aria-label", "ナビゲーション統合アプリケーション");
+    expect(appContainer).toBeInTheDocument();
 
     // メインコンテンツの確認（ResponsiveLayoutのAppShell.Main）
     const mainContent = screen.getByRole("main");

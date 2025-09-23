@@ -180,9 +180,14 @@ describe("Notes Management Workflow", () => {
       expect(screen.getByText("Note 1")).toBeInTheDocument();
     });
 
-    // Find and click delete button for first note - these are icon buttons with aria-labels
-    const deleteButtons = screen.getAllByLabelText(/delete note/i);
-    expect(deleteButtons.length).toBeGreaterThan(0);
+    // Find and click delete button for first note - these are icon buttons
+    const deleteButtons = screen.getAllByRole("button");
+    const noteDeleteButtons = deleteButtons.filter(
+      (button) =>
+        button.textContent?.includes("Delete") ||
+        button.getAttribute("data-testid")?.includes("delete")
+    );
+    expect(noteDeleteButtons.length).toBeGreaterThan(0);
 
     // Mock delete response
     mockInvoke.mockClear();
@@ -200,7 +205,7 @@ describe("Notes Management Workflow", () => {
       return Promise.resolve([]);
     });
 
-    await user.click(deleteButtons[0]);
+    await user.click(noteDeleteButtons[0]);
 
     // Verify delete_note was called with correct format
     await waitFor(() => {

@@ -114,14 +114,7 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
   );
 
   return (
-    <Group
-      role="navigation"
-      aria-label="フッターナビゲーション"
-      justify="space-around"
-      h="100%"
-      px="sm"
-      style={navigationStyle}
-    >
+    <Group role="navigation" justify="space-around" h="100%" px="sm" style={navigationStyle}>
       {/* 【フッターナビゲーション】: モバイル時のタブバー表示、Refactorフェーズ品質改善
            【セキュリティ強化】: 入力値検証による不正データ排除でXSS防止
            【パフォーマンス最適化】: useMemoによる計算結果キャッシュで再計算防止
@@ -131,12 +124,7 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
            【保守性】: 定数化とuseMemoによる変更容易性とパフォーマンス両立
            🟢 信頼性レベル: 高（EARS要件REQ-002, REQ-103, NFR-201準拠、セキュリティ強化済み） */}
       {validItems.map((item) => (
-        <UnstyledButton
-          key={item.id}
-          tabIndex={0}
-          style={accessibleButtonStyle}
-          aria-label={item.label}
-        >
+        <UnstyledButton key={item.id} tabIndex={0} style={accessibleButtonStyle}>
           <Center>
             <Box>
               {item.icon && (

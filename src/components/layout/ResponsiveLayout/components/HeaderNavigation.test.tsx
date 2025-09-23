@@ -314,7 +314,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
       /**
        * 【目的】: 適切なARIA属性が設定されることを確認
        * 【内容】: ハンバーガーメニュー、ナビゲーション領域、テーマボタンのARIA確認
-       * 【期待動作】: 各要素に適切なaria-label, role属性が設定される
+       * 【期待動作】: 各要素に適切なrole属性が設定される
        * 🟢 信頼性レベル: 高（WCAG 2.1 AA準拠）
        */
 

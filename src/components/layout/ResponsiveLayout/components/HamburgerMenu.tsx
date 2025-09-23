@@ -1,7 +1,5 @@
 import { Badge, Drawer, NavLink, rem, ScrollArea, Stack, Text } from "@mantine/core";
-import { memo, useEffect, useMemo } from "react";
-import { useFocusTrap } from "../../../../hooks/accessibility/useFocusTrap";
-import { useLiveAnnouncer } from "../../../../hooks/accessibility/useLiveAnnouncer";
+import { memo, useMemo } from "react";
 import type { NavigationItem } from "../types";
 
 // 【定数定義】: レイアウトとスタイル定数
@@ -72,16 +70,12 @@ NavigationItemComponent.displayName = "NavigationItemComponent";
  */
 export const HamburgerMenu = memo<HamburgerMenuProps>(
   ({
-    // items, // 将来的にitemsから直接groupedItemsを生成する可能性のため保持
+    items: _items, // 将来的にitemsから直接groupedItemsを生成する可能性のため保持
     groupedItems,
     isOpen,
     onClose,
-    // onToggle, // 将来的なトグル機能拡張のため保持
+    onToggle: _onToggle, // 将来的なトグル機能拡張のため保持
   }: HamburgerMenuProps) => {
-    // アクセシビリティフック
-    const focusTrapRef = useFocusTrap(isOpen);
-    const { announce } = useLiveAnnouncer();
-
     // 【パフォーマンス最適化】: Drawerスタイルをメモ化
     const drawerStyles = useMemo(
       () => ({
@@ -115,7 +109,7 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
           </div>
         ) : (
           // ラベル付きグループ
-          <div key={groupName} role="group" aria-labelledby={`group-${groupName}`}>
+          <div key={groupName}>
             <Text id={`group-${groupName}`} size="xs" fw={600} c="dimmed" px="md" py="xs">
               {groupName}
             </Text>
@@ -126,15 +120,6 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
         )
       );
     }, [groupedItems, onClose]);
-
-    // メニュー開閉時の音声通知
-    useEffect(() => {
-      if (isOpen) {
-        announce("ナビゲーションメニューが開かれました", "polite");
-      } else {
-        announce("ナビゲーションメニューが閉じられました", "polite");
-      }
-    }, [isOpen, announce]);
 
     return (
       <Drawer
@@ -148,7 +133,6 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
         closeOnClickOutside
         title="ナビゲーションメニュー"
         styles={drawerStyles}
-        ref={focusTrapRef}
       >
         <ScrollArea style={scrollAreaStyle} data-testid="scroll-area">
           <Stack gap="md">{renderedGroups}</Stack>

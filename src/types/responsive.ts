@@ -52,8 +52,6 @@ export interface NavigationItem {
   order: number;
   mobileOnly?: boolean;
   desktopOnly?: boolean;
-  role?: "menuitem" | "menuitemcheckbox" | "menuitemradio";
-  ariaLabel?: string;
 }
 
 export interface NavigationConfig {

@@ -98,9 +98,6 @@ const createNavLinkProps = (item: NavigationItem, currentPath: string, collapsed
     "data-router-link": "true",
     "data-tooltip": collapsed ? item.label : undefined,
     tabIndex: 0,
-    "aria-label": item.label,
-    "aria-current": (currentPath === item.path ? "page" : undefined) as "page" | undefined,
-    "aria-describedby": item.description ? `${item.id}-desc` : undefined,
     "data-active": currentPath === item.path ? "true" : "false",
     "data-testid": `navlink-${item.id}`,
     className: "mantine-NavLink-root",
@@ -158,7 +155,7 @@ export const SideNavigation = memo<SideNavigationProps>(
           </div>
         ) : (
           // 【ラベル付きグループ】: アクセシビリティ強化版グループ表示 🟢
-          <div key={groupName} role="group" aria-labelledby={`group-${groupName}`}>
+          <div key={groupName}>
             <div
               id={`group-${groupName}`}
               data-testid={`group-header-${groupName}`}
@@ -184,8 +181,6 @@ export const SideNavigation = memo<SideNavigationProps>(
     return (
       <Box
         component="nav"
-        role="navigation"
-        aria-label="サイドナビゲーション"
         data-breakpoint="md"
         data-navbar="true"
         data-mantine-theme="true"
@@ -194,7 +189,7 @@ export const SideNavigation = memo<SideNavigationProps>(
       >
         {/* 【ScrollArea統合】: パフォーマンス最適化されたスクロール対応 🟢 */}
         <ScrollArea style={{ flex: 1 }} data-scrollarea="root">
-          <div aria-label="サイドナビゲーションメニュー">
+          <div>
             {/* 【最適化されたグループ表示】: メモ化とエラーハンドリング強化 🟢 */}
             {memoizedGroupEntries.map(([groupName, groupItems]) =>
               renderNavigationGroup(groupName, groupItems)

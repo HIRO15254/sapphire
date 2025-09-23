@@ -24,7 +24,8 @@
         "noNonNullAssertion": "off"
       },
       "correctness": {
-        "useExhaustiveDependencies": "warn"
+        "useExhaustiveDependencies": "warn",
+        "noUnusedVariables": "error"
       },
       "suspicious": {
         "noExplicitAny": "warn"
