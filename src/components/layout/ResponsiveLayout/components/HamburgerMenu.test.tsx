@@ -346,7 +346,8 @@ describe("HamburgerMenu Component - TASK-105 TDD Test Suite", () => {
     test("TC-105-A001: フォーカストラップ機能", async () => {
       // 【テスト目的】: フォーカス管理アクセシビリティの確認
       // 【期待動作】: Drawer内要素でのフォーカス循環、外部要素へのフォーカス移動防止
-      // 【要件対応】: REQ-402（キーボードナビゲーション要件）
+      // 【要件対応】: REQ-402（キーボードナビゲー
+      // ション要件）
       // 🟢 信頼性レベル: EARS要件定義書から確認済み
 
       const _user = userEvent.setup();
