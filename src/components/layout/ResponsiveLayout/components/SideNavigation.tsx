@@ -94,10 +94,12 @@ const createNavLinkProps = (item: NavigationItem, currentPath: string, collapsed
     ) : undefined,
     variant: "subtle" as const,
     href: item.path,
+    component: "a" as const,
     "data-router-link": "true",
     "data-tooltip": collapsed ? item.label : undefined,
     tabIndex: 0,
     "aria-label": item.label,
+    "aria-current": (currentPath === item.path ? "page" : undefined) as "page" | undefined,
     "aria-describedby": item.description ? `${item.id}-desc` : undefined,
     "data-active": currentPath === item.path ? "true" : "false",
     "data-testid": `navlink-${item.id}`,
@@ -192,10 +194,12 @@ export const SideNavigation = memo<SideNavigationProps>(
       >
         {/* 【ScrollArea統合】: パフォーマンス最適化されたスクロール対応 🟢 */}
         <ScrollArea style={{ flex: 1 }} data-scrollarea="root">
-          {/* 【最適化されたグループ表示】: メモ化とエラーハンドリング強化 🟢 */}
-          {memoizedGroupEntries.map(([groupName, groupItems]) =>
-            renderNavigationGroup(groupName, groupItems)
-          )}
+          <div aria-label="サイドナビゲーションメニュー">
+            {/* 【最適化されたグループ表示】: メモ化とエラーハンドリング強化 🟢 */}
+            {memoizedGroupEntries.map(([groupName, groupItems]) =>
+              renderNavigationGroup(groupName, groupItems)
+            )}
+          </div>
         </ScrollArea>
       </Box>
     );

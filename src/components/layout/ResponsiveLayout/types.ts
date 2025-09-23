@@ -1,5 +1,6 @@
 // Re-export enhanced types for backward compatibility
 
+export type { UseResponsiveLayoutReturn } from "./hooks/useResponsiveLayout";
 export type {
   AccessibilityProps,
   BaseComponentProps,

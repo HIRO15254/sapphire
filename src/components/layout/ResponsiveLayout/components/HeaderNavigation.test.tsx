@@ -187,8 +187,9 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
       // 【実装仕様反映】: 実際の実装では空配列でもnavigation containerが表示される
       const navigation = screen.queryByRole("navigation");
       if (navigation) {
-        // ナビゲーション要素は存在するが、項目は含まれていない
-        expect(navigation).toBeEmptyDOMElement();
+        // ナビゲーション要素は存在するが、メニュー項目は含まれていない
+        const menuItems = screen.queryAllByRole("menuitem");
+        expect(menuItems).toHaveLength(0);
       }
     });
 

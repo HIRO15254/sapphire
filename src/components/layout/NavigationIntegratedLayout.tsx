@@ -41,17 +41,8 @@ const NavigationIntegratedLayoutInner = memo<{
   children: React.ReactNode;
   navigationConfig: NavigationConfig;
 }>(({ children, navigationConfig }) => {
-  const {
-    currentPath,
-    isActive,
-    isExactActive,
-    navigate,
-    breadcrumbs,
-    isMenuOpen,
-    toggleMenu,
-    closeAllMenus,
-    currentPageTitle,
-  } = useNavigationContext();
+  const { currentPath, isExactActive, navigate, breadcrumbs, closeAllMenus, currentPageTitle } =
+    useNavigationContext();
 
   const { colorScheme } = useMantineColorScheme();
 

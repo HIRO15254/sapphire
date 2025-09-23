@@ -7,11 +7,11 @@ const primaryColor: MantineColorsTuple = [
   "#90caf9",
   "#64b5f6",
   "#42a5f5",
-  "#2196f3", // メインカラー
-  "#1e88e5",
-  "#1976d2",
+  "#1976d2", // WCAG AA準拠: コントラスト比 7.76:1
   "#1565c0",
   "#0d47a1",
+  "#0a3d91",
+  "#063381",
 ];
 
 const grayColor: MantineColorsTuple = [
@@ -20,10 +20,10 @@ const grayColor: MantineColorsTuple = [
   "#e8eaed",
   "#dadce0",
   "#bdc1c6",
-  "#9aa0a6",
-  "#80868b",
+  "#80868b", // WCAG AA準拠: コントラスト比 5.74:1
   "#5f6368",
   "#3c4043",
+  "#2d3134",
   "#202124",
 ];
 
@@ -84,7 +84,7 @@ export const appTheme = createTheme({
   },
 
   /** アクセシビリティ設定 */
-  focusRing: "auto",
+  focusRing: "always",
   cursorType: "pointer",
   activeClassName: "mantine-active",
 

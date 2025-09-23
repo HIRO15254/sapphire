@@ -114,7 +114,14 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
   );
 
   return (
-    <Group role="navigation" justify="space-around" h="100%" px="sm" style={navigationStyle}>
+    <Group
+      role="navigation"
+      aria-label="フッターナビゲーション"
+      justify="space-around"
+      h="100%"
+      px="sm"
+      style={navigationStyle}
+    >
       {/* 【フッターナビゲーション】: モバイル時のタブバー表示、Refactorフェーズ品質改善
            【セキュリティ強化】: 入力値検証による不正データ排除でXSS防止
            【パフォーマンス最適化】: useMemoによる計算結果キャッシュで再計算防止

@@ -1,5 +1,7 @@
 import { Badge, Drawer, NavLink, rem, ScrollArea, Stack, Text } from "@mantine/core";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo } from "react";
+import { useFocusTrap } from "../../../../hooks/accessibility/useFocusTrap";
+import { useLiveAnnouncer } from "../../../../hooks/accessibility/useLiveAnnouncer";
 import type { NavigationItem } from "../types";
 
 // 【定数定義】: レイアウトとスタイル定数
@@ -76,6 +78,10 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
     onClose,
     // onToggle, // 将来的なトグル機能拡張のため保持
   }: HamburgerMenuProps) => {
+    // アクセシビリティフック
+    const focusTrapRef = useFocusTrap(isOpen);
+    const { announce } = useLiveAnnouncer();
+
     // 【パフォーマンス最適化】: Drawerスタイルをメモ化
     const drawerStyles = useMemo(
       () => ({
@@ -121,6 +127,15 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
       );
     }, [groupedItems, onClose]);
 
+    // メニュー開閉時の音声通知
+    useEffect(() => {
+      if (isOpen) {
+        announce("ナビゲーションメニューが開かれました", "polite");
+      } else {
+        announce("ナビゲーションメニューが閉じられました", "polite");
+      }
+    }, [isOpen, announce]);
+
     return (
       <Drawer
         opened={isOpen}
@@ -131,13 +146,9 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
         trapFocus
         closeOnEscape
         closeOnClickOutside
-        role="dialog"
-        aria-modal="true"
-        aria-label="ナビゲーションメニュー"
-        data-mobile="true"
-        data-responsive-layout="mobile"
-        data-mantine-theme="true"
+        title="ナビゲーションメニュー"
         styles={drawerStyles}
+        ref={focusTrapRef}
       >
         <ScrollArea style={scrollAreaStyle} data-testid="scroll-area">
           <Stack gap="md">{renderedGroups}</Stack>

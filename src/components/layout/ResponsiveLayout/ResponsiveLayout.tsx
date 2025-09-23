@@ -1,5 +1,8 @@
 import { AppShell } from "@mantine/core";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo } from "react";
+import { useLiveAnnouncer } from "../../../hooks/accessibility/useLiveAnnouncer";
+import { LiveRegion } from "../../accessibility/LiveRegion";
+import { SkipLink } from "../../accessibility/SkipLink";
 import { FooterNavigation, HamburgerMenu, HeaderNavigation, SideNavigation } from "./components";
 import { useNavigationConfig, useResponsiveLayout } from "./hooks";
 import type { NavigationItem, ResponsiveLayoutProps, UseResponsiveLayoutReturn } from "./types";
@@ -60,14 +63,33 @@ const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConf
   // 【カスタムフック】: ナビゲーション設定の検証とグループ化 🟢
   const { safeNavigationConfig, groupedSecondaryItems } = useNavigationConfig(navigationConfig);
 
+  // 【アクセシビリティ】: Live Announcer フック
+  const { announce, LiveRegion: LiveAnnouncementRegion } = useLiveAnnouncer();
+
   // 【パフォーマンス最適化】: HamburgerMenu用のgroupedItemsをメモ化
   const hamburgerGroupedItems = useMemo(
     () => groupNavigationItems(safeNavigationConfig.secondary || []),
     [safeNavigationConfig.secondary]
   );
 
+  // 【アクセシビリティ】: デバイス切り替え時の音声通知
+  useEffect(() => {
+    if (isMobile) {
+      announce("モバイルレイアウトに切り替わりました", "polite");
+    } else {
+      announce("デスクトップレイアウトに切り替わりました", "polite");
+    }
+  }, [isMobile, announce]);
+
   return (
     <div data-testid="responsive-layout-container">
+      {/* Skip Links */}
+      <SkipLink href="#main-content">メインコンテンツにスキップ</SkipLink>
+
+      {/* Live Region for screen reader announcements */}
+      <LiveRegion />
+      <LiveAnnouncementRegion />
+
       <AppShell
         header={{ height: { base: 56, md: 64 } }}
         navbar={{
@@ -92,7 +114,7 @@ const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConf
 
         {/* デスクトップサイドバー */}
         {!isMobile && (
-          <AppShell.Navbar>
+          <AppShell.Navbar aria-label="サイドバーエリア">
             <SideNavigation
               items={safeNavigationConfig.secondary}
               groupedItems={groupedSecondaryItems}
@@ -108,7 +130,9 @@ const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConf
         )}
 
         {/* メインコンテンツ */}
-        <AppShell.Main>{children}</AppShell.Main>
+        <AppShell.Main id="main-content" tabIndex={-1} role="main" aria-label="メインコンテンツ">
+          {children}
+        </AppShell.Main>
 
         {/* モバイルハンバーガーメニュー */}
         <HamburgerMenu
@@ -125,5 +149,6 @@ const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConf
 
 ResponsiveLayout.displayName = "ResponsiveLayout";
 
+export { ResponsiveLayout };
 export default ResponsiveLayout;
 export type { ResponsiveLayoutProps } from "./types";

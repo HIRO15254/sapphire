@@ -8,7 +8,8 @@ import {
   useMantineColorScheme,
 } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
+import { useKeyboardNavigation } from "../../../../hooks/accessibility/useKeyboardNavigation";
 import type { NavigationItem } from "../types";
 
 /**
@@ -65,6 +66,47 @@ export interface HeaderNavigationProps {
 export const HeaderNavigation = memo<HeaderNavigationProps>(
   ({ items, isMobile, hamburgerOpened, onHamburgerToggle }) => {
     const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+    const menuItemsRef = useRef<(HTMLButtonElement | null)[]>([]);
+    const currentFocusIndex = useRef<number>(0);
+
+    // キーボードナビゲーション関数
+    const focusMenuItem = useCallback((index: number) => {
+      const menuItems = menuItemsRef.current.filter(Boolean);
+      if (menuItems[index]) {
+        menuItems[index]?.focus();
+        currentFocusIndex.current = index;
+      }
+    }, []);
+
+    const handleArrowDown = useCallback(() => {
+      const menuItems = menuItemsRef.current.filter(Boolean);
+      const nextIndex = (currentFocusIndex.current + 1) % menuItems.length;
+      focusMenuItem(nextIndex);
+    }, [focusMenuItem]);
+
+    const handleArrowUp = useCallback(() => {
+      const menuItems = menuItemsRef.current.filter(Boolean);
+      const prevIndex =
+        currentFocusIndex.current === 0 ? menuItems.length - 1 : currentFocusIndex.current - 1;
+      focusMenuItem(prevIndex);
+    }, [focusMenuItem]);
+
+    const handleHome = useCallback(() => {
+      focusMenuItem(0);
+    }, [focusMenuItem]);
+
+    const handleEnd = useCallback(() => {
+      const menuItems = menuItemsRef.current.filter(Boolean);
+      focusMenuItem(menuItems.length - 1);
+    }, [focusMenuItem]);
+
+    // キーボードナビゲーションフック
+    const navigationRef = useKeyboardNavigation({
+      onArrowDown: handleArrowDown,
+      onArrowUp: handleArrowUp,
+      onHome: handleHome,
+      onEnd: handleEnd,
+    });
 
     /**
      * 【スタイル最適化】: アクセシビリティ準拠のタップ領域スタイル
@@ -131,20 +173,31 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
              【条件表示】: モバイル環境では非表示による適切なレスポンシブ対応
              【アクセシビリティ】: navigation roleとaria-labelによる支援技術対応 */}
         {!isMobile && (
-          <Group gap="xs" role="navigation" aria-label="メインナビゲーション">
-            {items.map((item) => (
-              <UnstyledButton
-                key={item.id}
-                style={navigationItemStyles.root}
-                aria-label={item.label}
-              >
-                <Group gap="xs" wrap="nowrap">
-                  {item.icon && <item.icon size={NAVIGATION_ICON_SIZE} />}
-                  <Text size="sm">{item.label}</Text>
-                </Group>
-              </UnstyledButton>
-            ))}
-          </Group>
+          <nav aria-label="メインナビゲーション" ref={navigationRef}>
+            <Group gap="xs" role="menubar">
+              {items.map((item, index) => (
+                <UnstyledButton
+                  key={item.id}
+                  ref={(el) => {
+                    menuItemsRef.current[index] = el;
+                  }}
+                  style={navigationItemStyles.root}
+                  role="menuitem"
+                  aria-label={item.label}
+                  aria-current={item.path === window?.location?.pathname ? "page" : undefined}
+                  tabIndex={index === 0 ? 0 : -1}
+                  onFocus={() => {
+                    currentFocusIndex.current = index;
+                  }}
+                >
+                  <Group gap="xs" wrap="nowrap">
+                    {item.icon && <item.icon size={NAVIGATION_ICON_SIZE} />}
+                    <Text size="sm">{item.label}</Text>
+                  </Group>
+                </UnstyledButton>
+              ))}
+            </Group>
+          </nav>
         )}
 
         {/* 【右側セクション】: テーマ制御とアプリケーション設定
