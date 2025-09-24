@@ -1,8 +1,7 @@
-import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { render } from "../../../test/helpers/renderWithProviders";
 import { ResponsiveLayout } from "./ResponsiveLayout";
 import type { NavigationConfig } from "./types";
 
@@ -52,31 +51,22 @@ describe("ResponsiveLayout - モバイルナビゲーションメニューの問
     const user = userEvent.setup();
 
     const { container } = render(
-      <MemoryRouter>
-        <MantineProvider>
-          <ResponsiveLayout navigationConfig={mockNavConfig}>
-            <div>コンテンツ</div>
-          </ResponsiveLayout>
-        </MantineProvider>
-      </MemoryRouter>
+      <ResponsiveLayout navigationConfig={mockNavConfig}>
+        <div>コンテンツ</div>
+      </ResponsiveLayout>
     );
 
     // ハンバーガーメニューを開く
-    const burgerButton =
-      container.querySelector("button[data-burger]") ||
-      container.querySelector(".mantine-Burger-root") ||
-      screen.queryByRole("button", { name: /menu/i });
+    const burgerButton = screen.getByLabelText("ナビゲーションメニューを開く");
 
     expect(burgerButton).toBeTruthy();
     await user.click(burgerButton!);
 
     // ドロワーが開いていることを確認
-    const drawer =
-      container.querySelector('[data-testid="drawer-content"]') ||
-      container.querySelector(".mantine-Drawer-content") ||
-      container.querySelector('[role="dialog"]');
-
-    expect(drawer).toBeTruthy();
+    await waitFor(() => {
+      const drawer = screen.queryByRole("dialog");
+      expect(drawer).toBeTruthy();
+    });
 
     // ドロワー内のコンテンツエリアを確認
     const scrollableArea =
@@ -104,13 +94,9 @@ describe("ResponsiveLayout - モバイルナビゲーションメニューの問
     setupMatchMedia(1200); // デスクトップ
 
     render(
-      <MemoryRouter>
-        <MantineProvider>
-          <ResponsiveLayout navigationConfig={mockNavConfig}>
-            <div>コンテンツ</div>
-          </ResponsiveLayout>
-        </MantineProvider>
-      </MemoryRouter>
+      <ResponsiveLayout navigationConfig={mockNavConfig}>
+        <div>コンテンツ</div>
+      </ResponsiveLayout>
     );
 
     // ヘッダー内のタイトルを確認
@@ -127,13 +113,9 @@ describe("ResponsiveLayout - モバイルナビゲーションメニューの問
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter>
-        <MantineProvider>
-          <ResponsiveLayout navigationConfig={mockNavConfig}>
-            <div>コンテンツ</div>
-          </ResponsiveLayout>
-        </MantineProvider>
-      </MemoryRouter>
+      <ResponsiveLayout navigationConfig={mockNavConfig}>
+        <div>コンテンツ</div>
+      </ResponsiveLayout>
     );
 
     // ナビゲーション項目をクリック

@@ -160,7 +160,8 @@ describe("ResponsiveLayout（最上位）コンポーネント", () => {
       expect(screen.getByText("サポート")).toBeInTheDocument();
 
       // 【確認内容】: 適切なrole属性が設定される 🟡
-      expect(screen.getAllByRole("navigation")).toHaveLength(2);
+      // HeaderNavigation, SideNavigation, FooterNavigationの3つのnavigationが存在
+      expect(screen.getAllByRole("navigation")).toHaveLength(3);
     });
 
     test("TC-004: レスポンシブレイアウトコンテナが正しく描画される", () => {

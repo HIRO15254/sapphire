@@ -31,6 +31,7 @@ export function SampleNoteList({ notes, onNoteDeleted }: SampleNoteListProps) {
                     color="red"
                     onClick={() => handleDeleteNote(note.id)}
                     aria-label={`Delete note ${note.title}`}
+                    data-testid={`delete-note-${note.id}`}
                   >
                     <IconTrash size={14} />
                   </ActionIcon>

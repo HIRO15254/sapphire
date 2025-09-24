@@ -1,5 +1,6 @@
 import { Badge, Box, NavLink, ScrollArea } from "@mantine/core";
 import { memo, useCallback, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import type { NavigationItem } from "../types";
 
 export interface SideNavigationProps {
@@ -44,30 +45,13 @@ const GROUP_HEADER_STYLES = {
  */
 /**
  * 【ヘルパー関数】: 現在パスの安全な取得
- * 【セキュリティ】: SSR対応とXSS防止のためのサニタイズ処理
- * 【再利用性】: テスト環境とブラウザ環境の両方で安全に動作
- * 🟡 信頼性レベル: 一般的なWeb開発パターンから推測
+ * 【ナビゲーションハイライト】: React Router useLocationフックを使用した現在パス取得
+ * 【統一性】: 他のナビゲーションコンポーネントとの一貫性確保
+ * 🟢 信頼性レベル: React Router公式パターンに基づく
  */
 const useCurrentPath = (): string => {
-  return useMemo(() => {
-    // 【SSR対応】: サーバーサイドレンダリング時の安全な処理
-    if (typeof window === "undefined") {
-      return "/";
-    }
-
-    // 【セキュリティ】: パス文字列のサニタイズ（XSS防止）
-    const rawPath = window.location.pathname;
-
-    // 【入力値検証】: 不正なパス値の検出と正規化
-    if (!rawPath || typeof rawPath !== "string") {
-      return "/";
-    }
-
-    // 【パス正規化】: 基本的なパス形式チェック
-    const sanitizedPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
-
-    return sanitizedPath;
-  }, []);
+  const location = useLocation();
+  return location.pathname;
 };
 
 /**
@@ -181,6 +165,7 @@ export const SideNavigation = memo<SideNavigationProps>(
     return (
       <Box
         component="nav"
+        aria-label="サイドナビゲーション"
         data-breakpoint="md"
         data-navbar="true"
         data-mantine-theme="true"

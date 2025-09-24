@@ -1,4 +1,6 @@
-import { waitFor } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -8,8 +10,17 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 import App from "../../App";
-import { render, screen } from "../helpers/renderWithProviders";
 import { createTestUser, createTestUsers, mockResponses } from "../helpers/testData";
+
+// Custom render function for App tests (App has its own BrowserRouter)
+const renderApp = () => {
+  return render(
+    <MantineProvider>
+      <Notifications />
+      <App />
+    </MantineProvider>
+  );
+};
 
 // Get the mocked function
 const mockInvoke = vi.mocked(invoke);
@@ -40,7 +51,7 @@ describe("User Management Workflow", () => {
 
   test("should create a new user successfully", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Users tab
     await user.click(screen.getByText("Users"));
@@ -84,7 +95,7 @@ describe("User Management Workflow", () => {
 
   test("should display validation error for empty fields", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Users tab
     await user.click(screen.getByText("Users"));
@@ -115,7 +126,7 @@ describe("User Management Workflow", () => {
     });
 
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Users tab
     await user.click(screen.getByText("Users"));
@@ -149,7 +160,7 @@ describe("User Management Workflow", () => {
     });
 
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Users tab
     await user.click(screen.getByText("Users"));
@@ -186,7 +197,7 @@ describe("User Management Workflow", () => {
 
   test("should handle error when creating user", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Users tab
     await user.click(screen.getByText("Users"));

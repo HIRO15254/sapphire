@@ -1,6 +1,6 @@
 import { Badge, Drawer, NavLink, rem, ScrollArea, Stack, Text } from "@mantine/core";
 import { memo, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { NavigationItem } from "../types";
 
 // 【定数定義】: レイアウトとスタイル定数
@@ -29,14 +29,19 @@ interface NavigationItemComponentProps {
 }
 
 const NavigationItemComponent = memo<NavigationItemComponentProps>(({ item, onClose }) => {
+  const location = useLocation();
+  const isActive = location.pathname === item.path;
+
   const navLinkStyles = useMemo(
     () => ({
       root: {
         minHeight: HAMBURGER_MENU_CONSTANTS.NAV_MIN_HEIGHT,
         padding: HAMBURGER_MENU_CONSTANTS.NAV_PADDING,
+        backgroundColor: isActive ? "var(--mantine-color-blue-light)" : "transparent",
+        fontWeight: isActive ? 600 : 400,
       },
     }),
-    []
+    [isActive]
   );
 
   return (
@@ -57,6 +62,7 @@ const NavigationItemComponent = memo<NavigationItemComponentProps>(({ item, onCl
       variant="subtle"
       onClick={onClose}
       styles={navLinkStyles}
+      data-active={isActive}
     />
   );
 });
@@ -113,7 +119,7 @@ export const HamburgerMenu = memo<HamburgerMenuProps>(
           </div>
         ) : (
           // ラベル付きグループ
-          <div key={groupName}>
+          <div key={groupName} role="group" aria-labelledby={`group-${groupName}`}>
             <Text id={`group-${groupName}`} size="xs" fw={600} c="dimmed" px="md" py="xs">
               {groupName}
             </Text>

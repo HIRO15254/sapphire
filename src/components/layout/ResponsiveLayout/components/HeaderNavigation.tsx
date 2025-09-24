@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
 import { memo, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { NavigationItem } from "../types";
 
 /**
@@ -57,6 +57,15 @@ export interface HeaderNavigationProps {
 export const HeaderNavigation = memo<HeaderNavigationProps>(
   ({ items, isMobile, hamburgerOpened, onHamburgerToggle }) => {
     const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+    const location = useLocation();
+
+    /**
+     * 【現在ページ判定】: 現在のパスと項目のパスを比較してアクティブ状態を判定
+     * 【設計方針】: 正確なパスマッチングによるナビゲーション状態管理
+     */
+    const isActiveItem = (itemPath: string): boolean => {
+      return location.pathname === itemPath;
+    };
 
     /**
      * 【ナビゲーションスタイル最適化】: デスクトップナビゲーション項目のスタイル
@@ -64,11 +73,14 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
      * 【パフォーマンス】: 静的なスタイルオブジェクトによる最適化
      * 🟢 信頼性レベル: Mantineデザインシステムガイドライン準拠
      */
-    const navigationItemStyles = useMemo(
-      () => ({
+    const getNavigationItemStyles = useMemo(
+      () => (isActive: boolean) => ({
         root: {
           borderRadius: "var(--mantine-radius-md)",
           padding: `${rem(8)} ${rem(12)}`,
+          backgroundColor: isActive ? "var(--mantine-color-blue-light)" : "transparent",
+          color: isActive ? "var(--mantine-color-blue-filled)" : "inherit",
+          fontWeight: isActive ? 600 : 400,
         },
       }),
       []
@@ -82,7 +94,15 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
                【実装詳細】: Burgerコンポーネントによる標準的なハンバーガーメニュー
                【条件表示】: isMobileフラグによる適切なレスポンシブ表示
                🟢 信頼性レベル: Mantineベストプラクティス準拠 */}
-          {isMobile && <Burger opened={hamburgerOpened} onClick={onHamburgerToggle} size="sm" />}
+          {isMobile && (
+            <Burger
+              opened={hamburgerOpened}
+              onClick={onHamburgerToggle}
+              size="sm"
+              aria-label="ナビゲーションメニューを開く"
+              style={{ height: "44px", minHeight: "44px" }}
+            />
+          )}
 
           {/* 【ブランドロゴセクション】: アプリケーションのブランドアイデンティティ表示
                【設計方針】: シンプルなテキストベースのブランド表示
@@ -99,21 +119,25 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
              【実装詳細】: デスクトップ環境での効率的なナビゲーション提供
              【条件表示】: モバイル環境では非表示による適切なレスポンシブ対応 */}
         {!isMobile && (
-          <nav>
+          <nav aria-label="メインナビゲーション">
             <Group gap="xs">
-              {items.map((item) => (
-                <UnstyledButton
-                  key={item.id}
-                  component={Link}
-                  to={item.path}
-                  style={navigationItemStyles.root}
-                >
-                  <Group gap="xs" wrap="nowrap">
-                    {item.icon && <item.icon size={NAVIGATION_ICON_SIZE} />}
-                    <Text size="sm">{item.label}</Text>
-                  </Group>
-                </UnstyledButton>
-              ))}
+              {items.map((item) => {
+                const isActive = isActiveItem(item.path);
+                return (
+                  <UnstyledButton
+                    key={item.id}
+                    component={Link}
+                    to={item.path}
+                    style={getNavigationItemStyles(isActive).root}
+                    data-active={isActive}
+                  >
+                    <Group gap="xs" wrap="nowrap">
+                      {item.icon && <item.icon size={NAVIGATION_ICON_SIZE} />}
+                      <Text size="sm">{item.label}</Text>
+                    </Group>
+                  </UnstyledButton>
+                );
+              })}
             </Group>
           </nav>
         )}
@@ -121,7 +145,13 @@ export const HeaderNavigation = memo<HeaderNavigationProps>(
         {/* 【右側セクション】: テーマ制御とアプリケーション設定
              【機能詳細】: ライト/ダークテーマの切り替え機能
              【ユーザビリティ】: 視覚的に分かりやすいアイコン表示 */}
-        <ActionIcon variant="subtle" onClick={() => toggleColorScheme()} size="lg">
+        <ActionIcon
+          variant="subtle"
+          onClick={() => toggleColorScheme()}
+          size="lg"
+          aria-label="テーマを切り替える"
+          style={{ height: "44px", minHeight: "44px" }}
+        >
           {/* 【テーマアイコン動的表示】: 現在のテーマ状態に応じた適切なアイコン表示
                【視覚的フィードバック】: ユーザーの操作結果を即座に反映
                【アイコン選択】: 直感的な太陽（ライト）/月（ダーク）アイコン */}

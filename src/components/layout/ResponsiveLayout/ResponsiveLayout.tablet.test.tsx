@@ -1,7 +1,8 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { render } from "../../../test/helpers/renderWithProviders";
 import { ResponsiveLayout } from "./ResponsiveLayout";
 import type { NavigationConfig } from "./types";
 
@@ -62,7 +63,7 @@ describe("ResponsiveLayout - タブレットサイズでのナビゲーション
     console.log("isMobile should be true at 900px:", 900 <= 992);
 
     // ヘッダーは表示されている
-    expect(screen.getByText("アプリ名")).toBeInTheDocument();
+    expect(screen.getByText("Sapphire")).toBeInTheDocument();
 
     // ハンバーガーメニューボタンが表示されることを確認
     const burgerButton =

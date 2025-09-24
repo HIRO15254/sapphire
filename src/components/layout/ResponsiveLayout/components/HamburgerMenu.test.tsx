@@ -1,14 +1,11 @@
 import { MantineProvider } from "@mantine/core";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
+import { render as renderWithProviders } from "../../../../test/helpers/renderWithProviders";
 import type { NavigationItem } from "../types";
 import { HamburgerMenu } from "./HamburgerMenu";
-
-// 【React Routerモック】: テスト環境用のRouter代替実装 🟡
-const MockRouter = ({ children }: { children: React.ReactNode }) => (
-  <div data-testid="mock-router">{children}</div>
-);
 
 // 【アイコンモック】: テスト用のアイコンコンポーネント 🟢
 const MockIcon = ({ size, stroke }: { size?: string | number; stroke?: number }) => (
@@ -51,13 +48,7 @@ const renderHamburgerMenu = (props = {}) => {
     onToggle: vi.fn(),
   };
 
-  return render(
-    <MantineProvider>
-      <MockRouter>
-        <HamburgerMenu {...defaultProps} {...props} />
-      </MockRouter>
-    </MantineProvider>
-  );
+  return renderWithProviders(<HamburgerMenu {...defaultProps} {...props} />);
 };
 
 describe("HamburgerMenu Component - TASK-105 TDD Test Suite", () => {
@@ -98,17 +89,13 @@ describe("HamburgerMenu Component - TASK-105 TDD Test Suite", () => {
 
       // 閉じた状態に変更
       rerender(
-        <MantineProvider>
-          <MockRouter>
-            <HamburgerMenu
-              items={mockNavigationItems}
-              groupedItems={mockGroupedItems}
-              isOpen={false}
-              onClose={vi.fn()}
-              onToggle={vi.fn()}
-            />
-          </MockRouter>
-        </MantineProvider>
+        <HamburgerMenu
+          items={mockNavigationItems}
+          groupedItems={mockGroupedItems}
+          isOpen={false}
+          onClose={vi.fn()}
+          onToggle={vi.fn()}
+        />
       );
 
       // 閉じた状態でのDrawer非表示確認
@@ -319,17 +306,13 @@ describe("HamburgerMenu Component - TASK-105 TDD Test Suite", () => {
         const isOpen = i % 2 === 0;
         await act(async () => {
           rerender(
-            <MantineProvider>
-              <MockRouter>
-                <HamburgerMenu
-                  items={mockNavigationItems}
-                  groupedItems={mockGroupedItems}
-                  isOpen={isOpen}
-                  onClose={mockOnClose}
-                  onToggle={mockOnToggle}
-                />
-              </MockRouter>
-            </MantineProvider>
+            <HamburgerMenu
+              items={mockNavigationItems}
+              groupedItems={mockGroupedItems}
+              isOpen={isOpen}
+              onClose={mockOnClose}
+              onToggle={mockOnToggle}
+            />
           );
         });
 
@@ -398,17 +381,13 @@ describe("HamburgerMenu Component - TASK-105 TDD Test Suite", () => {
       // 開く動作
       await act(async () => {
         rerender(
-          <MantineProvider>
-            <MockRouter>
-              <HamburgerMenu
-                items={mockNavigationItems}
-                groupedItems={mockGroupedItems}
-                isOpen={true}
-                onClose={vi.fn()}
-                onToggle={vi.fn()}
-              />
-            </MockRouter>
-          </MantineProvider>
+          <HamburgerMenu
+            items={mockNavigationItems}
+            groupedItems={mockGroupedItems}
+            isOpen={true}
+            onClose={vi.fn()}
+            onToggle={vi.fn()}
+          />
         );
       });
 
@@ -510,6 +489,133 @@ describe("HamburgerMenu Component - TASK-105 TDD Test Suite", () => {
 
       // テーマシステム統合の確認 - Mantineテーマが適用されていることを確認
       expect(drawerElement).toBeInTheDocument();
+    });
+  });
+
+  // ===== 現在ページハイライト機能テスト =====
+
+  describe("現在ページハイライト機能 (Current Page Highlighting)", () => {
+    it("TC-105-H001: ホームページで正しくハイライトされる", () => {
+      /**
+       * 【目的】: ホームページ（/）でホームリンクが正しくハイライトされることを確認
+       * 【期待動作】: data-active属性が"true"になり、他のリンクは"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      render(
+        <MemoryRouter initialEntries={["/"]}>
+          <MantineProvider>
+            <HamburgerMenu
+              items={mockNavigationItems}
+              groupedItems={mockGroupedItems}
+              isOpen={true}
+              onClose={mockOnClose}
+              onToggle={mockOnToggle}
+            />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // ホームページでホームがアクティブになることを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "true");
+
+      // 他のリンクはアクティブでないことを確認
+      const aboutLink = screen.getByText("について").closest("a");
+      expect(aboutLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("TC-105-H002: aboutページで正しくハイライトされる", () => {
+      /**
+       * 【目的】: aboutページ（/about）でaboutリンクが正しくハイライトされることを確認
+       * 【期待動作】: data-active属性が"true"になり、他のリンクは"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      render(
+        <MemoryRouter initialEntries={["/about"]}>
+          <MantineProvider>
+            <HamburgerMenu
+              items={mockNavigationItems}
+              groupedItems={mockGroupedItems}
+              isOpen={true}
+              onClose={mockOnClose}
+              onToggle={mockOnToggle}
+            />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // aboutページでaboutがアクティブになることを確認
+      const aboutLink = screen.getByText("について").closest("a");
+      expect(aboutLink).toHaveAttribute("data-active", "true");
+
+      // 他のリンクはアクティブでないことを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("TC-105-H003: 存在しないページでは全てのリンクが非アクティブになる", () => {
+      /**
+       * 【目的】: 存在しないページで全てのリンクが非アクティブになることを確認
+       * 【期待動作】: 全てのリンクでdata-active属性が"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      render(
+        <MemoryRouter initialEntries={["/unknown"]}>
+          <MantineProvider>
+            <HamburgerMenu
+              items={mockNavigationItems}
+              groupedItems={mockGroupedItems}
+              isOpen={true}
+              onClose={mockOnClose}
+              onToggle={mockOnToggle}
+            />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // 全てのリンクが非アクティブになることを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      const aboutLink = screen.getByText("について").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
+      expect(aboutLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("TC-105-H004: グループ化されたナビゲーションでもハイライトが動作する", () => {
+      /**
+       * 【目的】: グループ化されたナビゲーション項目でもハイライトが正しく動作することを確認
+       * 【期待動作】: グループに関係なく現在ページが正しくハイライトされる
+       * 🟢 信頼性レベル: 高（グループ機能との統合確認済み）
+       */
+
+      const groupedItemsWithNavigation = {
+        メインメニュー: [mockNavigationItems[0]], // ホーム
+        サブメニュー: [mockNavigationItems[1]], // について
+      };
+
+      render(
+        <MemoryRouter initialEntries={["/about"]}>
+          <MantineProvider>
+            <HamburgerMenu
+              items={mockNavigationItems}
+              groupedItems={groupedItemsWithNavigation}
+              isOpen={true}
+              onClose={mockOnClose}
+              onToggle={mockOnToggle}
+            />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // サブメニューグループのaboutリンクがアクティブになることを確認
+      const aboutLink = screen.getByText("について").closest("a");
+      expect(aboutLink).toHaveAttribute("data-active", "true");
+
+      // メインメニューグループのホームリンクは非アクティブ
+      const homeLink = screen.getByText("ホーム").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
     });
   });
 });

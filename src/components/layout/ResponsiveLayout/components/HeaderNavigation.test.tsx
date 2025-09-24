@@ -1,7 +1,9 @@
+import { MantineProvider } from "@mantine/core";
 import { IconHome, IconUsers } from "@tabler/icons-react";
-import { fireEvent } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "../../../../test/helpers/renderWithProviders";
+import { render as renderWithProviders } from "../../../../test/helpers/renderWithProviders";
 import type { NavigationItem } from "../types";
 import type { HeaderNavigationProps } from "./HeaderNavigation";
 import { HeaderNavigation } from "./HeaderNavigation";
@@ -56,7 +58,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        */
 
       // デスクトップモードでレンダリング
-      render(<HeaderNavigation {...defaultProps} isMobile={false} />);
+      renderWithProviders(<HeaderNavigation {...defaultProps} isMobile={false} />);
 
       // ハンバーガーメニューボタンなし
       expect(screen.queryByLabelText("ナビゲーションメニューを開く")).not.toBeInTheDocument();
@@ -69,7 +71,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
       expect(screen.getByText("ユーザー")).toBeInTheDocument();
 
       // ブランドロゴとテーマボタン
-      expect(screen.getByText("アプリ名")).toBeInTheDocument();
+      expect(screen.getByText("Sapphire")).toBeInTheDocument();
       expect(screen.getByLabelText("テーマを切り替える")).toBeInTheDocument();
     });
 
@@ -82,7 +84,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        */
 
       // モバイルモードでレンダリング
-      render(<HeaderNavigation {...defaultProps} isMobile={true} />);
+      renderWithProviders(<HeaderNavigation {...defaultProps} isMobile={true} />);
 
       // 水平ナビゲーション非表示
       expect(
@@ -93,7 +95,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
       expect(screen.getByLabelText("ナビゲーションメニューを開く")).toBeInTheDocument();
 
       // ブランドロゴとテーマボタン維持
-      expect(screen.getByText("アプリ名")).toBeInTheDocument();
+      expect(screen.getByText("Sapphire")).toBeInTheDocument();
       expect(screen.getByLabelText("テーマを切り替える")).toBeInTheDocument();
     });
 
@@ -106,7 +108,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        */
 
       // デスクトップモードでアイコン付き項目をレンダリング
-      render(<HeaderNavigation {...defaultProps} isMobile={false} />);
+      renderWithProviders(<HeaderNavigation {...defaultProps} isMobile={false} />);
 
       // アイコンとラベルの組み合わせ表示
       expect(screen.getByText("ホーム")).toBeInTheDocument();
@@ -126,7 +128,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        * 🟢 信頼性レベル: 高（UI操作確認）
        */
 
-      render(<HeaderNavigation {...defaultProps} />);
+      renderWithProviders(<HeaderNavigation {...defaultProps} />);
 
       // テーマ切り替えボタンの表示確認
       const themeButton = screen.getByLabelText("テーマを切り替える");
@@ -147,7 +149,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        */
 
       const mockOnHamburgerToggle = vi.fn();
-      render(
+      renderWithProviders(
         <HeaderNavigation
           {...defaultProps}
           isMobile={true}
@@ -177,10 +179,12 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
 
       const emptyItems: NavigationItem[] = [];
 
-      render(<HeaderNavigation {...defaultProps} items={emptyItems} isMobile={false} />);
+      renderWithProviders(
+        <HeaderNavigation {...defaultProps} items={emptyItems} isMobile={false} />
+      );
 
       // エラーなく表示
-      expect(screen.getByText("アプリ名")).toBeInTheDocument();
+      expect(screen.getByText("Sapphire")).toBeInTheDocument();
       expect(screen.getByLabelText("テーマを切り替える")).toBeInTheDocument();
 
       // 【空配列での動作確認】: 空配列でもnavigation要素は表示されるが、項目は含まれない
@@ -206,7 +210,9 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
         { id: "invalid", label: "", path: "/invalid" }, // 不正
       ];
 
-      render(<HeaderNavigation {...defaultProps} items={itemsWithInvalid} isMobile={false} />);
+      renderWithProviders(
+        <HeaderNavigation {...defaultProps} items={itemsWithInvalid} isMobile={false} />
+      );
 
       // 有効項目のみ表示
       expect(screen.getByText("有効項目")).toBeInTheDocument();
@@ -225,7 +231,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        */
 
       // onHamburgerToggle を undefined として渡す
-      render(
+      renderWithProviders(
         <HeaderNavigation {...defaultProps} isMobile={true} onHamburgerToggle={undefined as any} />
       );
 
@@ -254,7 +260,9 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
         path: `/item-${i}`,
       }));
 
-      render(<HeaderNavigation {...defaultProps} items={manyItems} isMobile={false} />);
+      renderWithProviders(
+        <HeaderNavigation {...defaultProps} items={manyItems} isMobile={false} />
+      );
 
       // 全項目表示確認
       manyItems.forEach((item) => {
@@ -275,7 +283,9 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
         { id: "long", label: longLabel, path: "/long" },
       ];
 
-      render(<HeaderNavigation {...defaultProps} items={itemsWithLongLabel} isMobile={false} />);
+      renderWithProviders(
+        <HeaderNavigation {...defaultProps} items={itemsWithLongLabel} isMobile={false} />
+      );
 
       expect(screen.getByText(longLabel)).toBeInTheDocument();
     });
@@ -288,7 +298,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        * 🟢 信頼性レベル: 高（状態同期確認）
        */
 
-      const { rerender } = render(
+      const { rerender } = renderWithProviders(
         <HeaderNavigation {...defaultProps} isMobile={true} hamburgerOpened={false} />
       );
 
@@ -319,7 +329,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        */
 
       // モバイルモードでレンダリング（ハンバーガーメニュー確認用）
-      render(<HeaderNavigation {...defaultProps} isMobile={true} />);
+      renderWithProviders(<HeaderNavigation {...defaultProps} isMobile={true} />);
 
       // ハンバーガーメニュー ARIA
       expect(screen.getByLabelText("ナビゲーションメニューを開く")).toBeInTheDocument();
@@ -328,7 +338,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
       expect(screen.getByLabelText("テーマを切り替える")).toBeInTheDocument();
 
       // デスクトップモードでナビゲーション領域確認
-      render(<HeaderNavigation {...defaultProps} isMobile={false} />);
+      renderWithProviders(<HeaderNavigation {...defaultProps} isMobile={false} />);
 
       // ナビゲーション領域 ARIA
       expect(screen.getByRole("navigation", { name: "メインナビゲーション" })).toBeInTheDocument();
@@ -342,7 +352,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        * 🟢 信頼性レベル: 高（iOS/Android HIG準拠）
        */
 
-      render(<HeaderNavigation {...defaultProps} isMobile={true} />);
+      renderWithProviders(<HeaderNavigation {...defaultProps} isMobile={true} />);
 
       const hamburgerButton = screen.getByLabelText("ナビゲーションメニューを開く");
       const themeButton = screen.getByLabelText("テーマを切り替える");
@@ -370,7 +380,7 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
         return <HeaderNavigation {...defaultProps} />;
       };
 
-      const { rerender } = render(<TestWrapper />);
+      const { rerender } = renderWithProviders(<TestWrapper />);
       expect(renderCount).toBe(1);
 
       // 同じpropsで再レンダリング
@@ -393,7 +403,9 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        * 🟢 信頼性レベル: 高（TASK-101統合確認済み）
        */
 
-      const { rerender } = render(<HeaderNavigation {...defaultProps} isMobile={false} />);
+      const { rerender } = renderWithProviders(
+        <HeaderNavigation {...defaultProps} isMobile={false} />
+      );
 
       // デスクトップモード確認
       expect(screen.getByRole("navigation", { name: "メインナビゲーション" })).toBeInTheDocument();
@@ -407,6 +419,95 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
         screen.queryByRole("navigation", { name: "メインナビゲーション" })
       ).not.toBeInTheDocument();
       expect(screen.getByLabelText("ナビゲーションメニューを開く")).toBeInTheDocument();
+    });
+  });
+
+  // ===== 現在ページハイライト機能テスト =====
+
+  describe("現在ページハイライト機能 (Current Page Highlighting)", () => {
+    it("ホームページで正しくハイライトされる", () => {
+      /**
+       * 【目的】: ホームページ（/）でホームリンクが正しくハイライトされることを確認
+       * 【期待動作】: data-active属性が"true"になり、他のリンクは"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      renderWithProviders(
+        <MemoryRouter initialEntries={["/"]}>
+          <MantineProvider>
+            <HeaderNavigation
+              items={mockNavigationItems}
+              isMobile={false}
+              hamburgerOpened={false}
+              onHamburgerToggle={() => {}}
+            />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // ホームページでホームがアクティブになることを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "true");
+
+      // 他のリンクはアクティブでないことを確認
+      const aboutLink = screen.getByText("について").closest("a");
+      expect(aboutLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("aboutページで正しくハイライトされる", () => {
+      /**
+       * 【目的】: aboutページ（/about）でaboutリンクが正しくハイライトされることを確認
+       * 【期待動作】: data-active属性が"true"になり、他のリンクは"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      renderWithProviders(
+        <MemoryRouter initialEntries={["/about"]}>
+          <MantineProvider>
+            <HeaderNavigation
+              items={mockNavigationItems}
+              isMobile={false}
+              hamburgerOpened={false}
+              onHamburgerToggle={() => {}}
+            />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // aboutページでaboutがアクティブになることを確認
+      const aboutLink = screen.getByText("について").closest("a");
+      expect(aboutLink).toHaveAttribute("data-active", "true");
+
+      // 他のリンクはアクティブでないことを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("存在しないページでは全てのリンクが非アクティブになる", () => {
+      /**
+       * 【目的】: 存在しないページで全てのリンクが非アクティブになることを確認
+       * 【期待動作】: 全てのリンクでdata-active属性が"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      renderWithProviders(
+        <MemoryRouter initialEntries={["/unknown"]}>
+          <MantineProvider>
+            <HeaderNavigation
+              items={mockNavigationItems}
+              isMobile={false}
+              hamburgerOpened={false}
+              onHamburgerToggle={() => {}}
+            />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // 全てのリンクが非アクティブになることを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      const aboutLink = screen.getByText("について").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
+      expect(aboutLink).toHaveAttribute("data-active", "false");
     });
   });
 });

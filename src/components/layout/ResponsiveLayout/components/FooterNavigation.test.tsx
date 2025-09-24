@@ -1,7 +1,10 @@
+import { MantineProvider } from "@mantine/core";
 import { IconHome, IconSettings, IconUsers } from "@tabler/icons-react";
+import { render, screen } from "@testing-library/react";
 import { memo } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "../../../../test/helpers/renderWithProviders";
+import { render as renderWithProviders } from "../../../../test/helpers/renderWithProviders";
 import type { NavigationItem } from "../types";
 import type { FooterNavigationProps } from "./FooterNavigation";
 import { FooterNavigation } from "./FooterNavigation";
@@ -58,7 +61,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: FooterNavigationコンポーネントをレンダリング
       // 【処理内容】: testItemsを渡してコンポーネントの基本表示を実行
-      render(<FooterNavigation items={testItems} />);
+      renderWithProviders(<FooterNavigation items={testItems} />);
 
       // 【結果検証】: フッターナビゲーションの基本要素が正常に表示されることを確認
       // 【期待値確認】: role="navigation"、ナビゲーション項目、space-around配置の確認
@@ -92,7 +95,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: アイコン付きNavigationItemでFooterNavigationをレンダリング
       // 【処理内容】: iconItemsを渡してアイコン+ラベル表示を実行
-      render(<FooterNavigation items={iconItems} />);
+      renderWithProviders(<FooterNavigation items={iconItems} />);
 
       // 【結果検証】: アイコンとラベルの組み合わせ表示が正常に機能することを確認
       // 【期待値確認】: ラベル表示とアイコンサイズ20pxの確認
@@ -103,7 +106,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(screen.getByText("設定")).toBeInTheDocument();
 
       // 【確認内容】: アイコンサイズが20pxで統一されている 🟢
-      const iconElements = screen.getAllByRole("button");
+      const iconElements = screen.getAllByRole("link");
       iconElements.forEach((button) => {
         const svg = button.querySelector("svg");
         expect(svg).toHaveAttribute("width", "20");
@@ -119,11 +122,11 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【テストデータ準備】: タップ領域確保確認用の標準的なナビゲーション項目
       // 【初期条件設定】: 一般的なフッターナビゲーション項目設定
-      render(<FooterNavigation items={mockNavigationItems} />);
+      renderWithProviders(<FooterNavigation items={mockNavigationItems} />);
 
       // 【実際の処理実行】: レンダリングされたボタン要素のタップ領域スタイルを取得
       // 【処理内容】: 各ボタンの minHeight と height スタイル属性を検証
-      const navigationButtons = screen.getAllByRole("button");
+      const navigationButtons = screen.getAllByRole("link");
 
       // 【結果検証】: 44px以上のタップ領域が確保されていることを確認
       // 【期待値確認】: NFR-201「フッターメニューのタップ領域は44px以上」準拠
@@ -148,7 +151,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【テストデータ準備】: SafeArea適用確認用の基本設定
       // 【初期条件設定】: 標準的なNavigationItem配列
-      render(<FooterNavigation items={mockNavigationItems} />);
+      renderWithProviders(<FooterNavigation items={mockNavigationItems} />);
 
       // 【実際の処理実行】: フッターGroup要素のスタイル属性を取得
       // 【処理内容】: paddingBottomとborderTopのスタイル設定確認
@@ -185,7 +188,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: 7項目のNavigationItemでFooterNavigationをレンダリング
       // 【処理内容】: manyItemsを渡して5項目制限の動作を確認
-      render(<FooterNavigation items={manyItems} />);
+      renderWithProviders(<FooterNavigation items={manyItems} />);
 
       // 【結果検証】: 5項目のみ表示され、6項目目以降は表示されないことを確認
       // 【期待値確認】: タブバーUI制限の適切な実装確認
@@ -202,7 +205,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(screen.queryByText("項目7")).not.toBeInTheDocument();
 
       // 【確認内容】: ボタン数の制限確認 🟢
-      expect(screen.getAllByRole("button")).toHaveLength(5);
+      expect(screen.getAllByRole("link")).toHaveLength(5);
     });
   });
 
@@ -221,7 +224,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: 空配列でFooterNavigationをレンダリング
       // 【処理内容】: emptyItemsを渡してエラーハンドリング動作を確認
-      render(<FooterNavigation items={emptyItems} />);
+      renderWithProviders(<FooterNavigation items={emptyItems} />);
 
       // 【結果検証】: フッター領域は表示されるが項目は表示されないことを確認
       // 【期待値確認】: エラーは発生せず、空のフッター領域を表示
@@ -231,7 +234,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(footerGroup).toBeInTheDocument();
 
       // 【確認内容】: ナビゲーション項目は表示されない 🟡
-      expect(screen.queryAllByRole("button")).toHaveLength(0);
+      expect(screen.queryAllByRole("link")).toHaveLength(0);
 
       // 【確認内容】: 空の場合でもスタイル設定は維持 🟡
       expect(footerGroup).toHaveStyle({
@@ -255,7 +258,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: アイコンなし項目を含むNavigationItemでレンダリング
       // 【処理内容】: itemsWithoutIconを渡して不完全データ処理を確認
-      render(<FooterNavigation items={itemsWithoutIcon} />);
+      renderWithProviders(<FooterNavigation items={itemsWithoutIcon} />);
 
       // 【結果検証】: アイコンありの項目は正常表示、アイコンなし項目もラベルは表示
       // 【期待値確認】: エラーは発生せず、ラベルのみ表示でグレースフルな処理
@@ -267,7 +270,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(screen.getByText("アイコンなし")).toBeInTheDocument();
 
       // 【確認内容】: ボタン数確認（両方とも表示される） 🟡
-      const buttons = screen.getAllByRole("button");
+      const buttons = screen.getAllByRole("link");
       expect(buttons).toHaveLength(2);
 
       // 【確認内容】: エラーは発生しない 🟡
@@ -289,7 +292,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: 空ラベル項目を含むNavigationItemでレンダリング
       // 【処理内容】: itemsWithEmptyLabelを渡してデータバリデーション動作を確認
-      const { container } = render(<FooterNavigation items={itemsWithEmptyLabel} />);
+      const { container } = renderWithProviders(<FooterNavigation items={itemsWithEmptyLabel} />);
 
       // 【結果検証】: 有効項目のみ表示され、無効項目は表示されないことを確認
       // 【期待値確認】: エラーは発生せず、有効項目のみ表示
@@ -300,12 +303,14 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       // 【確認内容】: 無効項目は表示されない 🟡
       expect(container.textContent).not.toContain("invalid");
 
-      // 【確認内容】: 有効項目のボタンのみ存在 🟡
-      const buttons = container.querySelectorAll("button");
-      expect(buttons.length).toBe(1);
+      // 【確認内容】: 有効項目のリンクのみ存在 🟡
+      const links = container.querySelectorAll("a");
+      expect(links.length).toBe(1);
 
       // 【確認内容】: エラーは発生しない 🟡
-      expect(() => render(<FooterNavigation items={itemsWithEmptyLabel} />)).not.toThrow();
+      expect(() =>
+        renderWithProviders(<FooterNavigation items={itemsWithEmptyLabel} />)
+      ).not.toThrow();
     });
   });
 
@@ -329,7 +334,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: 5項目ちょうどのNavigationItemでレンダリング
       // 【処理内容】: exactlyFiveItemsを渡してUI制限境界での安定動作を確認
-      render(<FooterNavigation items={exactlyFiveItems} />);
+      renderWithProviders(<FooterNavigation items={exactlyFiveItems} />);
 
       // 【結果検証】: 5項目すべて表示され、適切なレイアウトが維持されることを確認
       // 【期待値確認】: 項目数に関係なく一貫したスタイリング
@@ -340,14 +345,14 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       }
 
       // 【確認内容】: ボタン数確認 🟢
-      expect(screen.getAllByRole("button")).toHaveLength(5);
+      expect(screen.getAllByRole("link")).toHaveLength(5);
 
       // 【確認内容】: space-around配置での適切なレイアウト 🟢
       const footerGroup = screen.getByRole("navigation");
       expect(footerGroup).toHaveStyle({ justifyContent: "space-around" });
 
       // 【確認内容】: flex: 1による均等分散 🟢
-      const buttons = screen.getAllByRole("button");
+      const buttons = screen.getAllByRole("link");
       buttons.forEach((button) => {
         expect(button).toHaveStyle({ flex: 1 });
       });
@@ -373,7 +378,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: 長いラベル項目を含むNavigationItemでレンダリング
       // 【処理内容】: longLabelItemsを渡してテキストオーバーフロー対応を確認
-      render(<FooterNavigation items={longLabelItems} />);
+      renderWithProviders(<FooterNavigation items={longLabelItems} />);
 
       // 【結果検証】: 長いラベルも表示され、レイアウト一貫性が維持されることを確認
       // 【期待値確認】: テキストオーバーフロー対応
@@ -389,7 +394,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(longLabelElement).toHaveStyle({ textAlign: "center" });
 
       // 【確認内容】: レイアウト破綻なし 🟡
-      const buttons = screen.getAllByRole("button");
+      const buttons = screen.getAllByRole("link");
       buttons.forEach((button) => {
         expect(button).toHaveStyle({ flex: 1 });
       });
@@ -409,7 +414,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【実際の処理実行】: 単一項目のNavigationItemでレンダリング
       // 【処理内容】: singleItemを渡して最小構成でのUI一貫性を確認
-      render(<FooterNavigation items={singleItem} />);
+      renderWithProviders(<FooterNavigation items={singleItem} />);
 
       // 【結果検証】: 単一項目でも適切なスタイリングが維持されることを確認
       // 【期待値確認】: 項目数に関係ない一貫した配置
@@ -418,14 +423,14 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(screen.getByText("唯一の項目")).toBeInTheDocument();
 
       // 【確認内容】: ボタン数確認 🟡
-      expect(screen.getAllByRole("button")).toHaveLength(1);
+      expect(screen.getAllByRole("link")).toHaveLength(1);
 
       // 【確認内容】: space-around配置での中央寄せ 🟡
       const footerGroup = screen.getByRole("navigation");
       expect(footerGroup).toHaveStyle({ justifyContent: "space-around" });
 
       // 【確認内容】: flex: 1での適切な幅調整 🟡
-      const button = screen.getByRole("button");
+      const button = screen.getByRole("link");
       expect(button).toHaveStyle({ flex: 1 });
 
       // 【確認内容】: タップ領域確保 🟡
@@ -444,7 +449,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【テストデータ準備】: ARIA属性検証用の基本設定
       // 【初期条件設定】: 標準的なNavigationItem配列
-      render(<FooterNavigation items={mockNavigationItems} />);
+      renderWithProviders(<FooterNavigation items={mockNavigationItems} />);
 
       // 【実際の処理実行】: レンダリングされた要素のARIA属性を取得
       // 【処理内容】: navigation roleの確認
@@ -456,7 +461,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(screen.getByRole("navigation")).toBeInTheDocument();
 
       // 【確認内容】: 各ボタンの基本的な存在確認 🟢
-      const buttons = screen.getAllByRole("button");
+      const buttons = screen.getAllByRole("link");
       expect(buttons.length).toBe(mockNavigationItems.length);
     });
 
@@ -468,11 +473,11 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【テストデータ準備】: キーボード操作検証用の複数項目設定
       // 【初期条件設定】: 標準的なNavigationItem配列
-      render(<FooterNavigation items={mockNavigationItems} />);
+      renderWithProviders(<FooterNavigation items={mockNavigationItems} />);
 
       // 【実際の処理実行】: ボタン要素のフォーカス状態とキーボード対応を確認
       // 【処理内容】: tabIndex、focus、キーボードイベント対応の検証
-      const buttons = screen.getAllByRole("button");
+      const buttons = screen.getAllByRole("link");
 
       // 【結果検証】: キーボードアクセシビリティが適切に実装されることを確認
       // 【期待値確認】: フォーカス移動、キーボードアクション
@@ -513,7 +518,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       // 【処理内容】: 初回レンダリング、同一props再レンダリング、異なるprops再レンダリング
 
       // 初回レンダリング
-      const { rerender } = render(<TestFooterNavigation {...props} />);
+      const { rerender } = renderWithProviders(<TestFooterNavigation {...props} />);
       expect(renderCount).toBe(1);
 
       // 同じpropsで再レンダリング -> カウント増加なし（React.memoにより）
@@ -546,7 +551,7 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
 
       // 【テストデータ準備】: 実際の使用環境での統合テスト設定
       // 【初期条件設定】: ResponsiveLayout統合環境でのNavigationItem配列
-      render(<FooterNavigation items={mockNavigationItems} />);
+      renderWithProviders(<FooterNavigation items={mockNavigationItems} />);
 
       // 【実際の処理実行】: AppShell.Footer内でのFooterNavigation配置確認
       // 【処理内容】: 統合環境でのナビゲーション表示と動作確認
@@ -562,6 +567,144 @@ describe("FooterNavigation Component - TASK-103 TDD Test Suite", () => {
       expect(screen.getByText("ホーム")).toBeInTheDocument();
       expect(screen.getByText("ユーザー")).toBeInTheDocument();
       expect(screen.getByText("設定")).toBeInTheDocument();
+    });
+  });
+
+  // ===== 現在ページハイライト機能テスト =====
+
+  describe("現在ページハイライト機能 (Current Page Highlighting)", () => {
+    it("TC-103-H001: ホームページで正しくハイライトされる", () => {
+      /**
+       * 【目的】: ホームページ（/）でホームリンクが正しくハイライトされることを確認
+       * 【期待動作】: data-active属性が"true"になり、他のリンクは"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      render(
+        <MemoryRouter initialEntries={["/"]}>
+          <MantineProvider>
+            <FooterNavigation items={mockNavigationItems} />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // ホームページでホームがアクティブになることを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "true");
+
+      // 他のリンクはアクティブでないことを確認
+      const usersLink = screen.getByText("ユーザー").closest("a");
+      const settingsLink = screen.getByText("設定").closest("a");
+      expect(usersLink).toHaveAttribute("data-active", "false");
+      expect(settingsLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("TC-103-H002: ユーザーページで正しくハイライトされる", () => {
+      /**
+       * 【目的】: ユーザーページ（/users）でユーザーリンクが正しくハイライトされることを確認
+       * 【期待動作】: data-active属性が"true"になり、他のリンクは"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      render(
+        <MemoryRouter initialEntries={["/users"]}>
+          <MantineProvider>
+            <FooterNavigation items={mockNavigationItems} />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // ユーザーページでユーザーがアクティブになることを確認
+      const usersLink = screen.getByText("ユーザー").closest("a");
+      expect(usersLink).toHaveAttribute("data-active", "true");
+
+      // 他のリンクはアクティブでないことを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      const settingsLink = screen.getByText("設定").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
+      expect(settingsLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("TC-103-H003: 設定ページで正しくハイライトされる", () => {
+      /**
+       * 【目的】: 設定ページ（/settings）で設定リンクが正しくハイライトされることを確認
+       * 【期待動作】: data-active属性が"true"になり、他のリンクは"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      render(
+        <MemoryRouter initialEntries={["/settings"]}>
+          <MantineProvider>
+            <FooterNavigation items={mockNavigationItems} />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // 設定ページで設定がアクティブになることを確認
+      const settingsLink = screen.getByText("設定").closest("a");
+      expect(settingsLink).toHaveAttribute("data-active", "true");
+
+      // 他のリンクはアクティブでないことを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      const usersLink = screen.getByText("ユーザー").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
+      expect(usersLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("TC-103-H004: 存在しないページでは全てのリンクが非アクティブになる", () => {
+      /**
+       * 【目的】: 存在しないページで全てのリンクが非アクティブになることを確認
+       * 【期待動作】: 全てのリンクでdata-active属性が"false"になる
+       * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
+       */
+
+      render(
+        <MemoryRouter initialEntries={["/unknown"]}>
+          <MantineProvider>
+            <FooterNavigation items={mockNavigationItems} />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // 全てのリンクが非アクティブになることを確認
+      const homeLink = screen.getByText("ホーム").closest("a");
+      const usersLink = screen.getByText("ユーザー").closest("a");
+      const settingsLink = screen.getByText("設定").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
+      expect(usersLink).toHaveAttribute("data-active", "false");
+      expect(settingsLink).toHaveAttribute("data-active", "false");
+    });
+
+    it("TC-103-H005: アイコンとラベルのあるナビゲーションでもハイライトが動作する", () => {
+      /**
+       * 【目的】: アイコン付きナビゲーション項目でもハイライトが正しく動作することを確認
+       * 【期待動作】: アイコンとラベル両方を含むリンクでハイライトが動作する
+       * 🟢 信頼性レベル: 高（FooterNavigation統合確認済み）
+       */
+
+      const fullNavigationItems = [
+        { id: "home", label: "ホーム", path: "/", icon: IconHome },
+        { id: "users", label: "ユーザー", path: "/users", icon: IconUsers },
+        { id: "settings", label: "設定", path: "/settings", icon: IconSettings },
+      ];
+
+      render(
+        <MemoryRouter initialEntries={["/users"]}>
+          <MantineProvider>
+            <FooterNavigation items={fullNavigationItems} />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+
+      // ユーザーページでユーザーリンク（アイコン付き）がアクティブになることを確認
+      const usersLink = screen.getByText("ユーザー").closest("a");
+      expect(usersLink).toHaveAttribute("data-active", "true");
+
+      // 他のアイコン付きリンクは非アクティブ
+      const homeLink = screen.getByText("ホーム").closest("a");
+      const settingsLink = screen.getByText("設定").closest("a");
+      expect(homeLink).toHaveAttribute("data-active", "false");
+      expect(settingsLink).toHaveAttribute("data-active", "false");
     });
   });
 });

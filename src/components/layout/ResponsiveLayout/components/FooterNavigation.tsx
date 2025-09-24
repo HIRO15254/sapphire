@@ -1,6 +1,6 @@
 import { Box, Center, Group, rem, Text, UnstyledButton } from "@mantine/core";
 import { memo, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { NavigationItem } from "../types";
 
 export interface FooterNavigationProps {
@@ -56,6 +56,7 @@ const MAX_FOOTER_ITEMS = 5;
  * 🟢 信頼性レベル: EARS要件とMantineガイドラインに基づく改善
  */
 export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
+  const location = useLocation();
   /**
    * 【入力値検証】: セキュリティ強化のための入力値検証
    * 【XSS対策】: 不正なデータ排除によるクロスサイトスクリプティング防止
@@ -78,13 +79,20 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
   }, [items]);
 
   /**
+   * 【現在ページ判定】: 現在のパスと項目のパスを比較してアクティブ状態を判定
+   */
+  const isActiveItem = (itemPath: string): boolean => {
+    return location.pathname === itemPath;
+  };
+
+  /**
    * 【スタイル最適化】: アクセシビリティ準拠のタップ領域スタイル
    * 【パフォーマンス】: useMemoによる再計算防止
    * 【アクセシビリティ】: 44px最小タップ領域の確保
    * 🟢 信頼性レベル: WCAG 2.1 AA基準準拠
    */
-  const accessibleButtonStyle = useMemo(
-    () => ({
+  const getAccessibleButtonStyle = useMemo(
+    () => (isActive: boolean) => ({
       flex: 1,
       padding: rem(8),
       borderRadius: "var(--mantine-radius-md)",
@@ -95,6 +103,8 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
       alignItems: "center",
       justifyContent: "center",
       boxSizing: "border-box" as const,
+      backgroundColor: isActive ? "var(--mantine-color-blue-light)" : "transparent",
+      color: isActive ? "var(--mantine-color-blue-filled)" : "inherit",
     }),
     []
   );
@@ -124,28 +134,32 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
            【UI制約】: MAX_FOOTER_ITEMS定数でUI/UX制約「最大表示項目: 5項目制限」準拠
            【保守性】: 定数化とuseMemoによる変更容易性とパフォーマンス両立
            🟢 信頼性レベル: 高（EARS要件REQ-002, REQ-103, NFR-201準拠、セキュリティ強化済み） */}
-      {validItems.map((item) => (
-        <UnstyledButton
-          key={item.id}
-          component={Link}
-          to={item.path}
-          tabIndex={0}
-          style={accessibleButtonStyle}
-        >
-          <Center>
-            <Box>
-              {item.icon && (
-                <Center mb="xs">
-                  <item.icon size={FOOTER_ICON_SIZE} stroke={1.5} />
-                </Center>
-              )}
-              <Text size="xs" ta="center" fw={400}>
-                {item.label}
-              </Text>
-            </Box>
-          </Center>
-        </UnstyledButton>
-      ))}
+      {validItems.map((item) => {
+        const isActive = isActiveItem(item.path);
+        return (
+          <UnstyledButton
+            key={item.id}
+            component={Link}
+            to={item.path}
+            tabIndex={0}
+            style={getAccessibleButtonStyle(isActive)}
+            data-active={isActive}
+          >
+            <Center>
+              <Box>
+                {item.icon && (
+                  <Center mb="xs">
+                    <item.icon size={FOOTER_ICON_SIZE} stroke={1.5} />
+                  </Center>
+                )}
+                <Text size="xs" ta="center" fw={isActive ? 600 : 400}>
+                  {item.label}
+                </Text>
+              </Box>
+            </Center>
+          </UnstyledButton>
+        );
+      })}
     </Group>
   );
 });

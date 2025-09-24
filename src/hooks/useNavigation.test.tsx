@@ -1,8 +1,7 @@
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NavigationProvider } from "../providers/NavigationProvider";
-import { render } from "../test/helpers/renderWithProviders";
 import type { NavigationConfig } from "../types/navigation";
 import { useNavigation } from "./useNavigation";
 

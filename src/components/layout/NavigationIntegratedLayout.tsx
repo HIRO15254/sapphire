@@ -190,15 +190,15 @@ const NavigationIntegratedLayoutInner = memo<{
   }, [navigationConfig, convertToNavigationItems, handleNavigationClick]);
 
   return (
-    <div data-testid="navigation-integrated-layout">
+    <div data-testid="navigation-integrated-layout" role="application">
       {/* 現在ページ情報 */}
       <div className="sr-only" data-testid="page-announcement">
         現在のページ: {currentPageTitle || currentPath}
       </div>
 
       {/* 【キーボードナビゲーション】: Mantine use-hotkeys による実装 */}
-      <div className="sr-only">
-        スキップリンク: Alt+M でメインコンテンツ、Alt+N でナビゲーション
+      <div className="sr-only" data-testid="skip-link">
+        <span>スキップリンク</span>: Alt+M でメインコンテンツ、Alt+N でナビゲーション
       </div>
 
       {/* 【統合コンポーネント】: ResponsiveLayoutにNavigationProviderの状態を連携 */}
