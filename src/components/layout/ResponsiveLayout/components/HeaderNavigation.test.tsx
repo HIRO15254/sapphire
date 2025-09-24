@@ -1,6 +1,6 @@
 import { MantineProvider } from "@mantine/core";
 import { IconHome, IconUsers } from "@tabler/icons-react";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render as renderWithProviders } from "../../../../test/helpers/renderWithProviders";
@@ -425,6 +425,21 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
   // ===== 現在ページハイライト機能テスト =====
 
   describe("現在ページハイライト機能 (Current Page Highlighting)", () => {
+    const renderHeaderWithRoute = (initialPath: string) => {
+      return render(
+        <MemoryRouter initialEntries={[initialPath]}>
+          <MantineProvider>
+            <HeaderNavigation
+              items={mockNavigationItems}
+              isMobile={false}
+              hamburgerOpened={false}
+              onHamburgerToggle={() => {}}
+            />
+          </MantineProvider>
+        </MemoryRouter>
+      );
+    };
+
     it("ホームページで正しくハイライトされる", () => {
       /**
        * 【目的】: ホームページ（/）でホームリンクが正しくハイライトされることを確認
@@ -432,51 +447,29 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
        */
 
-      renderWithProviders(
-        <MemoryRouter initialEntries={["/"]}>
-          <MantineProvider>
-            <HeaderNavigation
-              items={mockNavigationItems}
-              isMobile={false}
-              hamburgerOpened={false}
-              onHamburgerToggle={() => {}}
-            />
-          </MantineProvider>
-        </MemoryRouter>
-      );
+      renderHeaderWithRoute("/");
 
       // ホームページでホームがアクティブになることを確認
       const homeLink = screen.getByText("ホーム").closest("a");
       expect(homeLink).toHaveAttribute("data-active", "true");
 
       // 他のリンクはアクティブでないことを確認
-      const aboutLink = screen.getByText("について").closest("a");
-      expect(aboutLink).toHaveAttribute("data-active", "false");
+      const usersLink = screen.getByText("ユーザー").closest("a");
+      expect(usersLink).toHaveAttribute("data-active", "false");
     });
 
-    it("aboutページで正しくハイライトされる", () => {
+    it("usersページで正しくハイライトされる", () => {
       /**
-       * 【目的】: aboutページ（/about）でaboutリンクが正しくハイライトされることを確認
+       * 【目的】: usersページ（/users）でusersリンクが正しくハイライトされることを確認
        * 【期待動作】: data-active属性が"true"になり、他のリンクは"false"になる
        * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
        */
 
-      renderWithProviders(
-        <MemoryRouter initialEntries={["/about"]}>
-          <MantineProvider>
-            <HeaderNavigation
-              items={mockNavigationItems}
-              isMobile={false}
-              hamburgerOpened={false}
-              onHamburgerToggle={() => {}}
-            />
-          </MantineProvider>
-        </MemoryRouter>
-      );
+      renderHeaderWithRoute("/users");
 
-      // aboutページでaboutがアクティブになることを確認
-      const aboutLink = screen.getByText("について").closest("a");
-      expect(aboutLink).toHaveAttribute("data-active", "true");
+      // usersページでusersがアクティブになることを確認
+      const usersLink = screen.getByText("ユーザー").closest("a");
+      expect(usersLink).toHaveAttribute("data-active", "true");
 
       // 他のリンクはアクティブでないことを確認
       const homeLink = screen.getByText("ホーム").closest("a");
@@ -490,24 +483,13 @@ describe("HeaderNavigation Component - TASK-102 TDD Test Suite", () => {
        * 🟢 信頼性レベル: 高（現在ページハイライト機能要件準拠）
        */
 
-      renderWithProviders(
-        <MemoryRouter initialEntries={["/unknown"]}>
-          <MantineProvider>
-            <HeaderNavigation
-              items={mockNavigationItems}
-              isMobile={false}
-              hamburgerOpened={false}
-              onHamburgerToggle={() => {}}
-            />
-          </MantineProvider>
-        </MemoryRouter>
-      );
+      renderHeaderWithRoute("/unknown");
 
       // 全てのリンクが非アクティブになることを確認
       const homeLink = screen.getByText("ホーム").closest("a");
-      const aboutLink = screen.getByText("について").closest("a");
+      const usersLink = screen.getByText("ユーザー").closest("a");
       expect(homeLink).toHaveAttribute("data-active", "false");
-      expect(aboutLink).toHaveAttribute("data-active", "false");
+      expect(usersLink).toHaveAttribute("data-active", "false");
     });
   });
 });
