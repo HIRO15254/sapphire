@@ -2,7 +2,7 @@
 // 🔵 青信号: 技術スタック要件のtracingログ設定に基づく
 
 use tracing::Level;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::EnvFilter;
 
 /// ログ設定
 #[derive(Debug, Clone)]

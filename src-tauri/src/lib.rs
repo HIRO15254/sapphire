@@ -349,7 +349,14 @@ pub fn run() {
             get_notes,
             create_note,
             delete_note,
-            cleanup_test_db
+            cleanup_test_db,
+            // Player Note commands
+            playernote::commands::playernote_health_check,
+            playernote::commands::playernote_database_stats,
+            playernote::commands::get_all_players,
+            playernote::commands::create_player,
+            playernote::commands::get_player_types,
+            playernote::commands::get_all_tags
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -7,6 +7,7 @@ pub mod migration;
 pub mod database;
 pub mod error;
 pub mod logging_simple;
+pub mod commands;
 
 pub use logging_simple as logging;
 

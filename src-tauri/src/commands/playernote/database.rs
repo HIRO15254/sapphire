@@ -1,310 +1,176 @@
-// Player Note Database Connection Pool
+// Player Note Database Helper Functions
 // 🔵 青信号: 技術スタック要件に基づくRustバックエンド基盤
+//
+// アプリケーション全体で共有されるデータベース接続を使用するためのヘルパー関数群
+// 独自の接続プールは作成せず、lib.rsのDatabase構造体を利用
 
-use rusqlite::{Connection, Result as SqliteResult};
-use std::sync::{Arc, Mutex};
-use std::collections::VecDeque;
-use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager};
-use std::fs;
+use rusqlite::Connection;
 use serde::{Serialize, Deserialize};
+use crate::commands::playernote::error::{PlayerNoteError, PlayerNoteResult};
 
-/// データベース接続プール設定
-#[derive(Debug, Clone)]
-pub struct PoolConfig {
-    pub max_connections: usize,
-    pub connection_timeout: Duration,
-    pub idle_timeout: Duration,
+/// データベースヘルスチェック
+/// 共有データベース接続が正常に動作しているか確認
+pub fn health_check(conn: &Connection) -> PlayerNoteResult<bool> {
+    let result: i32 = conn
+        .prepare("SELECT 1")
+        .map_err(|e| PlayerNoteError::from(e))?
+        .query_row([], |row| row.get(0))
+        .map_err(|e| PlayerNoteError::from(e))?;
+    Ok(result == 1)
 }
 
-impl Default for PoolConfig {
-    fn default() -> Self {
-        Self {
-            max_connections: 10,
-            connection_timeout: Duration::from_secs(30),
-            idle_timeout: Duration::from_secs(300), // 5分
+/// Player Note テーブルの存在確認
+pub fn check_player_note_tables(conn: &Connection) -> PlayerNoteResult<bool> {
+    let table_count: i32 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type='table'
+             AND name IN ('players', 'player_types', 'tags', 'player_tags', 'player_notes')",
+            [],
+            |row| row.get(0)
+        )
+        .map_err(|e| PlayerNoteError::from(e))?;
+
+    Ok(table_count == 5)  // すべてのテーブルが存在する場合
+}
+
+/// データベース統計情報
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DatabaseStats {
+    pub player_count: usize,
+    pub note_count: usize,
+    pub tag_count: usize,
+    pub database_size_kb: f64,
+}
+
+/// データベース統計を取得
+pub fn get_database_stats(conn: &Connection) -> PlayerNoteResult<DatabaseStats> {
+    // プレイヤー数
+    let player_count: usize = conn
+        .query_row("SELECT COUNT(*) FROM players", [], |row| row.get(0))
+        .unwrap_or(0);
+
+    // ノート数
+    let note_count: usize = conn
+        .query_row("SELECT COUNT(*) FROM player_notes", [], |row| row.get(0))
+        .unwrap_or(0);
+
+    // タグ数
+    let tag_count: usize = conn
+        .query_row("SELECT COUNT(*) FROM tags", [], |row| row.get(0))
+        .unwrap_or(0);
+
+    // データベースサイズ（KB）
+    let page_count: i32 = conn
+        .query_row("PRAGMA page_count", [], |row| row.get(0))
+        .unwrap_or(0);
+    let page_size: i32 = conn
+        .query_row("PRAGMA page_size", [], |row| row.get(0))
+        .unwrap_or(0);
+    let database_size_kb = (page_count as f64 * page_size as f64) / 1024.0;
+
+    Ok(DatabaseStats {
+        player_count,
+        note_count,
+        tag_count,
+        database_size_kb,
+    })
+}
+
+/// SQLiteの最適化設定を適用
+/// 既にlib.rsで設定されているが、必要に応じて追加の最適化を行う
+pub fn optimize_connection(_conn: &Connection) -> PlayerNoteResult<()> {
+    // Player Note特有の最適化設定があればここに記述
+    // 現在はlib.rsの設定で十分なので特に追加なし
+    Ok(())
+}
+
+/// トランザクションヘルパー
+/// エラー時に自動的にロールバックを行う
+pub fn with_transaction<T, F>(conn: &mut Connection, f: F) -> PlayerNoteResult<T>
+where
+    F: FnOnce(&Connection) -> PlayerNoteResult<T>,
+{
+    let tx = conn.transaction().map_err(|e| PlayerNoteError::from(e))?;
+
+    match f(&tx) {
+        Ok(result) => {
+            tx.commit().map_err(|e| PlayerNoteError::from(e))?;
+            Ok(result)
+        }
+        Err(e) => {
+            // トランザクションは自動的にロールバックされる
+            Err(e)
         }
     }
 }
 
-/// 接続プールエントリ
-#[derive(Debug)]
-struct PooledConnection {
-    connection: Connection,
-    last_used: Instant,
+/// バッチ処理用のヘルパー
+/// 複数のSQL文を一括実行
+pub fn execute_batch(conn: &Connection, sql: &str) -> PlayerNoteResult<()> {
+    conn.execute_batch(sql)
+        .map_err(|e| PlayerNoteError::from(e))
 }
 
-/// データベース接続プール
-pub struct DatabasePool {
-    pool: Arc<Mutex<VecDeque<PooledConnection>>>,
-    config: PoolConfig,
-    db_path: String,
+/// テーブルのVACUUM実行
+/// データベースの最適化とディスク容量の節約
+pub fn vacuum_database(conn: &Connection) -> PlayerNoteResult<()> {
+    conn.execute("VACUUM", [])
+        .map_err(|e| PlayerNoteError::from(e))?;
+    Ok(())
 }
 
-impl DatabasePool {
-    /// 新しい接続プールを作成
-    pub fn new(app_handle: &AppHandle, config: PoolConfig) -> Result<Self, Box<dyn std::error::Error>> {
-        let db_path = Self::get_database_path(app_handle)?;
+/// テーブルのANALYZE実行
+/// クエリオプティマイザのための統計情報更新
+pub fn analyze_database(conn: &Connection) -> PlayerNoteResult<()> {
+    conn.execute("ANALYZE", [])
+        .map_err(|e| PlayerNoteError::from(e))?;
+    Ok(())
+}
 
-        let pool = DatabasePool {
-            pool: Arc::new(Mutex::new(VecDeque::new())),
-            config,
-            db_path: db_path.clone(),
-        };
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::{Connection, params};
 
-        // 初期接続を作成してスキーマを初期化
-        let initial_conn = Connection::open(&db_path)?;
-        crate::Database::create_tables(&initial_conn)?;
-
-        // 初期接続をプールに追加
-        {
-            let mut pool_guard = pool.pool.lock().unwrap();
-            pool_guard.push_back(PooledConnection {
-                connection: initial_conn,
-                last_used: Instant::now(),
-            });
-        }
-
-        Ok(pool)
+    #[test]
+    fn test_health_check() {
+        let conn = Connection::open_in_memory().unwrap();
+        assert!(health_check(&conn).unwrap());
     }
 
-    /// テスト用接続プール
-    pub fn new_test() -> Result<Self, Box<dyn std::error::Error>> {
-        let config = PoolConfig {
-            max_connections: 5,
-            ..Default::default()
-        };
+    #[test]
+    fn test_with_transaction_success() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)", []).unwrap();
 
-        let pool = DatabasePool {
-            pool: Arc::new(Mutex::new(VecDeque::new())),
-            config,
-            db_path: ":memory:".to_string(),
-        };
-
-        // 初期接続を作成してスキーマを初期化
-        let initial_conn = Connection::open(":memory:")?;
-        crate::Database::create_tables(&initial_conn)?;
-
-        // 初期接続をプールに追加
-        {
-            let mut pool_guard = pool.pool.lock().unwrap();
-            pool_guard.push_back(PooledConnection {
-                connection: initial_conn,
-                last_used: Instant::now(),
-            });
-        }
-
-        Ok(pool)
-    }
-
-    /// データベースパスを取得
-    fn get_database_path(app_handle: &AppHandle) -> Result<String, Box<dyn std::error::Error>> {
-        // テストモードの確認
-        if std::env::var("TAURI_TEST_MODE").is_ok() {
-            let app_data_dir = app_handle
-                .path()
-                .app_data_dir()
-                .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-            let test_db_dir = app_data_dir.join("test_databases");
-            fs::create_dir_all(&test_db_dir)?;
-
-            let test_id = std::env::var("TAURI_TEST_ID").unwrap_or_else(|_| {
-                use std::time::{SystemTime, UNIX_EPOCH};
-                let timestamp = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis();
-                format!("test_{}", timestamp)
-            });
-
-            let db_path = test_db_dir.join(format!("sapphire_test_{}.db", test_id));
-            return Ok(db_path.to_string_lossy().to_string());
-        }
-
-        // 本番環境のパス
-        let app_data_dir = app_handle
-            .path()
-            .app_data_dir()
-            .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-        fs::create_dir_all(&app_data_dir)?;
-        let db_path = app_data_dir.join("sapphire.db");
-        Ok(db_path.to_string_lossy().to_string())
-    }
-
-    /// 接続を取得
-    pub fn get_connection(&self) -> Result<PooledConnection, Box<dyn std::error::Error>> {
-        let start_time = Instant::now();
-
-        loop {
-            // タイムアウトチェック
-            if start_time.elapsed() > self.config.connection_timeout {
-                return Err("Connection timeout".into());
-            }
-
-            // プールから接続を取得試行
-            if let Some(mut conn) = self.try_get_connection()? {
-                conn.last_used = Instant::now();
-                return Ok(conn);
-            }
-
-            // プールが空の場合は新しい接続を作成
-            if self.can_create_new_connection()? {
-                let new_conn = self.create_new_connection()?;
-                return Ok(new_conn);
-            }
-
-            // 短時間待機してリトライ
-            std::thread::sleep(Duration::from_millis(10));
-        }
-    }
-
-    /// プールから接続を取得を試行
-    fn try_get_connection(&self) -> SqliteResult<Option<PooledConnection>> {
-        let mut pool_guard = self.pool.lock().unwrap();
-
-        // 古い接続をクリーンアップ
-        let now = Instant::now();
-        pool_guard.retain(|conn| {
-            now.duration_since(conn.last_used) < self.config.idle_timeout
+        let result = with_transaction(&mut conn, |tx| {
+            tx.execute("INSERT INTO test (id) VALUES (?1)", params![1])?;
+            Ok(true)
         });
 
-        // 利用可能な接続を返却
-        Ok(pool_guard.pop_front())
+        assert!(result.unwrap());
+
+        let count: i32 = conn.query_row("SELECT COUNT(*) FROM test", [], |row| row.get(0)).unwrap();
+        assert_eq!(count, 1);
     }
 
-    /// 新しい接続を作成可能かチェック
-    fn can_create_new_connection(&self) -> SqliteResult<bool> {
-        let pool_guard = self.pool.lock().unwrap();
-        Ok(pool_guard.len() < self.config.max_connections)
-    }
+    #[test]
+    fn test_with_transaction_rollback() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)", []).unwrap();
 
-    /// 新しい接続を作成
-    fn create_new_connection(&self) -> Result<PooledConnection, Box<dyn std::error::Error>> {
-        let conn = Connection::open(&self.db_path)?;
+        let result = with_transaction(&mut conn, |tx| {
+            tx.execute("INSERT INTO test (id) VALUES (?1)", params![1])?;
+            Err(PlayerNoteError::Internal {
+                message: "Test error".to_string(),
+                source: None
+            })
+        });
 
-        // SQLiteの最適化設定
-        conn.execute_batch(r#"
-            PRAGMA foreign_keys = ON;
-            PRAGMA journal_mode = WAL;
-            PRAGMA synchronous = NORMAL;
-            PRAGMA cache_size = -64000;
-            PRAGMA temp_store = MEMORY;
-        "#)?;
+        assert!(result.is_err());
 
-        Ok(PooledConnection {
-            connection: conn,
-            last_used: Instant::now(),
-        })
-    }
-
-    /// 接続を返却
-    pub fn return_connection(&self, conn: PooledConnection) {
-        let mut pool_guard = self.pool.lock().unwrap();
-
-        // プールが満杯でない場合のみ返却
-        if pool_guard.len() < self.config.max_connections {
-            pool_guard.push_back(conn);
-        }
-        // 満杯の場合は接続を破棄（デストラクタが自動実行）
-    }
-
-    /// プール統計を取得
-    pub fn get_stats(&self) -> PoolStats {
-        let pool_guard = self.pool.lock().unwrap();
-        let now = Instant::now();
-
-        let active_connections = pool_guard.len();
-        let idle_connections = pool_guard.iter()
-            .filter(|conn| now.duration_since(conn.last_used) < self.config.idle_timeout)
-            .count();
-
-        PoolStats {
-            total_connections: active_connections,
-            idle_connections,
-            max_connections: self.config.max_connections,
-        }
-    }
-}
-
-/// プール統計情報
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PoolStats {
-    pub total_connections: usize,
-    pub idle_connections: usize,
-    pub max_connections: usize,
-}
-
-/// 接続ラッパー（RAII pattern）
-pub struct DatabaseConnection {
-    connection: Option<PooledConnection>,
-    pool: Arc<Mutex<VecDeque<PooledConnection>>>,
-}
-
-impl DatabaseConnection {
-    pub fn new(conn: PooledConnection, pool: Arc<Mutex<VecDeque<PooledConnection>>>) -> Self {
-        Self {
-            connection: Some(conn),
-            pool,
-        }
-    }
-
-    /// 内部接続への参照を取得
-    pub fn as_ref(&self) -> &Connection {
-        &self.connection.as_ref().unwrap().connection
-    }
-
-    /// 内部接続への可変参照を取得
-    pub fn as_mut(&mut self) -> &mut Connection {
-        &mut self.connection.as_mut().unwrap().connection
-    }
-}
-
-impl Drop for DatabaseConnection {
-    fn drop(&mut self) {
-        if let Some(conn) = self.connection.take() {
-            let mut pool_guard = self.pool.lock().unwrap();
-            pool_guard.push_back(conn);
-        }
-    }
-}
-
-/// データベースマネージャー（接続プールラッパー）
-pub struct DatabaseManager {
-    pool: DatabasePool,
-}
-
-impl DatabaseManager {
-    /// 新しいデータベースマネージャーを作成
-    pub fn new(app_handle: &AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
-        let config = PoolConfig::default();
-        let pool = DatabasePool::new(app_handle, config)?;
-
-        Ok(DatabaseManager { pool })
-    }
-
-    /// テスト用マネージャー
-    pub fn new_test() -> Result<Self, Box<dyn std::error::Error>> {
-        let pool = DatabasePool::new_test()?;
-        Ok(DatabaseManager { pool })
-    }
-
-    /// データベース接続を取得
-    pub fn get_connection(&self) -> Result<DatabaseConnection, Box<dyn std::error::Error>> {
-        let conn = self.pool.get_connection()?;
-        Ok(DatabaseConnection::new(conn, self.pool.pool.clone()))
-    }
-
-    /// プール統計を取得
-    pub fn get_pool_stats(&self) -> PoolStats {
-        self.pool.get_stats()
-    }
-
-    /// ヘルスチェック
-    pub fn health_check(&self) -> Result<bool, Box<dyn std::error::Error>> {
-        let mut conn = self.get_connection()?;
-        let result: i32 = conn.as_mut().prepare("SELECT 1")?.query_row([], |row| row.get(0))?;
-        Ok(result == 1)
+        let count: i32 = conn.query_row("SELECT COUNT(*) FROM test", [], |row| row.get(0)).unwrap();
+        assert_eq!(count, 0);  // ロールバックされているはず
     }
 }

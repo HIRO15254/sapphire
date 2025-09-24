@@ -21,3 +21,12 @@
 - `docs/spec/[要件名].md`
 - `docs/design/[要件名]/*.md`
 - `docs/implement/[要件名]/[タスク番号]/*.md`
+
+### タスク単位でのコミット
+
+タスクの実装が終わった時点でgitのコミットを作成すること
+
+### linearとの連携
+
+タスク単位でlinearと連携をとること。
+`kairo-tasks`でタスクを作成した際にはそれぞれのタスクをlinearに起票し、`kairo-implement`や`direct-implement`により実装が完了した場合はステータスを変更すること。
