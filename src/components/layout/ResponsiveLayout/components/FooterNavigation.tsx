@@ -105,6 +105,7 @@ export const FooterNavigation = memo<FooterNavigationProps>(({ items }) => {
       boxSizing: "border-box" as const,
       backgroundColor: isActive ? "var(--mantine-color-blue-light)" : "transparent",
       color: isActive ? "var(--mantine-color-blue-filled)" : "inherit",
+      outline: "none",
     }),
     []
   );
