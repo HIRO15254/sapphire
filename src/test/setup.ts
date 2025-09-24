@@ -1,14 +1,21 @@
 import "@testing-library/jest-dom";
-import { vi } from "vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
 
 // Mock timezone and locale for consistent date formatting in tests
 process.env.TZ = "Asia/Tokyo";
+process.env.NODE_ENV = "test";
+
+// Cleanup after each test
+afterEach(() => {
+  cleanup();
+});
 
 // Mock Intl.DateTimeFormat to ensure consistent locale
 const originalDateTimeFormat = Intl.DateTimeFormat;
 vi.stubGlobal("Intl", {
   ...Intl,
-  DateTimeFormat: vi.fn().mockImplementation((locale, options) => {
+  DateTimeFormat: vi.fn().mockImplementation((_locale, options) => {
     return new originalDateTimeFormat("ja-JP", options);
   }),
 });
@@ -45,4 +52,29 @@ Object.defineProperty(window, "matchMedia", {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
+});
+
+// Mock window.location for React Router
+Object.defineProperty(window, "location", {
+  writable: true,
+  value: {
+    href: "http://localhost:3000/",
+    origin: "http://localhost:3000",
+    protocol: "http:",
+    host: "localhost:3000",
+    hostname: "localhost",
+    port: "3000",
+    pathname: "/",
+    search: "",
+    hash: "",
+    assign: vi.fn(),
+    replace: vi.fn(),
+    reload: vi.fn(),
+  },
+});
+
+// Mock document.title
+Object.defineProperty(document, "title", {
+  writable: true,
+  value: "Test Title",
 });

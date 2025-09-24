@@ -1,4 +1,6 @@
-import { waitFor } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -8,8 +10,17 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 import App from "../../App";
-import { render, screen } from "../helpers/renderWithProviders";
 import { createTestNotes, createTestUser } from "../helpers/testData";
+
+// Custom render function for App tests (App has its own BrowserRouter)
+const renderApp = () => {
+  return render(
+    <MantineProvider>
+      <Notifications />
+      <App />
+    </MantineProvider>
+  );
+};
 
 // Get the mocked function
 const mockInvoke = vi.mocked(invoke);
@@ -57,7 +68,7 @@ describe("Notes Management Workflow", () => {
     });
 
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Notes tab
     await user.click(screen.getByText("Notes"));
@@ -94,7 +105,7 @@ describe("Notes Management Workflow", () => {
 
   test("should verify note form structure", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Notes tab
     await user.click(screen.getByText("Notes"));
@@ -137,7 +148,7 @@ describe("Notes Management Workflow", () => {
     });
 
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Notes tab
     await user.click(screen.getByText("Notes"));
@@ -170,7 +181,7 @@ describe("Notes Management Workflow", () => {
     });
 
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Notes tab
     await user.click(screen.getByText("Notes"));
@@ -180,9 +191,14 @@ describe("Notes Management Workflow", () => {
       expect(screen.getByText("Note 1")).toBeInTheDocument();
     });
 
-    // Find and click delete button for first note - these are icon buttons with aria-labels
-    const deleteButtons = screen.getAllByLabelText(/delete note/i);
-    expect(deleteButtons.length).toBeGreaterThan(0);
+    // Find and click delete button for first note - these are icon buttons
+    const deleteButtons = screen.getAllByRole("button");
+    const noteDeleteButtons = deleteButtons.filter(
+      (button) =>
+        button.textContent?.includes("Delete") ||
+        button.getAttribute("data-testid")?.includes("delete")
+    );
+    expect(noteDeleteButtons.length).toBeGreaterThan(0);
 
     // Mock delete response
     mockInvoke.mockClear();
@@ -200,7 +216,7 @@ describe("Notes Management Workflow", () => {
       return Promise.resolve([]);
     });
 
-    await user.click(deleteButtons[0]);
+    await user.click(noteDeleteButtons[0]);
 
     // Verify delete_note was called with correct format
     await waitFor(() => {
@@ -210,7 +226,7 @@ describe("Notes Management Workflow", () => {
 
   test("should require user selection for note creation", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Notes tab
     await user.click(screen.getByText("Notes"));
@@ -243,7 +259,7 @@ describe("Notes Management Workflow", () => {
     });
 
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     // Navigate to Notes tab
     await user.click(screen.getByText("Notes"));
