@@ -4,6 +4,10 @@ use std::fs;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
+// Player Note module
+pub mod commands;
+pub use commands::playernote;
+
 // Data structures
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
@@ -126,6 +130,58 @@ impl Database {
             [],
         )?;
 
+        // Initialize Player Note tables with migration system
+        Self::initialize_player_note_with_migration(conn)?;
+
+        Ok(())
+    }
+
+    // Player Note マイグレーション初期化
+    fn initialize_player_note_with_migration(conn: &Connection) -> Result<(), Box<dyn std::error::Error>> {
+        // ロギングシステムを初期化（アプリケーション起動時に一度だけ）
+        let _ = playernote::LoggingSystem::init_auto(None);
+
+        tracing::info!("Initializing Player Note system");
+
+        // マイグレーションマネージャーを作成
+        let migration_manager = playernote::MigrationManager::new();
+
+        // マイグレーション管理テーブルを初期化
+        migration_manager.init_migration_table(conn)
+            .map_err(|e| {
+                tracing::error!("Failed to initialize migration table: {}", e);
+                format!("Failed to initialize migration table: {}", e)
+            })?;
+
+        // 保留中のマイグレーションを実行
+        match migration_manager.migrate(conn) {
+            Ok(results) => {
+                for result in results {
+                    tracing::info!(
+                        migration_name = result.name,
+                        success = result.success,
+                        message = result.message,
+                        "Migration executed"
+                    );
+                }
+            }
+            Err(e) => {
+                tracing::error!("Migration failed: {}", e);
+                return Err(format!("Migration failed: {}", e).into());
+            }
+        }
+
+        // データベース整合性チェック
+        if !migration_manager.check_integrity(conn)
+            .map_err(|e| {
+                tracing::error!("Integrity check failed: {}", e);
+                format!("Integrity check failed: {}", e)
+            })? {
+            tracing::error!("Database integrity check failed");
+            return Err("Database integrity check failed".into());
+        }
+
+        tracing::info!("Player Note system initialized successfully");
         Ok(())
     }
 
