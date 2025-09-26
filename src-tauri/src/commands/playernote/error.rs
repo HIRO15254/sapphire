@@ -22,10 +22,7 @@ pub enum PlayerNoteError {
     },
 
     /// リソースが見つからない
-    NotFound {
-        resource: String,
-        id: String,
-    },
+    NotFound { resource: String, id: String },
 
     /// 重複エラー
     Duplicate {
@@ -62,16 +59,10 @@ pub enum PlayerNoteError {
     },
 
     /// ネットワークエラー
-    Network {
-        operation: String,
-        message: String,
-    },
+    Network { operation: String, message: String },
 
     /// タイムアウトエラー
-    Timeout {
-        operation: String,
-        duration_ms: u64,
-    },
+    Timeout { operation: String, duration_ms: u64 },
 }
 
 impl PlayerNoteError {
@@ -110,26 +101,34 @@ impl PlayerNoteError {
     /// ユーザー向けメッセージを取得
     pub fn user_message(&self) -> String {
         match self {
-            PlayerNoteError::Database { .. } =>
-                "データベースエラーが発生しました。しばらくしてから再試行してください。".to_string(),
-            PlayerNoteError::Validation { field, message, .. } =>
-                format!("{}: {}", field, message),
-            PlayerNoteError::NotFound { resource, .. } =>
-                format!("{}が見つかりません。", resource),
-            PlayerNoteError::Duplicate { resource, field, value } =>
-                format!("{}の{}「{}」は既に存在します。", resource, field, value),
-            PlayerNoteError::Permission { action, resource, .. } =>
-                format!("{}に対する{}の権限がありません。", resource, action),
-            PlayerNoteError::External { system, .. } =>
-                format!("{}との通信でエラーが発生しました。", system),
-            PlayerNoteError::Internal { .. } =>
-                "内部エラーが発生しました。管理者に連絡してください。".to_string(),
-            PlayerNoteError::Configuration { parameter, .. } =>
-                format!("設定「{}」に問題があります。", parameter),
-            PlayerNoteError::Network { operation, .. } =>
-                format!("{}でネットワークエラーが発生しました。", operation),
-            PlayerNoteError::Timeout { operation, .. } =>
-                format!("{}がタイムアウトしました。", operation),
+            PlayerNoteError::Database { .. } => {
+                "データベースエラーが発生しました。しばらくしてから再試行してください。".to_string()
+            }
+            PlayerNoteError::Validation { field, message, .. } => format!("{}: {}", field, message),
+            PlayerNoteError::NotFound { resource, .. } => format!("{}が見つかりません。", resource),
+            PlayerNoteError::Duplicate {
+                resource,
+                field,
+                value,
+            } => format!("{}の{}「{}」は既に存在します。", resource, field, value),
+            PlayerNoteError::Permission {
+                action, resource, ..
+            } => format!("{}に対する{}の権限がありません。", resource, action),
+            PlayerNoteError::External { system, .. } => {
+                format!("{}との通信でエラーが発生しました。", system)
+            }
+            PlayerNoteError::Internal { .. } => {
+                "内部エラーが発生しました。管理者に連絡してください。".to_string()
+            }
+            PlayerNoteError::Configuration { parameter, .. } => {
+                format!("設定「{}」に問題があります。", parameter)
+            }
+            PlayerNoteError::Network { operation, .. } => {
+                format!("{}でネットワークエラーが発生しました。", operation)
+            }
+            PlayerNoteError::Timeout { operation, .. } => {
+                format!("{}がタイムアウトしました。", operation)
+            }
         }
     }
 
@@ -165,32 +164,28 @@ impl From<rusqlite::Error> for PlayerNoteError {
         match error {
             rusqlite::Error::SqliteFailure(ffi_error, ref message) => {
                 match ffi_error.extended_code {
-                    rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE => {
-                        PlayerNoteError::Duplicate {
-                            resource: "リソース".to_string(),
-                            field: "フィールド".to_string(),
-                            value: message.clone().unwrap_or("不明".to_string()),
-                        }
+                    rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE => PlayerNoteError::Duplicate {
+                        resource: "リソース".to_string(),
+                        field: "フィールド".to_string(),
+                        value: message.clone().unwrap_or("不明".to_string()),
                     },
-                    rusqlite::ffi::SQLITE_CONSTRAINT_FOREIGNKEY => {
-                        PlayerNoteError::Validation {
-                            field: "外部キー".to_string(),
-                            message: "参照先が存在しません".to_string(),
-                            value: message.clone(),
-                        }
+                    rusqlite::ffi::SQLITE_CONSTRAINT_FOREIGNKEY => PlayerNoteError::Validation {
+                        field: "外部キー".to_string(),
+                        message: "参照先が存在しません".to_string(),
+                        value: message.clone(),
                     },
                     _ => PlayerNoteError::Database {
                         message: error.to_string(),
                         code: format!("SQLITE_{:?}", ffi_error.code),
                         context: message.clone(),
-                    }
+                    },
                 }
-            },
+            }
             _ => PlayerNoteError::Database {
                 message: error.to_string(),
                 code: "SQLITE_ERROR".to_string(),
                 context: None,
-            }
+            },
         }
     }
 }
@@ -217,7 +212,7 @@ impl PlayerNoteErrorBuilder {
                 message: message.into(),
                 code: "DB_ERROR".to_string(),
                 context: None,
-            }
+            },
         }
     }
 
@@ -228,7 +223,7 @@ impl PlayerNoteErrorBuilder {
                 field: field.into(),
                 message: message.into(),
                 value: None,
-            }
+            },
         }
     }
 
@@ -238,18 +233,22 @@ impl PlayerNoteErrorBuilder {
             error: PlayerNoteError::NotFound {
                 resource: resource.into(),
                 id: id.into(),
-            }
+            },
         }
     }
 
     /// 重複エラーを作成
-    pub fn duplicate(resource: impl Into<String>, field: impl Into<String>, value: impl Into<String>) -> Self {
+    pub fn duplicate(
+        resource: impl Into<String>,
+        field: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
         Self {
             error: PlayerNoteError::Duplicate {
                 resource: resource.into(),
                 field: field.into(),
                 value: value.into(),
-            }
+            },
         }
     }
 
@@ -259,7 +258,7 @@ impl PlayerNoteErrorBuilder {
             error: PlayerNoteError::Internal {
                 message: message.into(),
                 source: None,
-            }
+            },
         }
     }
 
@@ -269,7 +268,7 @@ impl PlayerNoteErrorBuilder {
             error: PlayerNoteError::Timeout {
                 operation: operation.into(),
                 duration_ms,
-            }
+            },
         }
     }
 
@@ -278,13 +277,13 @@ impl PlayerNoteErrorBuilder {
         match &mut self.error {
             PlayerNoteError::Database { context: ctx, .. } => {
                 *ctx = Some(context.into());
-            },
+            }
             PlayerNoteError::Validation { value, .. } => {
                 *value = Some(context.into());
-            },
+            }
             PlayerNoteError::Internal { source, .. } => {
                 *source = Some(context.into());
-            },
+            }
             _ => {}
         }
         self
@@ -303,13 +302,17 @@ macro_rules! playernote_error {
         PlayerNoteErrorBuilder::database($msg).build()
     };
     (database, $msg:expr, context = $ctx:expr) => {
-        PlayerNoteErrorBuilder::database($msg).with_context($ctx).build()
+        PlayerNoteErrorBuilder::database($msg)
+            .with_context($ctx)
+            .build()
     };
     (validation, $field:expr, $msg:expr) => {
         PlayerNoteErrorBuilder::validation($field, $msg).build()
     };
     (validation, $field:expr, $msg:expr, value = $val:expr) => {
-        PlayerNoteErrorBuilder::validation($field, $msg).with_context($val).build()
+        PlayerNoteErrorBuilder::validation($field, $msg)
+            .with_context($val)
+            .build()
     };
     (not_found, $resource:expr, $id:expr) => {
         PlayerNoteErrorBuilder::not_found($resource, $id).build()

@@ -156,13 +156,13 @@ pub struct PlayerListResponse {
 // 検索クエリ (REQ-005: 部分一致検索)
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchPlayersRequest {
-    pub query: Option<String>, // 部分一致検索文字列
+    pub query: Option<String>,          // 部分一致検索文字列
     pub player_type_id: Option<String>, // プレイヤータイプでフィルタ
-    pub tag_ids: Option<Vec<String>>, // タグでフィルタ
-    pub min_level: Option<i32>, // 最小タグレベル
-    pub max_level: Option<i32>, // 最大タグレベル
-    pub limit: Option<i32>, // ページネーション: 取得件数
-    pub offset: Option<i32>, // ページネーション: オフセット
+    pub tag_ids: Option<Vec<String>>,   // タグでフィルタ
+    pub min_level: Option<i32>,         // 最小タグレベル
+    pub max_level: Option<i32>,         // 最大タグレベル
+    pub limit: Option<i32>,             // ページネーション: 取得件数
+    pub offset: Option<i32>,            // ページネーション: オフセット
 }
 
 // 検索結果レスポンス
@@ -172,6 +172,19 @@ pub struct SearchPlayersResponse {
     pub total_count: i32,
     pub has_more: bool,
 }
+
+// get_playersコマンド用リクエスト型 (TASK-0504)
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetPlayersRequest {
+    pub limit: Option<i32>,         // デフォルト50, 範囲1-1000
+    pub offset: Option<i32>,        // デフォルト0, 範囲0以上
+    pub sort_by: Option<String>,    // "name", "created_at", "updated_at"
+    pub sort_order: Option<String>, // "asc", "desc", デフォルト"asc"
+}
+
+// get_playersコマンド用レスポンス型 (TASK-0504)
+// SearchPlayersResponseと同じ構造だが、意図を明確にするため別型として定義
+pub type GetPlayersResponse = SearchPlayersResponse;
 
 // カスケード削除結果 (REQ-401: カスケード削除)
 #[derive(Debug, Serialize, Deserialize)]
@@ -193,9 +206,52 @@ pub fn validate_hex_color(color: &str) -> bool {
 }
 
 pub fn validate_tag_level(level: i32) -> bool {
-    level >= 1 && level <= 10
+    (1..=10).contains(&level)
 }
 
 pub fn validate_player_name(name: &str) -> bool {
     !name.trim().is_empty() && name.len() <= 255
+}
+
+// TASK-0506: プレイヤー詳細取得API用型定義
+// 🔵 青信号: 要件定義書とapi-endpoints.mdに完全準拠
+
+// プレイヤー詳細取得リクエスト
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetPlayerDetailRequest {
+    pub player_id: String,
+}
+
+// プレイヤー詳細レスポンス
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetPlayerDetailResponse {
+    pub success: bool,
+    pub data: Option<PlayerDetail>,
+    pub error: Option<ApiError>,
+}
+
+// プレイヤー詳細データ
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PlayerDetail {
+    pub player: Player,
+    pub player_type: Option<PlayerType>,
+    pub tags: Vec<TagWithLevel>,
+    pub note: Option<PlayerNote>, // スキーマ制約：1プレイヤー1メモ
+}
+
+// レベル付きタグ情報
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TagWithLevel {
+    pub tag: Tag,
+    pub level: i32,
+    pub computed_color: String, // レベルに基づいて計算された色
+    pub assigned_at: String,
+}
+
+// API エラー情報
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ApiError {
+    pub code: String,
+    pub message: String,
+    pub details: Option<serde_json::Value>,
 }

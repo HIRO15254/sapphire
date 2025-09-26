@@ -4,18 +4,18 @@
 // アプリケーション全体で共有されるデータベース接続を使用するためのヘルパー関数群
 // 独自の接続プールは作成せず、lib.rsのDatabase構造体を利用
 
-use rusqlite::Connection;
-use serde::{Serialize, Deserialize};
 use crate::commands::playernote::error::{PlayerNoteError, PlayerNoteResult};
+use rusqlite::Connection;
+use serde::{Deserialize, Serialize};
 
 /// データベースヘルスチェック
 /// 共有データベース接続が正常に動作しているか確認
 pub fn health_check(conn: &Connection) -> PlayerNoteResult<bool> {
     let result: i32 = conn
         .prepare("SELECT 1")
-        .map_err(|e| PlayerNoteError::from(e))?
+        .map_err(PlayerNoteError::from)?
         .query_row([], |row| row.get(0))
-        .map_err(|e| PlayerNoteError::from(e))?;
+        .map_err(PlayerNoteError::from)?;
     Ok(result == 1)
 }
 
@@ -27,11 +27,11 @@ pub fn check_player_note_tables(conn: &Connection) -> PlayerNoteResult<bool> {
              WHERE type='table'
              AND name IN ('players', 'player_types', 'tags', 'player_tags', 'player_notes')",
             [],
-            |row| row.get(0)
+            |row| row.get(0),
         )
-        .map_err(|e| PlayerNoteError::from(e))?;
+        .map_err(PlayerNoteError::from)?;
 
-    Ok(table_count == 5)  // すべてのテーブルが存在する場合
+    Ok(table_count == 5) // すべてのテーブルが存在する場合
 }
 
 /// データベース統計情報
@@ -91,11 +91,11 @@ pub fn with_transaction<T, F>(conn: &mut Connection, f: F) -> PlayerNoteResult<T
 where
     F: FnOnce(&Connection) -> PlayerNoteResult<T>,
 {
-    let tx = conn.transaction().map_err(|e| PlayerNoteError::from(e))?;
+    let tx = conn.transaction().map_err(PlayerNoteError::from)?;
 
     match f(&tx) {
         Ok(result) => {
-            tx.commit().map_err(|e| PlayerNoteError::from(e))?;
+            tx.commit().map_err(PlayerNoteError::from)?;
             Ok(result)
         }
         Err(e) => {
@@ -109,14 +109,14 @@ where
 /// 複数のSQL文を一括実行
 pub fn execute_batch(conn: &Connection, sql: &str) -> PlayerNoteResult<()> {
     conn.execute_batch(sql)
-        .map_err(|e| PlayerNoteError::from(e))
+        .map_err(PlayerNoteError::from)
 }
 
 /// テーブルのVACUUM実行
 /// データベースの最適化とディスク容量の節約
 pub fn vacuum_database(conn: &Connection) -> PlayerNoteResult<()> {
     conn.execute("VACUUM", [])
-        .map_err(|e| PlayerNoteError::from(e))?;
+        .map_err(PlayerNoteError::from)?;
     Ok(())
 }
 
@@ -124,14 +124,14 @@ pub fn vacuum_database(conn: &Connection) -> PlayerNoteResult<()> {
 /// クエリオプティマイザのための統計情報更新
 pub fn analyze_database(conn: &Connection) -> PlayerNoteResult<()> {
     conn.execute("ANALYZE", [])
-        .map_err(|e| PlayerNoteError::from(e))?;
+        .map_err(PlayerNoteError::from)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::{Connection, params};
+    use rusqlite::{params, Connection};
 
     #[test]
     fn test_health_check() {
@@ -142,7 +142,8 @@ mod tests {
     #[test]
     fn test_with_transaction_success() {
         let mut conn = Connection::open_in_memory().unwrap();
-        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)", []).unwrap();
+        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)", [])
+            .unwrap();
 
         let result = with_transaction(&mut conn, |tx| {
             tx.execute("INSERT INTO test (id) VALUES (?1)", params![1])?;
@@ -151,26 +152,31 @@ mod tests {
 
         assert!(result.unwrap());
 
-        let count: i32 = conn.query_row("SELECT COUNT(*) FROM test", [], |row| row.get(0)).unwrap();
+        let count: i32 = conn
+            .query_row("SELECT COUNT(*) FROM test", [], |row| row.get(0))
+            .unwrap();
         assert_eq!(count, 1);
     }
 
     #[test]
     fn test_with_transaction_rollback() {
         let mut conn = Connection::open_in_memory().unwrap();
-        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)", []).unwrap();
+        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)", [])
+            .unwrap();
 
-        let result = with_transaction(&mut conn, |tx| {
+        let result: Result<(), PlayerNoteError> = with_transaction(&mut conn, |tx| {
             tx.execute("INSERT INTO test (id) VALUES (?1)", params![1])?;
             Err(PlayerNoteError::Internal {
                 message: "Test error".to_string(),
-                source: None
+                source: None,
             })
         });
 
         assert!(result.is_err());
 
-        let count: i32 = conn.query_row("SELECT COUNT(*) FROM test", [], |row| row.get(0)).unwrap();
-        assert_eq!(count, 0);  // ロールバックされているはず
+        let count: i32 = conn
+            .query_row("SELECT COUNT(*) FROM test", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 0); // ロールバックされているはず
     }
 }
