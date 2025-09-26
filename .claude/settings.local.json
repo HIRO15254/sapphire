@@ -20,7 +20,14 @@
       "mcp__linear-server__create_issue",
       "mcp__linear-server__search_documentation",
       "mcp__linear-server__list_issues",
-      "Bash(cargo clippy:*)"
+      "Bash(cargo clippy:*)",
+      "SlashCommand(/tdd-requirements)",
+      "SlashCommand(/tdd-testcases)",
+      "SlashCommand(/tdd-red)",
+      "SlashCommand(/tdd-green)",
+      "SlashCommand(/tdd-refactor)",
+      "SlashCommand(/tdd-verify-complete)",
+      "Bash(find:*)"
     ],
     "deny": [
       "Bash(bun test:*)",

@@ -112,31 +112,55 @@ pub fn init_playernote_tables(conn: &Connection) -> Result<()> {
 
 fn create_indexes(conn: &Connection) -> Result<()> {
     // プレイヤー名検索用インデックス (REQ-005: 部分一致検索, NFR-102: 500ms応答)
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_players_name ON players(name)", [])?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_players_name ON players(name)",
+        [],
+    )?;
 
     // プレイヤー作成日時ソート用
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_players_created_at ON players(created_at)", [])?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_players_created_at ON players(created_at)",
+        [],
+    )?;
 
     // プレイヤー更新日時ソート用
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_players_updated_at ON players(updated_at)", [])?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_players_updated_at ON players(updated_at)",
+        [],
+    )?;
 
     // プレイヤータイプ別検索用
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_players_type ON players(player_type_id)", [])?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_players_type ON players(player_type_id)",
+        [],
+    )?;
 
     // タグ検索用インデックス
     conn.execute("CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name)", [])?;
 
     // プレイヤー-タグ関連検索用（プレイヤー軸）
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_player_tags_player ON player_tags(player_id)", [])?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_player_tags_player ON player_tags(player_id)",
+        [],
+    )?;
 
     // プレイヤー-タグ関連検索用（タグ軸）
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_player_tags_tag ON player_tags(tag_id)", [])?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_player_tags_tag ON player_tags(tag_id)",
+        [],
+    )?;
 
     // タグレベル検索用
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_player_tags_level ON player_tags(level)", [])?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_player_tags_level ON player_tags(level)",
+        [],
+    )?;
 
     // プレイヤーメモ検索用
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_player_notes_player ON player_notes(player_id)", [])?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_player_notes_player ON player_notes(player_id)",
+        [],
+    )?;
 
     Ok(())
 }

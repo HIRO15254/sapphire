@@ -70,11 +70,12 @@ impl LoggingSystem {
     /// 環境に応じた自動初期化
     pub fn init_auto(_app_data_dir: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
         // 重複初期化防止のために、エラーを無視して続行
-        let result: Result<(), Box<dyn std::error::Error>> = match std::env::var("NODE_ENV").as_deref() {
-            Ok("production") => Self::init_production().map_err(|e| e.into()),
-            Ok("test") => Self::init_test().map_err(|e| e.into()),
-            _ => Self::init_development().map_err(|e| e.into()),
-        };
+        let result: Result<(), Box<dyn std::error::Error>> =
+            match std::env::var("NODE_ENV").as_deref() {
+                Ok("production") => Self::init_production().map_err(|e| e.into()),
+                Ok("test") => Self::init_test().map_err(|e| e.into()),
+                _ => Self::init_development().map_err(|e| e.into()),
+            };
 
         // 既に初期化済みの場合はエラーを無視
         match result {
@@ -92,7 +93,12 @@ pub struct PlayerNoteLogger;
 
 impl PlayerNoteLogger {
     /// プレイヤー操作ログ
-    pub fn log_player_operation(operation: &str, player_id: &str, success: bool, duration_ms: Option<u64>) {
+    pub fn log_player_operation(
+        operation: &str,
+        player_id: &str,
+        success: bool,
+        duration_ms: Option<u64>,
+    ) {
         if success {
             tracing::info!(
                 operation = operation,
@@ -111,7 +117,12 @@ impl PlayerNoteLogger {
     }
 
     /// データベース操作ログ
-    pub fn log_database_operation(operation: &str, table: &str, affected_rows: Option<usize>, duration_ms: Option<u64>) {
+    pub fn log_database_operation(
+        operation: &str,
+        table: &str,
+        affected_rows: Option<usize>,
+        duration_ms: Option<u64>,
+    ) {
         tracing::debug!(
             operation = operation,
             table = table,
@@ -123,11 +134,7 @@ impl PlayerNoteLogger {
 
     /// セキュリティイベントログ
     pub fn log_security_event(event: &str, details: Option<&str>) {
-        tracing::warn!(
-            event = event,
-            details = details,
-            "Security event"
-        );
+        tracing::warn!(event = event, details = details, "Security event");
     }
 
     /// パフォーマンス警告ログ

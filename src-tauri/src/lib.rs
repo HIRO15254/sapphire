@@ -137,7 +137,9 @@ impl Database {
     }
 
     // Player Note マイグレーション初期化
-    fn initialize_player_note_with_migration(conn: &Connection) -> Result<(), Box<dyn std::error::Error>> {
+    fn initialize_player_note_with_migration(
+        conn: &Connection,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // ロギングシステムを初期化（アプリケーション起動時に一度だけ）
         let _ = playernote::LoggingSystem::init_auto(None);
 
@@ -147,11 +149,10 @@ impl Database {
         let migration_manager = playernote::MigrationManager::new();
 
         // マイグレーション管理テーブルを初期化
-        migration_manager.init_migration_table(conn)
-            .map_err(|e| {
-                tracing::error!("Failed to initialize migration table: {}", e);
-                format!("Failed to initialize migration table: {}", e)
-            })?;
+        migration_manager.init_migration_table(conn).map_err(|e| {
+            tracing::error!("Failed to initialize migration table: {}", e);
+            format!("Failed to initialize migration table: {}", e)
+        })?;
 
         // 保留中のマイグレーションを実行
         match migration_manager.migrate(conn) {
@@ -172,11 +173,10 @@ impl Database {
         }
 
         // データベース整合性チェック
-        if !migration_manager.check_integrity(conn)
-            .map_err(|e| {
-                tracing::error!("Integrity check failed: {}", e);
-                format!("Integrity check failed: {}", e)
-            })? {
+        if !migration_manager.check_integrity(conn).map_err(|e| {
+            tracing::error!("Integrity check failed: {}", e);
+            format!("Integrity check failed: {}", e)
+        })? {
             tracing::error!("Database integrity check failed");
             return Err("Database integrity check failed".into());
         }
@@ -356,7 +356,10 @@ pub fn run() {
             playernote::commands::get_all_players,
             playernote::commands::create_player,
             playernote::commands::get_player_types,
-            playernote::commands::get_all_tags
+            playernote::commands::get_all_tags,
+            // TASK-0504: 新しいプレイヤーCRUD APIコマンド
+            playernote::commands::get_players,
+            playernote::commands::update_player
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

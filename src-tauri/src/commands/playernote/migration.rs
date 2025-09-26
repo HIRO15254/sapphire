@@ -50,7 +50,9 @@ impl std::fmt::Display for MigrationError {
             MigrationError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
             MigrationError::InvalidVersion(msg) => write!(f, "Invalid version: {}", msg),
             MigrationError::MigrationNotFound(msg) => write!(f, "Migration not found: {}", msg),
-            MigrationError::RollbackNotSupported(msg) => write!(f, "Rollback not supported: {}", msg),
+            MigrationError::RollbackNotSupported(msg) => {
+                write!(f, "Rollback not supported: {}", msg)
+            }
         }
     }
 }
@@ -119,9 +121,7 @@ impl MigrationManager {
 
     // 現在のマイグレーションバージョンを取得
     pub fn get_current_version(&self, conn: &Connection) -> SqliteResult<i32> {
-        let mut stmt = conn.prepare(
-            "SELECT MAX(version) FROM schema_migrations"
-        )?;
+        let mut stmt = conn.prepare("SELECT MAX(version) FROM schema_migrations")?;
 
         let version: Option<i32> = stmt.query_row([], |row| row.get(0)).unwrap_or(Some(0));
         Ok(version.unwrap_or(0))
@@ -130,7 +130,7 @@ impl MigrationManager {
     // 適用済みマイグレーションを取得
     pub fn get_applied_migrations(&self, conn: &Connection) -> SqliteResult<Vec<Migration>> {
         let mut stmt = conn.prepare(
-            "SELECT version, name, description, applied_at FROM schema_migrations ORDER BY version"
+            "SELECT version, name, description, applied_at FROM schema_migrations ORDER BY version",
         )?;
 
         let migration_iter = stmt.query_map([], |row| {
@@ -138,7 +138,7 @@ impl MigrationManager {
                 version: row.get(0)?,
                 name: row.get(1)?,
                 description: row.get(2)?,
-                up_sql: String::new(), // 履歴からは取得不要
+                up_sql: String::new(),   // 履歴からは取得不要
                 down_sql: String::new(), // 履歴からは取得不要
                 applied_at: row.get(3)?,
             })
@@ -173,10 +173,7 @@ impl MigrationManager {
         let applied_migrations = self.get_applied_migrations(conn)?;
         let pending_migrations = self.get_pending_migrations(conn)?;
 
-        let available_migrations: Vec<Migration> = self.migrations
-            .values()
-            .cloned()
-            .collect();
+        let available_migrations: Vec<Migration> = self.migrations.values().cloned().collect();
 
         Ok(MigrationStatus {
             current_version,
@@ -191,7 +188,8 @@ impl MigrationManager {
         self.init_migration_table(conn)
             .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
-        let pending = self.get_pending_migrations(conn)
+        let pending = self
+            .get_pending_migrations(conn)
             .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
         let mut results = Vec::new();
@@ -205,11 +203,16 @@ impl MigrationManager {
     }
 
     // 特定バージョンまでのマイグレーション実行
-    pub fn migrate_to(&self, conn: &Connection, target_version: i32) -> Result<Vec<MigrationResult>, MigrationError> {
+    pub fn migrate_to(
+        &self,
+        conn: &Connection,
+        target_version: i32,
+    ) -> Result<Vec<MigrationResult>, MigrationError> {
         self.init_migration_table(conn)
             .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
-        let current_version = self.get_current_version(conn)
+        let current_version = self
+            .get_current_version(conn)
             .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
         let mut results = Vec::new();
@@ -221,9 +224,10 @@ impl MigrationManager {
                     let result = self.apply_migration(conn, migration)?;
                     results.push(result);
                 } else {
-                    return Err(MigrationError::MigrationNotFound(
-                        format!("Migration version {} not found", version)
-                    ));
+                    return Err(MigrationError::MigrationNotFound(format!(
+                        "Migration version {} not found",
+                        version
+                    )));
                 }
             }
         } else if target_version < current_version {
@@ -233,9 +237,10 @@ impl MigrationManager {
                     let result = self.rollback_migration(conn, migration)?;
                     results.push(result);
                 } else {
-                    return Err(MigrationError::MigrationNotFound(
-                        format!("Migration version {} not found", version)
-                    ));
+                    return Err(MigrationError::MigrationNotFound(format!(
+                        "Migration version {} not found",
+                        version
+                    )));
                 }
             }
         }
@@ -244,8 +249,13 @@ impl MigrationManager {
     }
 
     // 単一マイグレーションの適用
-    fn apply_migration(&self, conn: &Connection, migration: &Migration) -> Result<MigrationResult, MigrationError> {
-        let tx = conn.unchecked_transaction()
+    fn apply_migration(
+        &self,
+        conn: &Connection,
+        migration: &Migration,
+    ) -> Result<MigrationResult, MigrationError> {
+        let tx = conn
+            .unchecked_transaction()
             .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
         // SQLを実行
@@ -258,7 +268,8 @@ impl MigrationManager {
                 ).map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
                 // トランザクションをコミット
-                tx.commit().map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
+                tx.commit()
+                    .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
                 Ok(MigrationResult {
                     success: true,
@@ -267,25 +278,32 @@ impl MigrationManager {
                     message: format!("Migration {} applied successfully", migration.version),
                     executed_at: chrono::Utc::now().to_rfc3339(),
                 })
-            },
+            }
             Err(e) => {
                 // ロールバック（自動的に実行される）
                 Err(MigrationError::DatabaseError(format!(
-                    "Failed to apply migration {}: {}", migration.version, e
+                    "Failed to apply migration {}: {}",
+                    migration.version, e
                 )))
             }
         }
     }
 
     // 単一マイグレーションのロールバック
-    fn rollback_migration(&self, conn: &Connection, migration: &Migration) -> Result<MigrationResult, MigrationError> {
+    fn rollback_migration(
+        &self,
+        conn: &Connection,
+        migration: &Migration,
+    ) -> Result<MigrationResult, MigrationError> {
         if migration.down_sql.trim().is_empty() {
-            return Err(MigrationError::RollbackNotSupported(
-                format!("Migration {} does not support rollback", migration.version)
-            ));
+            return Err(MigrationError::RollbackNotSupported(format!(
+                "Migration {} does not support rollback",
+                migration.version
+            )));
         }
 
-        let tx = conn.unchecked_transaction()
+        let tx = conn
+            .unchecked_transaction()
             .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
         // ロールバックSQLを実行
@@ -295,10 +313,12 @@ impl MigrationManager {
                 tx.execute(
                     "DELETE FROM schema_migrations WHERE version = ?1",
                     params![migration.version],
-                ).map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
+                )
+                .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
                 // トランザクションをコミット
-                tx.commit().map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
+                tx.commit()
+                    .map_err(|e| MigrationError::DatabaseError(e.to_string()))?;
 
                 Ok(MigrationResult {
                     success: true,
@@ -307,11 +327,12 @@ impl MigrationManager {
                     message: format!("Migration {} rolled back successfully", migration.version),
                     executed_at: chrono::Utc::now().to_rfc3339(),
                 })
-            },
+            }
             Err(e) => {
                 // ロールバック（自動的に実行される）
                 Err(MigrationError::DatabaseError(format!(
-                    "Failed to rollback migration {}: {}", migration.version, e
+                    "Failed to rollback migration {}: {}",
+                    migration.version, e
                 )))
             }
         }
@@ -321,9 +342,9 @@ impl MigrationManager {
     pub fn check_integrity(&self, conn: &Connection) -> SqliteResult<bool> {
         // 外部キー制約チェック
         let mut stmt = conn.prepare("PRAGMA foreign_key_check")?;
-        let violations: Vec<String> = stmt.query_map([], |row| {
-            Ok(format!("{:?}", row))
-        })?.collect::<SqliteResult<Vec<String>>>()?;
+        let violations: Vec<String> = stmt
+            .query_map([], |row| Ok(format!("{:?}", row)))?
+            .collect::<SqliteResult<Vec<String>>>()?;
 
         if !violations.is_empty() {
             eprintln!("Foreign key violations found: {:?}", violations);
