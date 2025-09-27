@@ -356,10 +356,27 @@ pub fn run() {
             playernote::commands::get_all_players,
             playernote::commands::create_player,
             playernote::commands::get_player_types,
-            playernote::commands::get_all_tags,
             // TASK-0504: 新しいプレイヤーCRUD APIコマンド
             playernote::commands::get_players,
-            playernote::commands::update_player
+            playernote::commands::update_player,
+            // TASK-0507: Player Type Management API commands
+            playernote::commands::create_player_type,
+            playernote::commands::get_player_types_api,
+            playernote::commands::update_player_type,
+            playernote::commands::delete_player_type,
+            // TASK-0508: Tag Management API commands
+            playernote::commands::create_tag,
+            playernote::commands::get_tags,
+            playernote::commands::update_tag,
+            playernote::commands::delete_tag,
+            // TASK-0509: Multi-Tag Assignment and Level Management API commands
+            playernote::commands::assign_tags,
+            playernote::commands::remove_tag,
+            // TASK-0510: Player Search API command
+            playernote::commands::search_players,
+            // TASK-0511: Player Note Rich Text API commands
+            playernote::commands::get_player_note,
+            playernote::commands::save_player_note
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

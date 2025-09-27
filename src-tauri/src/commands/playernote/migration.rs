@@ -95,6 +95,16 @@ impl MigrationManager {
             down_sql: include_str!("migrations/002_add_performance_indexes_down.sql").to_string(),
             applied_at: None,
         });
+
+        // Migration 3: Rich Text Support for Player Notes (TASK-0511)
+        self.add_migration(Migration {
+            version: 3,
+            name: "update_player_notes_for_rich_text".to_string(),
+            description: "TASK-0511: リッチテキストメモAPI実装 - プレイヤーノートテーブルの拡張".to_string(),
+            up_sql: include_str!("migrations/003_update_player_notes_for_rich_text.sql").to_string(),
+            down_sql: include_str!("migrations/003_update_player_notes_for_rich_text_down.sql").to_string(),
+            applied_at: None,
+        });
     }
 
     // マイグレーション追加

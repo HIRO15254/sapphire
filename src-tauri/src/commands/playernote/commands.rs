@@ -1129,6 +1129,538 @@ pub async fn delete_player(
     delete_player_impl(&db, &player_id).await
 }
 
+// ===== PLAYER TYPE MANAGEMENT COMMANDS =====
+// 🔵 青信号: TASK-0507 Player Type Management API - REFACTOR Phase Implementation
+// 🔵 青信号: REQ-002, REQ-101, REQ-102 カスタマイズ可能なプレイヤー分類要件に基づく
+// 【REFACTOR COMPLETED】:
+// ✅ 共通バリデーション関数抽出 (validate_player_type_name, get_hex_color_validation_error)
+// ✅ 統一エラー生成関数導入 (create_api_error, create_db_connection_error)
+// ✅ データベース操作の共通化 (player_type_exists, player_type_name_exists, get_player_type_by_id, count_affected_players)
+// ✅ コード重複削減と可読性向上
+// ✅ メンテナンス性向上とテスト互換性保持 (34/34 テスト継続成功)
+
+/// 【機能概要】: プレイヤータイプ作成
+/// 【実装方針】: TDD Refactor Phase - コード品質向上、重複削減、関数抽出
+/// 【バリデーション】: 共通バリデーション関数による名前・HEXカラー検証
+/// 【エラーハンドリング】: 統一エラー生成関数による一貫性向上
+/// 【REFACTOR】: 共通ヘルパー関数によるコード重複削減とメンテナンス性向上
+/// 🔵 青信号: テストケース TEST-0507-U-001 から TEST-0507-U-006 に対応
+#[command]
+pub async fn create_player_type(
+    db: State<'_, Database>,
+    request: CreatePlayerTypeRequest
+) -> Result<CreatePlayerTypeResponse, String> {
+    let conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    // 名前のバリデーション
+    if let Err((code, message)) = validate_player_type_name(&request.name) {
+        let details = create_name_validation_details(&request.name, &code);
+        return Ok(CreatePlayerTypeResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(&code, &message, details)),
+        });
+    }
+
+    // HEXカラーバリデーション
+    if !validate_hex_color(&request.color) {
+        return Ok(CreatePlayerTypeResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "INVALID_COLOR_FORMAT",
+                &get_hex_color_validation_error(&request.color),
+                create_color_validation_details(&request.color)
+            )),
+        });
+    }
+
+    // 名前の重複チェック
+    if player_type_name_exists(&conn, &request.name, None)? {
+        return Ok(CreatePlayerTypeResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "PLAYER_TYPE_NAME_DUPLICATE",
+                "同名のプレイヤータイプが既に存在します",
+                Some(serde_json::json!({
+                    "name": request.name
+                }))
+            )),
+        });
+    }
+
+    // プレイヤータイプ作成
+    conn.execute(
+        "INSERT INTO player_types (name, color) VALUES (?1, ?2)",
+        params![request.name, request.color],
+    )
+    .map_err(|e| format!("プレイヤータイプ作成エラー: {}", e))?;
+
+    // 作成されたプレイヤータイプを取得（最後に挿入されたIDを使用）
+    let last_id = conn.last_insert_rowid().to_string();
+    let created_player_type = get_player_type_by_id(&conn, &last_id)?;
+
+    Ok(CreatePlayerTypeResponse {
+        success: true,
+        data: Some(created_player_type),
+        error: None,
+    })
+}
+
+/// 【機能概要】: プレイヤータイプ一覧取得（レスポンス形式統一）
+/// 【実装方針】: 既存のget_player_typesをラップして統一レスポンス形式に変換
+/// 【パフォーマンス】: 作成日時順ソートによる安定した順序保証
+/// 【エラーハンドリング】: 構造化されたレスポンス形式でエラー情報提供
+/// 🔵 青信号: テストケース TEST-0507-U-007 から TEST-0507-U-010 に対応
+#[command]
+pub async fn get_player_types_api(
+    db: State<'_, Database>
+) -> Result<GetPlayerTypesResponse, String> {
+    match get_player_types(db).await {
+        Ok(player_types) => Ok(GetPlayerTypesResponse {
+            success: true,
+            data: Some(player_types),
+            error: None,
+        }),
+        Err(error_msg) => Ok(GetPlayerTypesResponse {
+            success: false,
+            data: None,
+            error: Some(ApiError {
+                code: "DB_OPERATION_FAILED".to_string(),
+                message: error_msg,
+                details: None,
+            }),
+        }),
+    }
+}
+
+/// 【機能概要】: プレイヤータイプ更新
+/// 【実装方針】: TDD Refactor Phase - 部分更新対応、共通関数による効率化
+/// 【バリデーション】: 共通バリデーション関数による名前とカラーの個別検証
+/// 【データ整合性】: 共通DB操作関数による一貫性保証
+/// 【REFACTOR】: データベースヘルパー関数とエラー統一により保守性向上
+/// 🔵 青信号: テストケース TEST-0507-U-011 から TEST-0507-U-015 に対応
+#[command]
+pub async fn update_player_type(
+    db: State<'_, Database>,
+    request: UpdatePlayerTypeRequest
+) -> Result<UpdatePlayerTypeResponse, String> {
+    let conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    // 存在確認
+    if !player_type_exists(&conn, &request.id)? {
+        return Ok(UpdatePlayerTypeResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "PLAYER_TYPE_NOT_FOUND",
+                "指定されたプレイヤータイプが見つかりません",
+                Some(serde_json::json!({
+                    "id": request.id
+                }))
+            )),
+        });
+    }
+
+    // 名前のバリデーション（名前が提供されている場合）
+    if let Some(ref name) = request.name {
+        if let Err((code, message)) = validate_player_type_name(name) {
+            let details = create_name_validation_details(name, &code);
+            return Ok(UpdatePlayerTypeResponse {
+                success: false,
+                data: None,
+                error: Some(create_api_error(&code, &message, details)),
+            });
+        }
+
+        // 名前重複チェック（自分以外で同名がないかチェック）
+        if player_type_name_exists(&conn, name, Some(&request.id))? {
+            return Ok(UpdatePlayerTypeResponse {
+                success: false,
+                data: None,
+                error: Some(create_api_error(
+                    "PLAYER_TYPE_NAME_DUPLICATE",
+                    "同名のプレイヤータイプが既に存在します",
+                    Some(serde_json::json!({
+                        "name": name
+                    }))
+                )),
+            });
+        }
+    }
+
+    // カラーバリデーション（カラーが提供されている場合）
+    if let Some(ref color) = request.color {
+        if !validate_hex_color(color) {
+            return Ok(UpdatePlayerTypeResponse {
+                success: false,
+                data: None,
+                error: Some(create_api_error(
+                    "INVALID_COLOR_FORMAT",
+                    &get_hex_color_validation_error(color),
+                    create_color_validation_details(color)
+                )),
+            });
+        }
+    }
+
+    // 更新クエリの動的構築
+    let mut update_fields = Vec::new();
+    let mut params: Vec<&str> = Vec::new();
+
+    if let Some(ref name) = request.name {
+        update_fields.push("name = ?");
+        params.push(name);
+    }
+
+    if let Some(ref color) = request.color {
+        update_fields.push("color = ?");
+        params.push(color);
+    }
+
+    if update_fields.is_empty() {
+        // 何も更新する必要がない場合、現在の値を返す
+        let player_type = get_player_type_by_id(&conn, &request.id)?;
+
+        return Ok(UpdatePlayerTypeResponse {
+            success: true,
+            data: Some(player_type),
+            error: None,
+        });
+    }
+
+    // 更新実行
+    let query = format!("UPDATE player_types SET {} WHERE id = ?", update_fields.join(", "));
+    params.push(&request.id);
+
+    conn.execute(&query, rusqlite::params_from_iter(params))
+        .map_err(|e| format!("プレイヤータイプ更新エラー: {}", e))?;
+
+    // 更新されたプレイヤータイプを取得
+    let updated_player_type = get_player_type_by_id(&conn, &request.id)?;
+
+    Ok(UpdatePlayerTypeResponse {
+        success: true,
+        data: Some(updated_player_type),
+        error: None,
+    })
+}
+
+/// 【機能概要】: プレイヤータイプ削除
+/// 【実装方針】: TDD Refactor Phase - CASCADE削除、共通関数による効率化
+/// 【データ整合性】: データベースヘルパー関数による一貫性維持
+/// 【統計情報】: 共通カウント関数により影響プレイヤー数レスポンス
+/// 【REFACTOR】: 存在確認とカウント処理の共通関数化により可読性向上
+/// 🔵 青信号: テストケース TEST-0507-U-016 から TEST-0507-U-018 に対応
+#[command]
+pub async fn delete_player_type(
+    db: State<'_, Database>,
+    request: DeletePlayerTypeRequest
+) -> Result<DeletePlayerTypeResponse, String> {
+    let conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    // 存在確認
+    if !player_type_exists(&conn, &request.id)? {
+        return Ok(DeletePlayerTypeResponse {
+            success: false,
+            affected_players_count: None,
+            error: Some(create_api_error(
+                "PLAYER_TYPE_NOT_FOUND",
+                "指定されたプレイヤータイプが見つかりません",
+                Some(serde_json::json!({
+                    "id": request.id
+                }))
+            )),
+        });
+    }
+
+    // 影響を受けるプレイヤー数を事前にカウント
+    let affected_count = count_affected_players(&conn, &request.id)?;
+
+    // 関連プレイヤーのplayer_type_idをNULLに設定（CASCADE効果をシミュレート）
+    conn.execute(
+        "UPDATE players SET player_type_id = NULL WHERE player_type_id = ?1",
+        [&request.id],
+    )
+    .map_err(|e| format!("関連プレイヤー更新エラー: {}", e))?;
+
+    // プレイヤータイプを削除
+    conn.execute(
+        "DELETE FROM player_types WHERE id = ?1",
+        [&request.id],
+    )
+    .map_err(|e| format!("プレイヤータイプ削除エラー: {}", e))?;
+
+    Ok(DeletePlayerTypeResponse {
+        success: true,
+        affected_players_count: Some(affected_count),
+        error: None,
+    })
+}
+
+// ===== TASK-0508: Tag Management API Commands =====
+// 🔵 青信号: TDD Green Phase - 最小動作実装
+// 【継承パターン】: TASK-0507 Player Type Management パターンを継承
+
+/// 【機能概要】: タグ作成
+/// 【実装方針】: TDD Green Phase - 最小動作実装
+/// 【バリデーション】: TASK-0507継承パターンによる名前・HEXカラー検証
+/// 【エラーハンドリング】: 統一エラー生成関数による一貫性保持
+/// 🔵 青信号: テストケース TEST-0508-U-001 から TEST-0508-U-006 に対応
+#[command]
+pub async fn create_tag(
+    db: State<'_, Database>,
+    request: CreateTagRequest
+) -> Result<CreateTagResponse, String> {
+    let conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    // 名前のバリデーション
+    if let Err((code, message)) = validate_tag_name(&request.name) {
+        let details = create_name_validation_details(&request.name, &code);
+        return Ok(CreateTagResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(&code, &message, details)),
+        });
+    }
+
+    // HEXカラーバリデーション
+    if !validate_hex_color(&request.color) {
+        return Ok(CreateTagResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "INVALID_COLOR_FORMAT",
+                &get_hex_color_validation_error(&request.color),
+                create_color_validation_details(&request.color)
+            )),
+        });
+    }
+
+    // 名前の重複チェック
+    if tag_name_exists(&conn, &request.name, None)? {
+        return Ok(CreateTagResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "TAG_NAME_DUPLICATE",
+                "同名のタグが既に存在します",
+                Some(serde_json::json!({
+                    "name": request.name
+                }))
+            )),
+        });
+    }
+
+    // UUIDスタイルID生成
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let tag_id = format!("tag_{:x}", timestamp);
+
+    // タグを作成
+    conn.execute(
+        "INSERT INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
+        [&tag_id, &request.name, &request.color],
+    )
+    .map_err(|e| format!("タグ作成エラー: {}", e))?;
+
+    // 作成されたタグを取得
+    let created_tag = get_tag_by_id(&conn, &tag_id)?;
+
+    Ok(CreateTagResponse {
+        success: true,
+        data: Some(created_tag),
+        error: None,
+    })
+}
+
+/// 【機能概要】: タグ一覧取得
+/// 【実装方針】: TDD Green Phase - 最小動作実装
+/// 【ソート順】: 作成日時昇順（TypeScript型定義準拠）
+/// 【エラーハンドリング】: 統一エラー処理パターン
+/// 🔵 青信号: テストケース TEST-0508-U-007 から TEST-0508-U-009 に対応
+#[command]
+pub async fn get_tags(db: State<'_, Database>) -> Result<GetTagsResponse, String> {
+    let conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    let mut stmt = conn
+        .prepare("SELECT id, name, color, created_at, updated_at FROM tags ORDER BY created_at ASC")
+        .map_err(|e| format!("クエリ準備エラー: {}", e))?;
+
+    let tag_iter = stmt
+        .query_map([], |row| {
+            Ok(Tag {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                color: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })
+        .map_err(|e| format!("クエリ実行エラー: {}", e))?;
+
+    let mut tags = Vec::new();
+    for tag in tag_iter {
+        tags.push(tag.map_err(|e| format!("データ取得エラー: {}", e))?);
+    }
+
+    Ok(GetTagsResponse {
+        success: true,
+        data: Some(tags),
+        error: None,
+    })
+}
+
+/// 【機能概要】: タグ更新
+/// 【実装方針】: TDD Green Phase - 最小動作実装、TASK-0507パターン継承
+/// 【バリデーション】: 部分更新対応、重複チェック、HEXカラー検証
+/// 【エラーハンドリング】: 統一エラー処理パターン
+/// 🔵 青信号: テストケース TEST-0508-U-010 から TEST-0508-U-015 に対応
+#[command]
+pub async fn update_tag(
+    db: State<'_, Database>,
+    request: UpdateTagRequest
+) -> Result<UpdateTagResponse, String> {
+    let conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    // タグ存在確認
+    if !tag_exists(&conn, &request.id)? {
+        return Ok(UpdateTagResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "TAG_NOT_FOUND",
+                "指定されたタグが見つかりません",
+                Some(serde_json::json!({
+                    "tag_id": request.id
+                }))
+            )),
+        });
+    }
+
+    // 名前のバリデーション（名前が提供されている場合）
+    if let Some(ref name) = request.name {
+        if let Err((code, message)) = validate_tag_name(name) {
+            let details = create_name_validation_details(name, &code);
+            return Ok(UpdateTagResponse {
+                success: false,
+                data: None,
+                error: Some(create_api_error(&code, &message, details)),
+            });
+        }
+
+        // 名前重複チェック（自分以外）
+        if tag_name_exists(&conn, name, Some(&request.id))? {
+            return Ok(UpdateTagResponse {
+                success: false,
+                data: None,
+                error: Some(create_api_error(
+                    "TAG_NAME_DUPLICATE",
+                    "同名のタグが既に存在します",
+                    Some(serde_json::json!({
+                        "name": name
+                    }))
+                )),
+            });
+        }
+    }
+
+    // カラーバリデーション（カラーが提供されている場合）
+    if let Some(ref color) = request.color {
+        if !validate_hex_color(color) {
+            return Ok(UpdateTagResponse {
+                success: false,
+                data: None,
+                error: Some(create_api_error(
+                    "INVALID_COLOR_FORMAT",
+                    &get_hex_color_validation_error(color),
+                    create_color_validation_details(color)
+                )),
+            });
+        }
+    }
+
+    // 更新クエリの動的構築
+    let mut update_parts = Vec::new();
+    let mut params = Vec::new();
+
+    if let Some(ref name) = request.name {
+        update_parts.push("name = ?");
+        params.push(name.as_str());
+    }
+
+    if let Some(ref color) = request.color {
+        update_parts.push("color = ?");
+        params.push(color.as_str());
+    }
+
+    if !update_parts.is_empty() {
+        update_parts.push("updated_at = CURRENT_TIMESTAMP");
+        let query = format!("UPDATE tags SET {} WHERE id = ?", update_parts.join(", "));
+        params.push(&request.id);
+
+        conn.execute(&query, rusqlite::params_from_iter(params))
+            .map_err(|e| format!("タグ更新エラー: {}", e))?;
+    }
+
+    // 更新されたタグを取得
+    let updated_tag = get_tag_by_id(&conn, &request.id)?;
+
+    Ok(UpdateTagResponse {
+        success: true,
+        data: Some(updated_tag),
+        error: None,
+    })
+}
+
+/// 【機能概要】: タグ削除（CASCADE削除対応）
+/// 【実装方針】: TDD Green Phase - 最小動作実装
+/// 【CASCADE削除】: player_tagsテーブルの関連レコード自動削除
+/// 【統計情報】: 影響を受けたプレイヤータグ数を返却
+/// 🔵 青信号: テストケース TEST-0508-U-016 から TEST-0508-U-018 に対応
+#[command]
+pub async fn delete_tag(
+    db: State<'_, Database>,
+    request: DeleteTagRequest
+) -> Result<DeleteTagResponse, String> {
+    let conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    // タグ存在確認
+    if !tag_exists(&conn, &request.id)? {
+        return Ok(DeleteTagResponse {
+            success: false,
+            affected_player_tags_count: None,
+            error: Some(create_api_error(
+                "TAG_NOT_FOUND",
+                "指定されたタグが見つかりません",
+                Some(serde_json::json!({
+                    "tag_id": request.id
+                }))
+            )),
+        });
+    }
+
+    // 影響を受けるプレイヤータグ数をカウント
+    let affected_count = count_affected_player_tags(&conn, &request.id)?;
+
+    // タグを削除（CASCADE制約により player_tags も自動削除）
+    conn.execute(
+        "DELETE FROM tags WHERE id = ?1",
+        [&request.id],
+    )
+    .map_err(|e| format!("タグ削除エラー: {}", e))?;
+
+    Ok(DeleteTagResponse {
+        success: true,
+        affected_player_tags_count: Some(affected_count),
+        error: None,
+    })
+}
+
 // Tauriコマンドは tauri::generate_handler! マクロで自動登録されます
 
 #[cfg(test)]
@@ -3423,3 +3955,749 @@ mod tests {
         }
     }
 }
+
+// ========================================
+// TASK-0509: Multi-Tag Assignment and Level Management API Commands
+// ========================================
+
+/// 【機能概要】: 多重タグ割り当て・更新コマンド
+/// 【実装方針】: TDD Green Phase - 最小動作実装
+/// 【バリデーション】: レベル範囲(1-10)、一括割り当て制限(最大50タグ)、重複チェック
+/// 【トランザクション】: 全成功または全失敗を保証するアトミック処理
+/// 【エラーハンドリング】: 統一エラー生成関数による一貫性保持
+/// 🔵 青信号: テストケース TEST-0509-U-001 から TEST-0509-U-010 に対応
+#[command]
+pub async fn assign_tags(
+    db: State<'_, Database>,
+    request: AssignTagsRequest
+) -> Result<AssignTagsResponse, String> {
+    use crate::commands::playernote::types::{
+        validate_tag_assignments, player_exists, tag_exists, get_existing_player_tag,
+        create_api_error, create_db_connection_error
+    };
+
+    let mut conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    // バリデーション
+    if let Err((code, message, details)) = validate_tag_assignments(&request.tag_assignments) {
+        return Ok(AssignTagsResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(&code, &message, details)),
+        });
+    }
+
+    // プレイヤー存在確認
+    let player_exists = player_exists(&conn, &request.player_id)
+        .map_err(|e| format!("プレイヤー存在確認エラー: {}", e))?;
+
+    if !player_exists {
+        return Ok(AssignTagsResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "PLAYER_NOT_FOUND",
+                "指定されたプレイヤーが見つかりません",
+                Some(serde_json::json!({ "player_id": request.player_id }))
+            )),
+        });
+    }
+
+    // タグ存在確認
+    for (index, assignment) in request.tag_assignments.iter().enumerate() {
+        let tag_exists_result = tag_exists(&conn, &assignment.tag_id)
+            .map_err(|e| format!("タグ存在確認エラー: {}", e))?;
+
+        if !tag_exists_result {
+            return Ok(AssignTagsResponse {
+                success: false,
+                data: None,
+                error: Some(create_api_error(
+                    "TAG_NOT_FOUND",
+                    "指定されたタグが見つかりません",
+                    Some(serde_json::json!({
+                        "tag_id": assignment.tag_id,
+                        "index": index
+                    }))
+                )),
+            });
+        }
+    }
+
+    // トランザクション開始
+    let tx = conn.transaction().map_err(|e| format!("トランザクション開始エラー: {}", e))?;
+
+    let mut assigned_tags = Vec::new();
+    let mut created_count = 0;
+    let mut updated_count = 0;
+
+    for assignment in &request.tag_assignments {
+        // 既存の割り当てをチェック
+        match get_existing_player_tag(&tx, &request.player_id, &assignment.tag_id) {
+            Ok(Some(existing)) => {
+                // 既存の割り当てを更新
+                tx.execute(
+                    "UPDATE player_tags SET level = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
+                    params![assignment.level, existing.id],
+                ).map_err(|e| format!("プレイヤータグ更新エラー: {}", e))?;
+
+                // 更新されたデータを取得
+                let updated_tag = tx.query_row(
+                    "SELECT id, player_id, tag_id, level, created_at, updated_at FROM player_tags WHERE id = ?1",
+                    [&existing.id],
+                    |row| {
+                        Ok(PlayerTag {
+                            id: row.get(0)?,
+                            player_id: row.get(1)?,
+                            tag_id: row.get(2)?,
+                            level: row.get(3)?,
+                            created_at: row.get(4)?,
+                            updated_at: row.get(5)?,
+                        })
+                    }
+                ).map_err(|e| format!("更新後プレイヤータグ取得エラー: {}", e))?;
+
+                assigned_tags.push(updated_tag);
+                updated_count += 1;
+            },
+            Ok(None) => {
+                // 新規割り当てを作成
+                use std::time::{SystemTime, UNIX_EPOCH};
+                let timestamp = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos();
+                let id = format!("ptag_{:x}", timestamp);
+
+                tx.execute(
+                    "INSERT INTO player_tags (id, player_id, tag_id, level) VALUES (?1, ?2, ?3, ?4)",
+                    params![&id, &request.player_id, &assignment.tag_id, assignment.level],
+                ).map_err(|e| format!("プレイヤータグ作成エラー: {}", e))?;
+
+                // 作成されたデータを取得
+                let new_tag = tx.query_row(
+                    "SELECT id, player_id, tag_id, level, created_at, updated_at FROM player_tags WHERE id = ?1",
+                    [&id],
+                    |row| {
+                        Ok(PlayerTag {
+                            id: row.get(0)?,
+                            player_id: row.get(1)?,
+                            tag_id: row.get(2)?,
+                            level: row.get(3)?,
+                            created_at: row.get(4)?,
+                            updated_at: row.get(5)?,
+                        })
+                    }
+                ).map_err(|e| format!("新規プレイヤータグ取得エラー: {}", e))?;
+
+                assigned_tags.push(new_tag);
+                created_count += 1;
+            },
+            Err(e) => {
+                return Ok(AssignTagsResponse {
+                    success: false,
+                    data: None,
+                    error: Some(create_api_error(
+                        "DB_OPERATION_FAILED",
+                        &format!("データベース操作エラー: {}", e),
+                        None
+                    )),
+                });
+            }
+        }
+    }
+
+    // トランザクションコミット
+    tx.commit().map_err(|e| format!("トランザクションコミットエラー: {}", e))?;
+
+    Ok(AssignTagsResponse {
+        success: true,
+        data: Some(AssignTagsResult {
+            player_id: request.player_id,
+            assigned_tags,
+            created_count,
+            updated_count,
+        }),
+        error: None,
+    })
+}
+
+/// 【機能概要】: 個別タグ削除コマンド
+/// 【実装方針】: TDD Green Phase - 最小動作実装
+/// 【冪等性対応】: 存在しない割り当ての削除も成功扱いで統一的な動作を保証
+/// 【エラーハンドリング】: 統一エラー生成関数による一貫性保持
+/// 🔵 青信号: テストケース TEST-0509-U-011 から TEST-0509-U-015 に対応
+#[command]
+pub async fn remove_tag(
+    db: State<'_, Database>,
+    request: RemoveTagRequest
+) -> Result<RemoveTagResponse, String> {
+    use crate::commands::playernote::types::{
+        player_exists, tag_exists, create_api_error, create_db_connection_error
+    };
+
+    let conn = db.0.lock().map_err(create_db_connection_error)?;
+
+    // プレイヤー存在確認
+    let player_exists = player_exists(&conn, &request.player_id)
+        .map_err(|e| format!("プレイヤー存在確認エラー: {}", e))?;
+
+    if !player_exists {
+        return Ok(RemoveTagResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "PLAYER_NOT_FOUND",
+                "指定されたプレイヤーが見つかりません",
+                Some(serde_json::json!({ "player_id": request.player_id }))
+            )),
+        });
+    }
+
+    // タグ存在確認
+    let tag_exists_result = tag_exists(&conn, &request.tag_id)
+        .map_err(|e| format!("タグ存在確認エラー: {}", e))?;
+
+    if !tag_exists_result {
+        return Ok(RemoveTagResponse {
+            success: false,
+            data: None,
+            error: Some(create_api_error(
+                "TAG_NOT_FOUND",
+                "指定されたタグが見つかりません",
+                Some(serde_json::json!({ "tag_id": request.tag_id }))
+            )),
+        });
+    }
+
+    // プレイヤータグの削除を実行
+    let affected_rows = conn.execute(
+        "DELETE FROM player_tags WHERE player_id = ?1 AND tag_id = ?2",
+        params![&request.player_id, &request.tag_id],
+    ).map_err(|e| format!("プレイヤータグ削除エラー: {}", e))?;
+
+    Ok(RemoveTagResponse {
+        success: true,
+        data: Some(RemoveTagResult {
+            player_id: request.player_id,
+            tag_id: request.tag_id,
+            removed: affected_rows > 0,
+        }),
+        error: None,
+    })
+}
+
+/// TASK-0510: Player Search API
+/// プレイヤー検索API - 部分一致検索、ページネーション、ソート対応
+#[command]
+pub async fn search_players(
+    db: State<'_, Database>,
+    request: SearchPlayersRequest,
+) -> Result<SearchPlayersApiResponse, String> {
+    use std::time::Instant;
+
+    let start_time = Instant::now();
+
+    // バリデーション
+    let page = request.page.unwrap_or(1).max(1);
+    let limit = request.limit.unwrap_or(20).min(100).max(1);
+    let sort_option = validate_search_sort_option(request.sort.clone())?;
+
+    if request.query.len() > 255 {
+        return Err("Query too long. Maximum 255 characters allowed.".to_string());
+    }
+
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+
+    // クエリの準備
+    let trimmed_query = request.query.trim();
+    let offset = (page - 1) * limit;
+
+    // 総件数取得
+    let total_count = if trimmed_query.is_empty() {
+        get_total_players_count(&conn)?
+    } else {
+        get_search_players_count(&conn, trimmed_query)?
+    };
+
+    // プレイヤー検索実行
+    let players = if trimmed_query.is_empty() {
+        execute_all_players_query(&conn, &sort_option, limit, offset)?
+    } else {
+        execute_search_players_query(&conn, trimmed_query, &sort_option, limit, offset)?
+    };
+
+    let execution_time = start_time.elapsed().as_millis() as u32;
+
+    // レスポンス構築
+    let total_pages = if limit > 0 { (total_count + limit - 1) / limit } else { 0 };
+
+    Ok(SearchPlayersApiResponse {
+        players,
+        pagination: SearchPagination {
+            current_page: page,
+            per_page: limit,
+            total_items: total_count,
+            total_pages,
+            has_next: page < total_pages,
+            has_prev: page > 1,
+        },
+        search_info: SearchInfo {
+            query: trimmed_query.to_string(),
+            sort: sort_option,
+            execution_time_ms: execution_time,
+        },
+    })
+}
+
+// Helper functions for search_players
+
+fn validate_search_sort_option(sort: Option<String>) -> Result<String, String> {
+    match sort.as_deref() {
+        None | Some("relevance") => Ok("relevance".to_string()),
+        Some("name_asc") => Ok("name_asc".to_string()),
+        Some("name_desc") => Ok("name_desc".to_string()),
+        Some("created_asc") => Ok("created_asc".to_string()),
+        Some("created_desc") => Ok("created_desc".to_string()),
+        Some("updated_desc") => Ok("updated_desc".to_string()),
+        Some(invalid) => Err(format!("Invalid sort option: {}", invalid)),
+    }
+}
+
+fn get_total_players_count(conn: &rusqlite::Connection) -> Result<u32, String> {
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM players", [], |row| row.get(0))
+        .map_err(|e| format!("Failed to get total players count: {}", e))?;
+    Ok(count as u32)
+}
+
+fn get_search_players_count(conn: &rusqlite::Connection, query: &str) -> Result<u32, String> {
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM players WHERE name COLLATE NOCASE LIKE ?1",
+            params![format!("%{}%", query)],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Failed to get search players count: {}", e))?;
+    Ok(count as u32)
+}
+
+fn execute_all_players_query(
+    conn: &rusqlite::Connection,
+    sort_option: &str,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<PlayerSearchResult>, String> {
+    let (order_clause, _) = build_search_order_clause(sort_option, "");
+
+    let query = format!(
+        "SELECT
+            p.id,
+            p.name,
+            p.player_type_id,
+            pt.id as pt_id,
+            pt.name as pt_name,
+            pt.color as pt_color,
+            p.created_at,
+            p.updated_at,
+            COALESCE(tag_count.count, 0) as tag_count,
+            CASE WHEN pn.player_id IS NOT NULL THEN 1 ELSE 0 END as has_notes
+        FROM players p
+        LEFT JOIN player_types pt ON p.player_type_id = pt.id
+        LEFT JOIN (
+            SELECT player_id, COUNT(*) as count
+            FROM player_tags
+            GROUP BY player_id
+        ) tag_count ON p.id = tag_count.player_id
+        LEFT JOIN player_notes pn ON p.id = pn.player_id
+        {}
+        LIMIT ?1 OFFSET ?2",
+        order_clause
+    );
+
+    execute_search_query(conn, &query, "", limit, offset, sort_option)
+}
+
+fn execute_search_players_query(
+    conn: &rusqlite::Connection,
+    query: &str,
+    sort_option: &str,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<PlayerSearchResult>, String> {
+    let (order_clause, relevance_select) = build_search_order_clause(sort_option, query);
+
+    let sql = format!(
+        "SELECT
+            p.id,
+            p.name,
+            p.player_type_id,
+            pt.id as pt_id,
+            pt.name as pt_name,
+            pt.color as pt_color,
+            p.created_at,
+            p.updated_at,
+            COALESCE(tag_count.count, 0) as tag_count,
+            CASE WHEN pn.player_id IS NOT NULL THEN 1 ELSE 0 END as has_notes{}
+        FROM players p
+        LEFT JOIN player_types pt ON p.player_type_id = pt.id
+        LEFT JOIN (
+            SELECT player_id, COUNT(*) as count
+            FROM player_tags
+            GROUP BY player_id
+        ) tag_count ON p.id = tag_count.player_id
+        LEFT JOIN player_notes pn ON p.id = pn.player_id
+        WHERE p.name COLLATE NOCASE LIKE ?3
+        {}
+        LIMIT ?1 OFFSET ?2",
+        relevance_select,
+        order_clause
+    );
+
+    execute_search_query(conn, &sql, query, limit, offset, sort_option)
+}
+
+fn build_search_order_clause(sort_option: &str, query: &str) -> (String, String) {
+    match sort_option {
+        "relevance" if !query.is_empty() => {
+            let relevance_select = ",
+            CASE
+                WHEN p.name COLLATE NOCASE = ?3 THEN 100
+                WHEN p.name COLLATE NOCASE LIKE ?3 || '%' THEN 90
+                WHEN p.name COLLATE NOCASE LIKE '%' || ?3 THEN 80
+                ELSE 70
+            END as relevance_score".to_string();
+            let order_clause = "ORDER BY relevance_score DESC, p.name COLLATE NOCASE ASC".to_string();
+            (order_clause, relevance_select)
+        }
+        "name_asc" => ("ORDER BY p.name COLLATE NOCASE ASC".to_string(), "".to_string()),
+        "name_desc" => ("ORDER BY p.name COLLATE NOCASE DESC".to_string(), "".to_string()),
+        "created_asc" => ("ORDER BY p.created_at ASC".to_string(), "".to_string()),
+        "created_desc" => ("ORDER BY p.created_at DESC".to_string(), "".to_string()),
+        "updated_desc" => ("ORDER BY p.updated_at DESC".to_string(), "".to_string()),
+        _ => ("ORDER BY p.name COLLATE NOCASE ASC".to_string(), "".to_string()),
+    }
+}
+
+fn execute_search_query(
+    conn: &rusqlite::Connection,
+    sql: &str,
+    query: &str,
+    limit: u32,
+    offset: u32,
+    sort_option: &str,
+) -> Result<Vec<PlayerSearchResult>, String> {
+    let mut stmt = conn
+        .prepare(sql)
+        .map_err(|e| format!("Failed to prepare search query: {}", e))?;
+
+    let params: &[&dyn rusqlite::ToSql] = if query.is_empty() {
+        &[&(limit as i64), &(offset as i64)]
+    } else {
+        &[&(limit as i64), &(offset as i64), &format!("%{}%", query)]
+    };
+
+    let rows = stmt
+        .query_map(params, |row| {
+            let player_type = if let (Ok(pt_id), Ok(pt_name), Ok(pt_color)) = (
+                row.get::<_, Option<String>>(3),
+                row.get::<_, Option<String>>(4),
+                row.get::<_, Option<String>>(5),
+            ) {
+                if let (Some(id), Some(name), Some(color)) = (pt_id, pt_name, pt_color) {
+                    Some(PlayerTypeInfo { id, name, color })
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            let relevance_score = if sort_option == "relevance" && !query.is_empty() {
+                row.get::<_, Option<i32>>(10).ok().flatten()
+            } else {
+                None
+            };
+
+            Ok(PlayerSearchResult {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                player_type_id: row.get(2)?,
+                player_type,
+                tag_count: row.get(8)?,
+                has_notes: row.get::<_, i32>(9)? == 1,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+                relevance_score,
+            })
+        })
+        .map_err(|e| format!("Failed to execute search query: {}", e))?;
+
+    let mut players = Vec::new();
+    for row_result in rows {
+        let player = row_result.map_err(|e| format!("Failed to parse search result: {}", e))?;
+        players.push(player);
+    }
+
+    Ok(players)
+}
+
+// TASK-0511: Player Note Rich Text API Commands
+// 🔵 青信号: TypeScript型定義との完全同期
+
+/// Get Player Note Command (TASK-0511)
+/// Retrieves a player's rich text note by player ID
+#[command]
+pub async fn get_player_note(
+    db: State<'_, Database>,
+    request: GetPlayerNoteRequest,
+) -> Result<GetPlayerNoteResponse, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+
+    // Validate player exists
+    match validate_player_exists_for_note(&conn, &request.player_id) {
+        Ok(()) => {}
+        Err(err) => {
+            return Ok(GetPlayerNoteResponse {
+                success: false,
+                data: None,
+                error: Some(err),
+            });
+        }
+    }
+
+    // Query player note
+    match query_player_note(&conn, &request.player_id) {
+        Ok(note) => Ok(GetPlayerNoteResponse {
+            success: true,
+            data: note,
+            error: None,
+        }),
+        Err(err) => Ok(GetPlayerNoteResponse {
+            success: false,
+            data: None,
+            error: Some(NoteApiError {
+                code: note_error_codes::DATABASE_ERROR.to_string(),
+                message: format!("Failed to retrieve player note: {}", err),
+                details: Some(serde_json::json!({
+                    "player_id": request.player_id
+                })),
+            }),
+        }),
+    }
+}
+
+/// Save Player Note Command (TASK-0511)
+/// Saves or updates a player's rich text note (UPSERT operation)
+/// Enhanced with improved error handling and performance tracking
+#[command]
+pub async fn save_player_note(
+    db: State<'_, Database>,
+    request: SavePlayerNoteRequest,
+) -> Result<SavePlayerNoteResponse, String> {
+    use tracing::{info, warn, error, debug};
+
+    // Log operation start
+    debug!("save_player_note started for player_id: {}", request.player_id);
+    let start_time = std::time::Instant::now();
+
+    // Validate request
+    if let Err(err) = validate_player_note_request(&request) {
+        warn!("Validation failed for player_id: {} - {}", request.player_id, err.message);
+        return Ok(SavePlayerNoteResponse {
+            success: false,
+            data: None,
+            error: Some(err),
+        });
+    }
+
+    let conn = match db.0.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            error!("Database lock failed: {}", e);
+            return Err(format!("Database access error: {}", e));
+        }
+    };
+
+    // Validate player exists
+    match validate_player_exists_for_note(&conn, &request.player_id) {
+        Ok(()) => {}
+        Err(err) => {
+            return Ok(SavePlayerNoteResponse {
+                success: false,
+                data: None,
+                error: Some(err),
+            });
+        }
+    }
+
+    // Determine content type
+    let content_type = request.content_type.unwrap_or_else(|| detect_content_type(&request.content));
+
+    // Validate content based on type
+    if content_type == "json" {
+        if let Err(err) = validate_tiptap_json(&request.content) {
+            return Ok(SavePlayerNoteResponse {
+                success: false,
+                data: None,
+                error: Some(err),
+            });
+        }
+    }
+
+    // Sanitize content if needed (for HTML)
+    let sanitized_content = if content_type == "html" {
+        match sanitize_html_content(&request.content) {
+            Ok(content) => content,
+            Err(err) => {
+                return Ok(SavePlayerNoteResponse {
+                    success: false,
+                    data: None,
+                    error: Some(err),
+                });
+            }
+        }
+    } else {
+        request.content.clone()
+    };
+
+    // Generate content hash
+    let content_hash = generate_content_hash(&sanitized_content);
+
+    // Perform UPSERT operation
+    let result = match upsert_player_note(&conn, &request.player_id, &sanitized_content, &content_type, &content_hash) {
+        Ok(note) => {
+            let duration = start_time.elapsed();
+            info!("save_player_note completed successfully for player_id: {} in {:?}",
+                  request.player_id, duration);
+
+            Ok(SavePlayerNoteResponse {
+                success: true,
+                data: Some(note),
+                error: None,
+            })
+        },
+        Err(err) => {
+            let duration = start_time.elapsed();
+            error!("save_player_note failed for player_id: {} after {:?} - {}",
+                   request.player_id, duration, err);
+
+            Ok(SavePlayerNoteResponse {
+                success: false,
+                data: None,
+                error: Some(NoteApiError {
+                    code: note_error_codes::DATABASE_ERROR.to_string(),
+                    message: format!("Failed to save player note: {}", err),
+                    details: Some(serde_json::json!({
+                        "player_id": request.player_id,
+                        "duration_ms": duration.as_millis(),
+                        "content_size": request.content.len()
+                    })),
+                }),
+            })
+        },
+    };
+
+    result
+}
+
+// Helper functions for player note operations
+
+/// Validates that a player exists for note operations
+fn validate_player_exists_for_note(conn: &rusqlite::Connection, player_id: &str) -> Result<(), NoteApiError> {
+    let exists = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM players WHERE id = ?1)",
+            [player_id],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(|e| NoteApiError {
+            code: note_error_codes::DATABASE_ERROR.to_string(),
+            message: format!("Database error while checking player existence: {}", e),
+            details: Some(serde_json::json!({
+                "player_id": player_id
+            })),
+        })?;
+
+    if !exists {
+        return Err(NoteApiError {
+            code: note_error_codes::PLAYER_NOT_FOUND.to_string(),
+            message: format!("Player not found: {}", player_id),
+            details: Some(serde_json::json!({
+                "player_id": player_id
+            })),
+        });
+    }
+
+    Ok(())
+}
+
+/// Queries a player note from the database
+fn query_player_note(
+    conn: &rusqlite::Connection,
+    player_id: &str,
+) -> Result<Option<RichPlayerNote>, String> {
+    let result = conn.query_row(
+        "SELECT id, player_id, content, content_type, content_hash, created_at, updated_at
+         FROM player_notes WHERE player_id = ?1",
+        [player_id],
+        |row| {
+            Ok(RichPlayerNote {
+                id: row.get(0)?,
+                player_id: row.get(1)?,
+                content: row.get(2)?,
+                content_type: row.get(3).unwrap_or_else(|_| "html".to_string()),
+                content_hash: row.get(4).unwrap_or_else(|_| String::new()),
+                created_at: row.get(5)?,
+                updated_at: row.get(6)?,
+            })
+        },
+    );
+
+    match result {
+        Ok(note) => Ok(Some(note)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(format!("Database error: {}", e)),
+    }
+}
+
+/// Performs optimized UPSERT operation for player notes
+/// Uses SQLite's INSERT OR REPLACE for better performance
+fn upsert_player_note(
+    conn: &rusqlite::Connection,
+    player_id: &str,
+    content: &str,
+    content_type: &str,
+    content_hash: &str,
+) -> Result<RichPlayerNote, String> {
+    let now = chrono::Utc::now().to_rfc3339();
+
+    // First, check if note exists to preserve created_at
+    let existing_note = query_player_note(conn, player_id)?;
+    let (note_id, created_at) = match existing_note {
+        Some(note) => (note.id, note.created_at),
+        None => (uuid::Uuid::new_v4().to_string(), now.clone()),
+    };
+
+    // Use INSERT OR REPLACE for atomic UPSERT operation
+    // This is more efficient than separate UPDATE/INSERT operations
+    conn.execute(
+        "INSERT OR REPLACE INTO player_notes
+         (id, player_id, content, content_type, content_hash, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![note_id, player_id, content, content_type, content_hash, created_at, now],
+    )
+    .map_err(|e| format!("Failed to upsert player note: {}", e))?;
+
+    // Return the upserted note
+    Ok(RichPlayerNote {
+        id: note_id,
+        player_id: player_id.to_string(),
+        content: content.to_string(),
+        content_type: content_type.to_string(),
+        content_hash: content_hash.to_string(),
+        created_at,
+        updated_at: now,
+    })
+}
+
