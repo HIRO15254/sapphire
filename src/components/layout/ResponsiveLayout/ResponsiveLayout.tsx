@@ -2,7 +2,6 @@ import { AppShell } from "@mantine/core";
 import { memo, useId, useMemo } from "react";
 import { FooterNavigation, HamburgerMenu, HeaderNavigation, SideNavigation } from "./components";
 import { useNavigationConfig, useResponsiveLayout } from "./hooks";
-import safeAreaStyles from "./safeArea.module.css";
 import type { NavigationItem, ResponsiveLayoutProps, UseResponsiveLayoutReturn } from "./types";
 
 // 【ユーティリティ関数】: NavigationItem配列をgroupedItems形式に変換
@@ -71,29 +70,21 @@ const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConf
   );
 
   return (
-    <div data-testid="responsive-layout-container" className={safeAreaStyles.safeAreaContainer}>
+    <div data-testid="responsive-layout-container">
       <AppShell
-        header={{
-          height: {
-            base: "var(--header-height-mobile)",
-            md: "var(--header-height-desktop)",
-          },
-        }}
+        header={{ height: { base: 56, md: 64 } }}
         navbar={{
           width: { base: 0, md: 280 },
           breakpoint: "md",
           collapsed: { mobile: true, desktop: false },
         }}
         footer={{
-          height: {
-            base: "var(--footer-height-mobile)",
-            md: 0,
-          },
+          height: { base: 80, md: 0 },
         }}
         padding={{ base: "sm", md: "md" }}
       >
-        {/* ヘッダー部分 - env()セーフエリア適用 */}
-        <AppShell.Header className={safeAreaStyles.safeAreaHeader}>
+        {/* ヘッダー部分 */}
+        <AppShell.Header>
           <HeaderNavigation
             items={safeNavigationConfig.primary}
             isMobile={isMobile}
@@ -102,9 +93,9 @@ const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConf
           />
         </AppShell.Header>
 
-        {/* デスクトップサイドバー - env()セーフエリア適用 */}
+        {/* デスクトップサイドバー */}
         {!isMobile && (
-          <AppShell.Navbar className={safeAreaStyles.safeAreaSidebar}>
+          <AppShell.Navbar>
             <SideNavigation
               items={safeNavigationConfig.secondary}
               groupedItems={groupedSecondaryItems}
@@ -112,17 +103,15 @@ const ResponsiveLayout = memo<ResponsiveLayoutProps>(({ children, navigationConf
           </AppShell.Navbar>
         )}
 
-        {/* モバイルフッター - env()セーフエリア適用 */}
+        {/* モバイルフッター */}
         {isMobile && (
-          <AppShell.Footer className={safeAreaStyles.safeAreaFooter}>
+          <AppShell.Footer>
             <FooterNavigation items={safeNavigationConfig.primary} />
           </AppShell.Footer>
         )}
 
-        {/* メインコンテンツ - env()セーフエリア適用 */}
-        <AppShell.Main id={mainContentId} className={safeAreaStyles.safeAreaMain}>
-          {children}
-        </AppShell.Main>
+        {/* メインコンテンツ */}
+        <AppShell.Main id={mainContentId}>{children}</AppShell.Main>
 
         {/* モバイルハンバーガーメニュー */}
         <HamburgerMenu
