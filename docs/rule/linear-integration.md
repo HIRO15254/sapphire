@@ -447,7 +447,7 @@ function implementFeature() {
 
 ## ローカルファイル管理
 
-### 廃止されるディレクトリ
+### 廃止されたディレクトリ（Linear移行済み）
 - `docs/spec/` → Linear Project Documents
 - `docs/design/` → Linear Milestone Documents
 - `docs/tasks/` → Linear Issues
@@ -455,6 +455,9 @@ function implementFeature() {
 
 ### 残るファイル
 - `docs/rule/` - コマンド実行ルール（このファイル含む）
+- `docs/tech-stack.md` - 技術スタック定義
+- `docs/patterns/` - 実装パターン蓄積（今後追加予定）
+- `docs/architecture/` - プロジェクト詳細ドキュメント（今後追加予定）
 - ソースコード
 - テストコード
 - 設定ファイル（package.json, tsconfig.json など）

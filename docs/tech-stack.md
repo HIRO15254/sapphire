@@ -22,16 +22,17 @@
 - **学習コスト**: 中（既存Rust経験を活用）
 
 ## 🎨 Frontend
-- **フレームワーク**: React 18
-- **言語**: TypeScript 5.0+
-- **バンドラー**: Vite
-- **状態管理**: React hooks（必要に応じてZustandも検討）
-- **スタイリング**: CSS Modules または Tailwind CSS
+- **フレームワーク**: React 19.1.0
+- **言語**: TypeScript 5.8.3
+- **バンドラー**: Vite 7.0.4
+- **状態管理**: React hooks
+- **スタイリング**: Mantine 8.3.0 + Emotion
 
 ### 選択理由
 - 既存のReact経験を最大活用
 - TypeScriptで型安全性を確保
 - Viteで高速な開発環境
+- Mantineでコンポーネント開発効率化
 - Tauri公式サポートで安定性
 
 ## ⚙️ Backend (Rust)
@@ -61,14 +62,14 @@
 ## 🛠️ 開発環境
 - **Node.js**: 18+ LTS
 - **Rust**: 1.70+ (最新stable)
-- **パッケージマネージャー**: npm/yarn + cargo
+- **パッケージマネージャー**: bun + cargo
 - **AI開発支援**: [Tsumiki](https://github.com/classmethod/tsumiki) - TDD・要件定義支援フレームワーク
 
 ### 開発ツール
 - **フロントエンドビルド**: Vite
 - **Rustビルド**: cargo
-- **フォーマッタ**: Prettier (JS/TS), rustfmt
-- **リンター**: ESLint, clippy
+- **フォーマッタ**: Biome (JS/TS), rustfmt
+- **リンター**: Biome, clippy
 
 ### Tsumiki TDD支援機能
 - **要件定義**: tdd-requirements（TDD要件定義）
@@ -78,10 +79,10 @@
 - **包括的開発フロー**: kairo（要件→設計→実装の一貫支援）
 
 ## 🧪 テスト
-- **フロントエンド単体テスト**: Jest + React Testing Library
+- **フロントエンド単体テスト**: Vitest + React Testing Library
 - **Rust単体テスト**: cargo test
 - **E2Eテスト**: WebdriverIO (WDIO)
-- **カバレッジ**: Jest coverage + tarpaulin
+- **カバレッジ**: Vitest coverage + tarpaulin
 
 ### テスト戦略
 - コンポーネント単位でのテスト
@@ -107,12 +108,12 @@
 ## 🔒 セキュリティ
 - **Tauriセキュリティ**: allowlist設定で最小権限
 - **依存関係**: cargo audit + npm audit
-- **コード品質**: clippy + ESLint
+- **コード品質**: clippy + Biome
 - **バイナリ署名**: 将来的にコード署名対応
 
 ## 📊 品質基準
 - **テストカバレッジ**: 80%以上
-- **コード品質**: clippy + ESLint clean
+- **コード品質**: clippy + Biome clean
 - **型安全性**: TypeScript strict mode
 - **パフォーマンス**: バンドルサイズ最適化
 - **クロスプラットフォーム**: Windows・Android両対応
@@ -150,28 +151,28 @@ sapphire/
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Node.js依存関係インストール
-npm install
+bun install
 
 # Tauriセットアップ
-npm run tauri build
+bun run tauri build
 ```
 
 ### 2. 主要コマンド
 ```bash
 # 開発サーバー起動
-npm run tauri dev
+bun run tauri dev
 
 # テスト実行
-npm test                    # フロントエンドテスト
+bun test                    # フロントエンドテスト
 cargo test                  # Rustテスト
-npm run test:e2e           # E2Eテスト
+bun run test:e2e           # E2Eテスト
 
 # ビルド
-npm run tauri build        # 本番ビルド
-npm run tauri build --debug # デバッグビルド
+bun run tauri build        # 本番ビルド
+bun run tauri build --debug # デバッグビルド
 
 # 品質チェック
-npm run lint               # ESLint
+bun run lint               # Biome
 cargo clippy              # Rust lint
 ```
 

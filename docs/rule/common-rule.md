@@ -25,10 +25,13 @@
 可能な限り、mantineに用意されているコンポーネント及びhookを使用した実装を行うこと。
 必要に応じて公式ドキュメントを確認すること。
 
-## 生成ファイル
+## ドキュメント管理
 
-`docs` 以下に生成するファイルは次の位置に置くこと。
-- `docs/tasks/[要件名].md`
-- `docs/spec/[要件名].md`
-- `docs/design/[要件名]/*.md`
-- `docs/implement/[要件名]/[タスク番号]/*.md`
+LinearワークフローではLinear上で文書管理を行います。
+詳細は[Linear統合ルール](./linear-integration.md)を参照してください。
+
+### ローカル `docs/` ディレクトリの用途
+- `docs/rule/` - 開発ルール・ガイドライン
+- `docs/tech-stack.md` - 技術スタック定義
+- `docs/patterns/` - 実装パターン集（今後）
+- `docs/architecture/` - プロジェクト詳細ドキュメント（今後）
