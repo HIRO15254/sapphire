@@ -15,7 +15,11 @@
       "Bash(bunx biome check:*)",
       "Bash(cat:*)",
       "Bash(bun run:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "mcp__linear-server__list_issues",
+      "Bash(mkdir:*)",
+      "Bash(git commit:*)",
+      "mcp__linear-server__create_issue"
     ],
     "deny": [
       "Bash(bun test:*)",
