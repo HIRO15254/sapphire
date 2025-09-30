@@ -296,6 +296,37 @@ MCP Server経由で必要な情報を自動取得：
 - 既存ドキュメント
 - コメント履歴
 
+## タスクステータス管理
+
+### ステータス遷移ルール
+
+1. **タスク開始時**:
+   - ステータスを「Backlog」から「Todo」に変更
+   - 実際に作業開始したら「In Progress」に変更
+
+2. **タスク完了時**:
+   - 完了したタスクを「Done」に変更
+   - 依存関係を確認し、次に着手可能なタスクを特定
+   - 着手可能なタスクのステータスを「Todo」に変更
+
+3. **自動ステータス更新対象**:
+   - 完了したタスクの直接の後続タスク
+   - 依存関係が全て解決されたタスク
+   - 同一フェーズ内の次のタスク
+
+### コマンド別ステータス更新
+
+| コマンド | 実行時 | 完了時 | 次タスク |
+|---------|--------|--------|----------|
+| kairo-requirements | → Todo → In Progress | → Done | 設計タスクを Todo に |
+| kairo-design | → In Progress | → Done | 実装タスクを Todo に |
+| kairo-tasks | → In Progress | → Done | 作成したタスクを Todo に |
+| kairo-implement | → In Progress | → Done | 次の実装タスクを Todo に |
+| TDDコマンド群 | → In Progress | (維持) | - |
+| tdd-verify-complete | (維持) | → Done | 次のタスクを Todo に |
+| direct-setup | → In Progress | (維持) | - |
+| direct-verify | (維持) | → Done | 依存タスクを Todo に |
+
 ## 実行時の確認事項
 
 ### タスク開始前チェックリスト
@@ -445,6 +476,20 @@ function implementFeature() {
 - Issue ID を引数として受け取る
 - 各フェーズ完了時に Issue Comment を自動追加
 - テスト結果、実装詳細、リファクタリング内容を記録
+
+### DIRECTタスク（direct-setup/direct-verify）
+- Issue ID を引数として受け取る
+- **direct-setup完了時**: Issue Comment に設定作業内容を追加
+- **direct-verify完了時**:
+  - Issue Comment に検証結果を追加
+  - Issue Status を「Done」に更新
+  - 成果物リスト、テスト結果、品質メトリクスを記載
+  - **次タスクの準備**: 依存関係にある次のタスクのステータスを「Todo」に更新
+- 完了報告フォーマット:
+  - 実装完了内容（箇条書き）
+  - 成果物テーブル（ファイル名、パス、状態）
+  - 要件対応状況
+  - 品質メトリクス（テスト成功率、実行速度等）
 
 ## ローカルファイル管理
 
