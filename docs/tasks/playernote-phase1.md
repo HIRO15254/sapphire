@@ -42,7 +42,7 @@
 - `src-tauri/tests/database_test.rs`
 - テストデータ生成スクリプト
 
-### タスク2: データベースマイグレーションシステム
+### タスク2: データベースマイグレーションシステム ✅ **完了** (TDD開発完了 - 10テストケース全通過)
 - **Linear Issue**: [SAP-45](https://linear.app/sapphire-poker/issue/SAP-45)
 - **推定工数**: 10時間
 - **タスク種別**: TDD

@@ -1,6 +1,4 @@
-use sapphire_lib::database::{Database, models::*};
-use std::fs;
-use std::path::Path;
+use sapphire_lib::database::{Database, migration::*};
 
 #[cfg(test)]
 mod tests {
@@ -9,6 +7,15 @@ mod tests {
     // Test database helper
     fn create_test_database() -> Database {
         Database::new_test().expect("Failed to create test database")
+    }
+
+    // Empty test database helper for migration tests
+    fn create_empty_test_database() -> Database {
+        use rusqlite::Connection;
+        use std::sync::Mutex;
+
+        let conn = Connection::open(":memory:").expect("Failed to create in-memory database");
+        Database(Mutex::new(conn))
     }
 
     #[tokio::test]
@@ -24,7 +31,7 @@ mod tests {
 
         // 【実際の処理実行】: マイグレーション管理テーブル初期化を実行
         // 【処理内容】: Migratorの初期化でschema_migrationsテーブルを作成
-        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        let _migrator = Migrator::new(&db).expect("Failed to create migrator");
 
         // 【結果検証】: schema_migrationsテーブルの存在と構造を確認
         // 【期待値確認】: テーブルが作成され、適切なスキーマを持つこと
@@ -34,7 +41,7 @@ mod tests {
 
         // 【確認内容】: テーブルのスキーマ構造が正しいことを確認 🔵
         let mut stmt = conn.prepare("PRAGMA table_info(schema_migrations)").unwrap();
-        let column_count: i32 = stmt.query_map([], |row| {
+        let column_count: i32 = stmt.query_map([], |_row| {
             Ok(1)
         }).unwrap().count() as i32;
         assert_eq!(column_count, 3); // 【確認内容】: version, applied_at, checksumの3カラム
@@ -74,11 +81,12 @@ mod tests {
         // 【テストデータ準備】: 空のデータベースインスタンスを作成
         // 【初期条件設定】: バージョン0（初期状態）のデータベース
         let db = create_test_database();
-        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        let _migrator = Migrator::new(&db).expect("Failed to create migrator");
 
         // 【実際の処理実行】: 最新バージョンまでのマイグレーション実行
         // 【処理内容】: 全ての未適用マイグレーションを順次実行
-        let result = migrator.migrate_to_latest().expect("Migration failed");
+        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        let result = migrator.migrate_to_latest(&db).expect("Migration failed");
 
         // 【結果検証】: マイグレーション結果と最終状態を確認
         // 【期待値確認】: 成功フラグ、適用済みマイグレーション、現在バージョンが正しいこと
@@ -101,13 +109,14 @@ mod tests {
         // 🔵 青信号 - 要件定義書の基本使用パターンに記載
 
         // 【テストデータ準備】: 空のデータベースインスタンスを作成
-        // 【初期条件設定】: マイグレーション未実行の初期状態
-        let db = create_test_database();
-        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        // 【初期条件設定】: マイグレーション未実行の初期状態（空のDB）
+        let db = create_empty_test_database();
+        let _migrator = Migrator::new(&db).expect("Failed to create migrator");
 
         // 【実際の処理実行】: バージョン1までのマイグレーション実行
         // 【処理内容】: 指定されたバージョンまでの段階的適用
-        let result = migrator.migrate_to_version(1).expect("Migration to version 1 failed");
+        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        let result = migrator.migrate_to_version(&db, 1).expect("Migration to version 1 failed");
 
         // 【結果検証】: 部分的マイグレーションの結果を確認
         // 【期待値確認】: バージョン1のみが適用され、バージョン2は未適用であること
@@ -133,12 +142,14 @@ mod tests {
         // 【テストデータ準備】: バージョン1まで適用済みのデータベース状態を作成
         // 【初期条件設定】: 部分的にマイグレーションが適用された状態
         let db = create_test_database();
+        let _migrator = Migrator::new(&db).expect("Failed to create migrator");
         let migrator = Migrator::new(&db).expect("Failed to create migrator");
-        migrator.migrate_to_version(1).expect("Setup migration failed");
+        migrator.migrate_to_version(&db, 1).expect("Setup migration failed");
 
         // 【実際の処理実行】: マイグレーション状態の取得処理
         // 【処理内容】: 現在の適用状況と未適用マイグレーションの分析
-        let status = migrator.get_migration_status().expect("Failed to get migration status");
+        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        let status = migrator.get_migration_status(&db).expect("Failed to get migration status");
 
         // 【結果検証】: 状態情報の正確性を確認
         // 【期待値確認】: 現在バージョン、未適用マイグレーション、適用済み履歴が正しいこと
@@ -169,8 +180,9 @@ mod tests {
 
         // 【実際の処理実行】: 無効なマイグレーションの実行試行
         // 【処理内容】: SQLエラーの発生とエラーハンドリング
+        let _migrator = Migrator::new(&db).expect("Failed to create migrator");
         let migrator = Migrator::new(&db).expect("Failed to create migrator");
-        let result = migrator.apply_migration(&invalid_migration);
+        let result = migrator.apply_migration(&db, &invalid_migration);
 
         // 【結果検証】: エラーハンドリングの適切性を確認
         // 【期待値確認】: 失敗が検出され、適切なエラーメッセージが返されること
@@ -219,10 +231,11 @@ mod tests {
         // 【テストデータ準備】: 正常なマイグレーション適用後、チェックサムを改竄
         // 【初期条件設定】: 一度適用されたマイグレーションのチェックサムが変更された状態
         let db = create_test_database();
-        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        let _migrator = Migrator::new(&db).expect("Failed to create migrator");
 
         // 正常なマイグレーション適用
-        migrator.migrate_to_version(1).expect("Initial migration failed");
+        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        migrator.migrate_to_version(&db, 1).expect("Initial migration failed");
 
         // 【実際の処理実行】: 同一バージョンで異なるチェックサムのマイグレーション実行
         // 【処理内容】: チェックサム検証とデータ整合性チェック
@@ -234,7 +247,8 @@ mod tests {
             checksum: "different_checksum".to_string(), // 【改竄データ】: 異なるチェックサム
         };
 
-        let result = migrator.verify_migration_integrity(&tampered_migration);
+        let migrator = Migrator::new(&db).expect("Failed to create migrator");
+        let result = migrator.verify_migration_integrity(&db, &tampered_migration);
 
         // 【結果検証】: チェックサム不一致の検出
         // 【期待値確認】: 改竄が検出され、適切なエラーメッセージが返されること
@@ -258,7 +272,7 @@ mod tests {
         // 【実際の処理実行】: 初回マイグレーションシステムの初期化と実行
         // 【処理内容】: マイグレーション管理テーブル作成とバージョン1適用
         let migrator = Migrator::new(&db).expect("Failed to initialize migrator");
-        let result = migrator.migrate_to_version(1).expect("First migration failed");
+        let result = migrator.migrate_to_version(&db, 1).expect("First migration failed");
 
         // 【結果検証】: 初期状態からの正常な遷移確認
         // 【期待値確認】: バージョン0→1への遷移とマイグレーション基盤の確立
@@ -283,12 +297,13 @@ mod tests {
         // 【テストデータ準備】: 既にバージョン2（最新）まで適用済みのデータベース
         // 【初期条件設定】: 全マイグレーションが適用済みの状態
         let db = create_test_database();
+        let _migrator = Migrator::new(&db).expect("Failed to create migrator");
         let migrator = Migrator::new(&db).expect("Failed to create migrator");
-        migrator.migrate_to_latest().expect("Initial migration to latest failed");
+        migrator.migrate_to_latest(&db).expect("Initial migration to latest failed");
 
         // 【実際の処理実行】: 最新状態での再度のマイグレーション実行
         // 【処理内容】: 冪等性チェックと不要な処理のスキップ
-        let result = migrator.migrate_to_latest().expect("Idempotent migration failed");
+        let result = migrator.migrate_to_latest(&db).expect("Idempotent migration failed");
 
         // 【結果検証】: 冪等性の確保と安全な重複実行
         // 【期待値確認】: エラーが発生せず、新たな適用もないこと
@@ -298,92 +313,7 @@ mod tests {
         assert!(result.error_message.is_none()); // 【確認内容】: エラーメッセージが発生しない 🔴
 
         // 【追加検証】: データベース状態が変更されていないことを確認
-        let status = migrator.get_migration_status().expect("Failed to get status");
+        let status = migrator.get_migration_status(&db).expect("Failed to get status");
         assert_eq!(status.pending_migrations.len(), 0); // 【確認内容】: 未適用マイグレーションがない 🔴
-    }
-}
-
-// 【マイグレーション関連構造体】: テストで使用する未実装の構造体とトレイト
-// 【実装予定】: これらの構造体は Green フェーズで実装される
-
-// マイグレーション定義構造体
-#[derive(Debug, Clone)]
-pub struct Migration {
-    pub version: u32,
-    pub description: String,
-    pub up_sql: String,
-    pub down_sql: String,
-    pub checksum: String,
-}
-
-// マイグレーション実行結果
-#[derive(Debug)]
-pub struct MigrationResult {
-    pub success: bool,
-    pub applied_migrations: Vec<u32>,
-    pub current_version: u32,
-    pub error_message: Option<String>,
-}
-
-// マイグレーション状態
-#[derive(Debug)]
-pub struct MigrationStatus {
-    pub current_version: u32,
-    pub pending_migrations: Vec<u32>,
-    pub applied_migrations: Vec<AppliedMigration>,
-}
-
-// 適用済みマイグレーション
-#[derive(Debug)]
-pub struct AppliedMigration {
-    pub version: u32,
-    pub applied_at: String,
-    pub checksum: String,
-}
-
-// マイグレーター（実行エンジン）
-pub struct Migrator {
-    database: Database,
-}
-
-impl Migrator {
-    pub fn new(_database: &Database) -> Result<Self, Box<dyn std::error::Error>> {
-        // 【実装予定】: Green フェーズで実装
-        unimplemented!("Migrator::new not implemented yet")
-    }
-
-    pub fn migrate_to_latest(&self) -> Result<MigrationResult, Box<dyn std::error::Error>> {
-        // 【実装予定】: Green フェーズで実装
-        unimplemented!("migrate_to_latest not implemented yet")
-    }
-
-    pub fn migrate_to_version(&self, _version: u32) -> Result<MigrationResult, Box<dyn std::error::Error>> {
-        // 【実装予定】: Green フェーズで実装
-        unimplemented!("migrate_to_version not implemented yet")
-    }
-
-    pub fn get_migration_status(&self) -> Result<MigrationStatus, Box<dyn std::error::Error>> {
-        // 【実装予定】: Green フェーズで実装
-        unimplemented!("get_migration_status not implemented yet")
-    }
-
-    pub fn apply_migration(&self, _migration: &Migration) -> Result<(), Box<dyn std::error::Error>> {
-        // 【実装予定】: Green フェーズで実装
-        unimplemented!("apply_migration not implemented yet")
-    }
-
-    pub fn verify_migration_integrity(&self, _migration: &Migration) -> Result<(), Box<dyn std::error::Error>> {
-        // 【実装予定】: Green フェーズで実装
-        unimplemented!("verify_migration_integrity not implemented yet")
-    }
-}
-
-// マイグレーションローダー
-pub struct MigrationLoader;
-
-impl MigrationLoader {
-    pub fn load_from_directory(_dir_path: &str) -> Result<Vec<Migration>, Box<dyn std::error::Error>> {
-        // 【実装予定】: Green フェーズで実装
-        unimplemented!("load_from_directory not implemented yet")
     }
 }

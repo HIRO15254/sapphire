@@ -19,7 +19,19 @@
       "mcp__linear-server__list_issues",
       "Bash(mkdir:*)",
       "Bash(git commit:*)",
-      "mcp__linear-server__create_issue"
+      "mcp__linear-server__create_issue",
+      "mcp__linear-server__get_issue",
+      "SlashCommand(/tdd-requirements:*)",
+      "Bash(dir C:Usershi089Documentsschoolsapphiresrc-taurisrc)",
+      "mcp__linear-server__create_comment",
+      "SlashCommand(/tdd-testcases:*)",
+      "SlashCommand(/tdd-red:*)",
+      "SlashCommand(/tdd-green:*)",
+      "SlashCommand(/tdd-refactor)",
+      "Bash(cargo build:*)",
+      "Bash(cargo clippy:*)",
+      "SlashCommand(/tdd-verify-complete)",
+      "mcp__linear-server__update_issue"
     ],
     "deny": [
       "Bash(bun test:*)",
