@@ -31,7 +31,10 @@
       "Bash(cargo build:*)",
       "Bash(cargo clippy:*)",
       "SlashCommand(/tdd-verify-complete)",
-      "mcp__linear-server__update_issue"
+      "mcp__linear-server__update_issue",
+      "SlashCommand(/direct-setup)",
+      "Bash(dir:*)",
+      "SlashCommand(/direct-verify)"
     ],
     "deny": [
       "Bash(bun test:*)",

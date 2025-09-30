@@ -6,6 +6,7 @@ use tauri::{AppHandle, Manager};
 // Re-export structures for public use
 pub use self::models::*;
 pub use self::migration::*;
+pub use self::connection::*;
 
 // Data models module
 pub mod models {
@@ -105,6 +106,7 @@ pub mod models {
 
 // Migration module
 pub mod migration;
+pub mod connection;
 
 // Database connection wrapper
 pub struct Database(pub Mutex<Connection>);
