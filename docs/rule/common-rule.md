@@ -15,6 +15,30 @@
 - 各TDDコマンド終了時に自動コミット
 - タスク完了時にPR作成・HIRO15254へレビュー依頼
 
+## TDDコマンド自動コミットルール
+
+各TDDフェーズ完了時に必ずコミットを作成すること：
+
+### コミット対象フェーズ
+- `tdd-requirements` 完了時: 要件定義書の作成・更新
+- `tdd-testcases` 完了時: テストケース設計書の作成・更新
+- `tdd-red` 完了時: 失敗テストの実装
+- `tdd-green` 完了時: テストを通す最小実装
+- `tdd-refactor` 完了時: リファクタリング実施
+- `tdd-verify-complete` 完了時: 品質確認・最終検証
+
+### コミットメッセージ規約
+Linear統合ルールに従い、以下の形式でコミットメッセージを作成：
+
+```bash
+feat(SAP-XXX): 要件定義を完了      # tdd-requirements
+test(SAP-XXX): テストケースを作成   # tdd-testcases
+test(SAP-XXX): 失敗するテストを実装 # tdd-red
+feat(SAP-XXX): テストを通る最小実装 # tdd-green
+refactor(SAP-XXX): コード品質改善  # tdd-refactor
+chore(SAP-XXX): 品質確認完了      # tdd-verify-complete
+```
+
 ## 主要コマンド
 
 テスト時において、`bun test:*`と`bun run test:*`では挙動が異なる。
