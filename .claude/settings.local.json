@@ -34,7 +34,8 @@
       "mcp__linear-server__update_issue",
       "SlashCommand(/direct-setup)",
       "Bash(dir:*)",
-      "SlashCommand(/direct-verify)"
+      "SlashCommand(/direct-verify)",
+      "Bash(find:*)"
     ],
     "deny": [
       "Bash(bun test:*)",
