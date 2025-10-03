@@ -30,7 +30,8 @@
       "mcp__github__update_pull_request",
       "mcp__github__update_issue",
       "Bash(gh issue view:*)",
-      "SlashCommand(/tdd-requirements:*)"
+      "SlashCommand(/tdd-requirements:*)",
+      "SlashCommand(/tdd-testcases:*)"
     ],
     "deny": [
       "Bash(bun test:*)",
