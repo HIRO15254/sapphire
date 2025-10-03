@@ -164,7 +164,10 @@ fn test_fts5_japanese_search() {
     // 日本語メモを作成（トリガーで自動的にFTSテーブルに追加される）
     conn.execute(
         "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
-        params![1, "これは日本語のテストメモです。キーワード検索ができます。"],
+        params![
+            1,
+            "これは日本語のテストメモです。キーワード検索ができます。"
+        ],
     )
     .expect("Failed to insert note");
 
@@ -177,7 +180,10 @@ fn test_fts5_japanese_search() {
         )
         .expect("Failed to search Japanese text");
 
-    assert_eq!(search_result, 1, "Japanese keyword search should return 1 result");
+    assert_eq!(
+        search_result, 1,
+        "Japanese keyword search should return 1 result"
+    );
 
     // 別のキーワードで検索
     let search_result2: i64 = conn
@@ -188,7 +194,10 @@ fn test_fts5_japanese_search() {
         )
         .expect("Failed to search Japanese text");
 
-    assert_eq!(search_result2, 1, "Japanese keyword search should return 1 result");
+    assert_eq!(
+        search_result2, 1,
+        "Japanese keyword search should return 1 result"
+    );
 
     // 存在しないキーワードで検索
     let search_result3: i64 = conn
@@ -199,7 +208,10 @@ fn test_fts5_japanese_search() {
         )
         .expect("Failed to search Japanese text");
 
-    assert_eq!(search_result3, 0, "Non-existent keyword should return 0 results");
+    assert_eq!(
+        search_result3, 0,
+        "Non-existent keyword should return 0 results"
+    );
 }
 
 #[test]
@@ -267,7 +279,10 @@ fn test_fts5_trigger_update() {
         )
         .expect("Failed to query FTS content");
 
-    assert_eq!(updated_content, "更新されたメモ内容", "Trigger should update FTS entry");
+    assert_eq!(
+        updated_content, "更新されたメモ内容",
+        "Trigger should update FTS entry"
+    );
 
     // 検索が新しい内容で動作することを確認
     let search_result: i64 = conn
@@ -343,7 +358,10 @@ fn test_fts5_summaries_trigger() {
         )
         .expect("Failed to count FTS entries");
 
-    assert_eq!(fts_count, 1, "Trigger should insert entry into summaries FTS table");
+    assert_eq!(
+        fts_count, 1,
+        "Trigger should insert entry into summaries FTS table"
+    );
 
     // 日本語検索が動作することを確認
     let search_result: i64 = conn
@@ -385,5 +403,8 @@ fn test_fts5_summaries_trigger() {
         )
         .expect("Failed to count FTS entries after delete");
 
-    assert_eq!(fts_after_delete, 0, "Trigger should delete entry from summaries FTS table");
+    assert_eq!(
+        fts_after_delete, 0,
+        "Trigger should delete entry from summaries FTS table"
+    );
 }
