@@ -96,6 +96,68 @@ pub fn initialize_schema(conn: &Connection) -> SqliteResult<()> {
         CREATE INDEX IF NOT EXISTS idx_player_notes_updated_at ON player_notes(updated_at DESC);
 
         -- ============================================
+        -- FTS5全文検索仮想テーブル
+        -- ============================================
+
+        -- 簡易メモ全文検索用
+        CREATE VIRTUAL TABLE IF NOT EXISTS player_notes_fts USING fts5(
+          note_id UNINDEXED,
+          content,
+          tokenize = 'trigram'
+        );
+
+        -- 総合メモ全文検索用
+        CREATE VIRTUAL TABLE IF NOT EXISTS player_summaries_fts USING fts5(
+          summary_id UNINDEXED,
+          content,
+          tokenize = 'trigram'
+        );
+
+        -- ============================================
+        -- トリガー: player_notes (簡易メモ) FTS同期
+        -- ============================================
+
+        -- INSERT時: FTSテーブルにエントリ追加
+        CREATE TRIGGER IF NOT EXISTS player_notes_ai AFTER INSERT ON player_notes
+        BEGIN
+          INSERT INTO player_notes_fts(note_id, content) VALUES (new.id, new.content);
+        END;
+
+        -- UPDATE時: FTSテーブルのエントリ更新
+        CREATE TRIGGER IF NOT EXISTS player_notes_au AFTER UPDATE ON player_notes
+        BEGIN
+          UPDATE player_notes_fts SET content = new.content WHERE note_id = old.id;
+        END;
+
+        -- DELETE時: FTSテーブルのエントリ削除
+        CREATE TRIGGER IF NOT EXISTS player_notes_ad AFTER DELETE ON player_notes
+        BEGIN
+          DELETE FROM player_notes_fts WHERE note_id = old.id;
+        END;
+
+        -- ============================================
+        -- トリガー: player_summaries (総合メモ) FTS同期
+        -- ============================================
+
+        -- INSERT時: FTSテーブルにエントリ追加
+        CREATE TRIGGER IF NOT EXISTS player_summaries_ai AFTER INSERT ON player_summaries
+        BEGIN
+          INSERT INTO player_summaries_fts(summary_id, content) VALUES (new.id, new.content);
+        END;
+
+        -- UPDATE時: FTSテーブルのエントリ更新
+        CREATE TRIGGER IF NOT EXISTS player_summaries_au AFTER UPDATE ON player_summaries
+        BEGIN
+          UPDATE player_summaries_fts SET content = new.content WHERE summary_id = old.id;
+        END;
+
+        -- DELETE時: FTSテーブルのエントリ削除
+        CREATE TRIGGER IF NOT EXISTS player_summaries_ad AFTER DELETE ON player_summaries
+        BEGIN
+          DELETE FROM player_summaries_fts WHERE summary_id = old.id;
+        END;
+
+        -- ============================================
         -- 初期データ
         -- ============================================
 
@@ -128,6 +190,29 @@ mod tests {
             )
             .unwrap();
         assert_eq!(table_count, 7);
+
+        // Verify FTS5 tables exist
+        let fts_table_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN
+                ('player_notes_fts', 'player_summaries_fts')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(fts_table_count, 2);
+
+        // Verify triggers exist
+        let trigger_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name IN
+                ('player_notes_ai', 'player_notes_au', 'player_notes_ad',
+                 'player_summaries_ai', 'player_summaries_au', 'player_summaries_ad')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(trigger_count, 6);
 
         // Verify template default value
         let template_content: String = conn
