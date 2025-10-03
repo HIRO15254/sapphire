@@ -281,9 +281,7 @@ async fn cleanup_test_db(app: tauri::AppHandle, test_id: String) -> Result<(), S
 
 // Seed database commands (development only)
 #[tauri::command]
-async fn seed_database_small(
-    app: tauri::AppHandle,
-) -> Result<String, String> {
+async fn seed_database_small(app: tauri::AppHandle) -> Result<String, String> {
     #[cfg(not(debug_assertions))]
     {
         return Err("Seeding is only available in debug mode".to_string());
@@ -299,9 +297,7 @@ async fn seed_database_small(
 }
 
 #[tauri::command]
-async fn seed_database_medium(
-    app: tauri::AppHandle,
-) -> Result<String, String> {
+async fn seed_database_medium(app: tauri::AppHandle) -> Result<String, String> {
     #[cfg(not(debug_assertions))]
     {
         return Err("Seeding is only available in debug mode".to_string());
@@ -317,9 +313,7 @@ async fn seed_database_medium(
 }
 
 #[tauri::command]
-async fn seed_database_large(
-    app: tauri::AppHandle,
-) -> Result<String, String> {
+async fn seed_database_large(app: tauri::AppHandle) -> Result<String, String> {
     #[cfg(not(debug_assertions))]
     {
         return Err("Seeding is only available in debug mode".to_string());

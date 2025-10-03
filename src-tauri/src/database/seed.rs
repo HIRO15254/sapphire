@@ -1,17 +1,32 @@
 use rusqlite::{Connection, Result as SqliteResult};
 
-
 /// Player name templates for random generation
 const FIRST_NAMES: &[&str] = &[
-    "Player", "Ace", "King", "Queen", "Jack", "Dealer", "Shark", "Fish",
-    "Pro", "Rookie", "Veteran", "Novice", "Expert", "Master", "Champion",
-    "Contender", "Challenger", "Warrior", "Hero", "Legend",
+    "Player",
+    "Ace",
+    "King",
+    "Queen",
+    "Jack",
+    "Dealer",
+    "Shark",
+    "Fish",
+    "Pro",
+    "Rookie",
+    "Veteran",
+    "Novice",
+    "Expert",
+    "Master",
+    "Champion",
+    "Contender",
+    "Challenger",
+    "Warrior",
+    "Hero",
+    "Legend",
 ];
 
 const LAST_NAMES: &[&str] = &[
-    "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta",
-    "Iota", "Kappa", "Lambda", "Mu", "Nu", "Xi", "Omicron", "Pi",
-    "Rho", "Sigma", "Tau", "Upsilon",
+    "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta", "Iota", "Kappa",
+    "Lambda", "Mu", "Nu", "Xi", "Omicron", "Pi", "Rho", "Sigma", "Tau", "Upsilon",
 ];
 
 /// Seed the database with test data
@@ -199,7 +214,10 @@ pub fn seed_database(conn: &Connection, player_count: usize) -> SqliteResult<()>
             );
             conn.execute(
                 "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
-                [&player_id as &dyn rusqlite::ToSql, &content as &dyn rusqlite::ToSql],
+                [
+                    &player_id as &dyn rusqlite::ToSql,
+                    &content as &dyn rusqlite::ToSql,
+                ],
             )?;
         }
 
