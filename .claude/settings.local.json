@@ -15,7 +15,13 @@
       "Bash(bunx biome check:*)",
       "Bash(cat:*)",
       "Bash(bun run:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "mcp__github__get_issue",
+      "Bash(git checkout:*)",
+      "mcp__github__add_issue_comment",
+      "Bash(git commit:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo fmt:*)"
     ],
     "deny": [
       "Bash(bun test:*)",
