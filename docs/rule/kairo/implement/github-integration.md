@@ -98,9 +98,33 @@ ${taskType === 'TDD' ? `
 /direct-verify 125
 ```
 
-### 7. PR作成（完了時）
+### 7. Lint/Format実行（完了時、PR作成前）
 
-tdd-verify-complete または direct-verify 完了時にPR作成：
+**重要**: PR作成前に必ずlint/formatを実行：
+
+```bash
+# Lint修正とフォーマット
+bun run lint:fix
+bun run format
+
+# Lint/formatチェック（警告・エラーが0であることを確認）
+bun run lint
+bun run format:check
+```
+
+修正内容をコミット：
+
+```bash
+git commit -m "chore(#${issueNumber}): lint/format修正
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+### 8. PR作成（完了時）
+
+lint/format完了後、PR作成：
 
 ```typescript
 // タスクIDとMilestone名を取得
@@ -133,7 +157,7 @@ ${changedFiles.map(f => \`- \${f}\`).join('\\n')}
 });
 ```
 
-### 8. ステータス更新（レビュー待ち）
+### 9. ステータス更新（レビュー待ち）
 
 ```typescript
 const reviewLabels = currentLabels.filter(l => !l.startsWith('status:') && l !== 'tdd-cycle');
@@ -145,7 +169,7 @@ await mcp__github__update_issue({
 });
 ```
 
-### 9. PRリンクをコメント追加
+### 10. PRリンクをコメント追加
 
 ```typescript
 await mcp__github__add_issue_comment({
@@ -207,3 +231,8 @@ PRのレビュー完了後、次のタスクに進んでください。
 6. **コメントでプロセスを可視化**
    - 開始、各フェーズ完了、PR作成時にコメント追加
    - タイムスタンプを含める
+
+7. **lint/format必須実行**
+   - PR作成前に必ず `lint:fix` と `format` を実行
+   - CIでlint/formatチェックが失敗するとマージ不可
+   - 修正内容は別コミットとして記録

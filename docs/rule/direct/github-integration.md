@@ -92,6 +92,28 @@ git commit -m "chore(#${issueNumber}): 動作確認完了
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
+## PR作成前の必須チェック
+
+**重要**: direct-verify完了後、PR作成前に必ず以下のコマンドを実行すること：
+
+```bash
+# Lint修正とフォーマット
+bun run lint:fix
+bun run format
+
+# Lint/formatチェック（警告・エラーが0であることを確認）
+bun run lint
+bun run format:check
+```
+
+これらのチェックが通らない場合、PRはマージできません。
+
+### 実行タイミング
+1. direct-verify完了後
+2. PR作成前（git push前）
+3. すべてのlint/formatエラーを修正
+4. 修正内容をコミット（`chore(#issue): lint/format修正`）
+
 ## 重要な注意点
 
 1. **Sub-Issue番号が必須**
@@ -107,3 +129,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 4. **direct-verify完了時**
    - PR作成の準備完了をコメントに明記
    - kairo-implementがPR作成を担当
+
+5. **lint/format必須実行**
+   - PR作成前に必ず `lint:fix` と `format` を実行
+   - CIでlint/formatチェックが失敗するとマージ不可

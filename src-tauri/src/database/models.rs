@@ -29,7 +29,7 @@ pub struct PlayerCategory {
 pub struct Tag {
     pub id: i64,
     pub name: String,
-    pub color: String, // HEX color code
+    pub color: String,       // HEX color code
     pub has_intensity: bool, // 強度設定あり/なし
     pub created_at: String,
     pub updated_at: String,
@@ -42,7 +42,7 @@ pub struct PlayerTag {
     pub player_id: i64,
     pub tag_id: i64,
     pub intensity: Option<i32>, // 1-5 (I-V), null if has_intensity = false
-    pub display_order: i32,      // ドラッグ&ドロップ順序
+    pub display_order: i32,     // ドラッグ&ドロップ順序
     pub created_at: String,
 }
 
@@ -69,7 +69,7 @@ pub struct PlayerSummary {
 /// 総合メモテンプレートエンティティ
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SummaryTemplate {
-    pub id: i64, // 常に1（シングルトン）
+    pub id: i64,         // 常に1（シングルトン）
     pub content: String, // HTML
     pub updated_at: String,
 }
@@ -248,7 +248,7 @@ pub fn validate_hex_color(color: &str) -> Result<(), String> {
 
 /// タグ強度をバリデーション
 pub fn validate_tag_intensity(intensity: i32) -> Result<(), String> {
-    if intensity < TAG_INTENSITY_MIN || intensity > TAG_INTENSITY_MAX {
+    if !(TAG_INTENSITY_MIN..=TAG_INTENSITY_MAX).contains(&intensity) {
         return Err(format!(
             "Tag intensity must be between {} and {}, got: {}",
             TAG_INTENSITY_MIN, TAG_INTENSITY_MAX, intensity
