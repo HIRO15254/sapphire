@@ -23,7 +23,8 @@
       "Bash(cargo clippy:*)",
       "Bash(cargo fmt:*)",
       "mcp__github__update_issue",
-      "SlashCommand(/direct-setup:*)"
+      "SlashCommand(/direct-setup:*)",
+      "SlashCommand(/direct-verify:*)"
     ],
     "deny": [
       "Bash(bun test:*)",
