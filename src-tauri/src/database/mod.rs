@@ -5,6 +5,9 @@ use tauri::{AppHandle, Manager};
 pub mod models;
 pub mod schema;
 
+#[cfg(test)]
+mod integration_tests;
+
 /// Database connection wrapper for player note system
 pub struct PlayerDatabase(pub Mutex<Connection>);
 
