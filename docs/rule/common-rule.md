@@ -4,16 +4,17 @@
 
 ユーザーとのインタラクションが必要な部分についてはすべて日本語でコミュニケーションを行うこと。
 
-## Linear統合
+## GitHub統合
 
-プロジェクト管理とタスクトラッキングにLinearを使用します。
-詳細な統合ルールについては[Linear統合ルール](./linear-integration.md)を参照してください。
+プロジェクト管理とタスクトラッキングにGitHub Issues + Labels + Milestonesを使用します。
+詳細な統合ルールについては[GitHub統合ルール](./github-integration.md)を参照してください。
 
 ### 主要ポイント
-- タスクIDはLinear Issue IDを使用（例: SAP-123）
+- タスクIDはGitHub Issue番号を使用（例: #123）
 - ブランチ戦略: dev → milestone → task
 - 各TDDコマンド終了時に自動コミット
 - タスク完了時にPR作成・HIRO15254へレビュー依頼
+- ステータス管理はLabels（`status: todo`、`status: in-progress`、`status: in-review`、`status: done`）
 
 ## 主要コマンド
 
@@ -27,8 +28,8 @@
 
 ## ドキュメント管理
 
-LinearワークフローではLinear上で文書管理を行います。
-詳細は[Linear統合ルール](./linear-integration.md)を参照してください。
+TsumikiワークフローではGitHub Issues/Comments上で文書管理を行います。
+詳細は[GitHub統合ルール](./github-integration.md)を参照してください。
 
 ### ローカル `docs/` ディレクトリの用途
 - `docs/rule/` - 開発ルール・ガイドライン
