@@ -21,7 +21,9 @@
       "mcp__github__add_issue_comment",
       "Bash(git commit:*)",
       "Bash(cargo clippy:*)",
-      "Bash(cargo fmt:*)"
+      "Bash(cargo fmt:*)",
+      "mcp__github__update_issue",
+      "SlashCommand(/direct-setup:*)"
     ],
     "deny": [
       "Bash(bun test:*)",

@@ -4,6 +4,7 @@ use tauri::{AppHandle, Manager};
 
 pub mod models;
 pub mod schema;
+pub mod seed;
 
 #[cfg(test)]
 mod integration_tests;
