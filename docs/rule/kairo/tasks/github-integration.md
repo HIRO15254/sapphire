@@ -160,20 +160,24 @@ ${createdIssues.map((t, i) => `${i + 1}. #${t.issueNumber} - ${t.taskId}: ${t.ta
 
 ## 重要な注意点
 
-1. **Sub-Issueの紐付けに注意**
+1. **親Issueへの紐付けは必須**
+   - **すべてのSub-Issue作成後に`add_sub_issue`を実行すること**
    - `add_sub_issue`は`sub_issue_id`（GitHub内部ID）を使用
    - `subIssue.number`ではなく`subIssue.id`を渡す
+   - 親Issue上でSub-Issuesが自動追跡され、進捗が可視化される
 
-2. **依存タスクはIssue番号で参照**
+2. **Milestoneの設定は必須**
+   - **すべてのSub-IssueにMilestoneを設定すること**
+   - 親IssueのMilestoneと同じMilestoneを設定
+   - `create_issue`の`milestone`パラメータで設定（`milestone: targetMilestone?.number`）
+   - 実装フェーズ単位の進捗管理に利用
+
+3. **依存タスクはIssue番号で参照**
    - `#123`形式で記載するとGitHubが自動リンク
 
-3. **進捗トラッカーのチェックボックス**
+4. **進捗トラッカーのチェックボックス**
    - `- [ ]`形式で記載すると対話的に更新可能
 
-4. **タスクID（TASK-0001）を含める**
+5. **タスクID（TASK-0001）を含める**
    - Issue TitleとDescriptionの両方に記載
    - ブランチ名にも使用（`task/TASK-0001`）
-
-5. **Milestoneを設定**
-   - すべてのSub-IssueにMilestoneを設定
-   - 実装単位の進捗管理に利用
