@@ -4,6 +4,9 @@ use std::fs;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
+// Player note database module
+pub mod database;
+
 // Data structures
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
