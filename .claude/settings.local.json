@@ -31,7 +31,8 @@
       "mcp__github__update_issue",
       "Bash(gh issue view:*)",
       "SlashCommand(/tdd-requirements:*)",
-      "SlashCommand(/tdd-testcases:*)"
+      "SlashCommand(/tdd-testcases:*)",
+      "SlashCommand(/tdd-red:*)"
     ],
     "deny": [
       "Bash(bun test:*)",
