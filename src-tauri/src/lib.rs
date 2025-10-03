@@ -279,6 +279,55 @@ async fn cleanup_test_db(app: tauri::AppHandle, test_id: String) -> Result<(), S
     Database::cleanup_specific_test_database(&app, &test_id).map_err(|e| e.to_string())
 }
 
+// Seed database commands (development only)
+#[tauri::command]
+async fn seed_database_small(app: tauri::AppHandle) -> Result<String, String> {
+    #[cfg(not(debug_assertions))]
+    {
+        return Err("Seeding is only available in debug mode".to_string());
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        let player_db = database::PlayerDatabase::new(&app).map_err(|e| e.to_string())?;
+        let conn = player_db.0.lock().map_err(|e| e.to_string())?;
+        database::seed::seed_small(&conn).map_err(|e| e.to_string())?;
+        Ok("Successfully seeded 50 players".to_string())
+    }
+}
+
+#[tauri::command]
+async fn seed_database_medium(app: tauri::AppHandle) -> Result<String, String> {
+    #[cfg(not(debug_assertions))]
+    {
+        return Err("Seeding is only available in debug mode".to_string());
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        let player_db = database::PlayerDatabase::new(&app).map_err(|e| e.to_string())?;
+        let conn = player_db.0.lock().map_err(|e| e.to_string())?;
+        database::seed::seed_medium(&conn).map_err(|e| e.to_string())?;
+        Ok("Successfully seeded 200 players".to_string())
+    }
+}
+
+#[tauri::command]
+async fn seed_database_large(app: tauri::AppHandle) -> Result<String, String> {
+    #[cfg(not(debug_assertions))]
+    {
+        return Err("Seeding is only available in debug mode".to_string());
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        let player_db = database::PlayerDatabase::new(&app).map_err(|e| e.to_string())?;
+        let conn = player_db.0.lock().map_err(|e| e.to_string())?;
+        database::seed::seed_large(&conn).map_err(|e| e.to_string())?;
+        Ok("Successfully seeded 500 players".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -296,7 +345,10 @@ pub fn run() {
             get_notes,
             create_note,
             delete_note,
-            cleanup_test_db
+            cleanup_test_db,
+            seed_database_small,
+            seed_database_medium,
+            seed_database_large
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
