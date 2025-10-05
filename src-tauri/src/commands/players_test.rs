@@ -602,5 +602,5 @@ fn test_get_player_detail_with_category() {
     // 【結果検証】: 全データが取得されることを確認
     // 【期待値確認】: プレイヤー、種別、メモ、総合メモが全て含まれている
     assert!(result.is_ok(), "プレイヤー詳細取得が成功すること"); // 【確認内容】: 取得処理が成功している 🔵
-    // 注: 詳細な検証はGreenフェーズでPlayerDetail型実装後に追加
+                                                                 // 注: 詳細な検証はGreenフェーズでPlayerDetail型実装後に追加
 }

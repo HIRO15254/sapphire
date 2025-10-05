@@ -1,4 +1,6 @@
-use crate::database::models::{PaginatedResponse, Player, PLAYER_NAME_MAX_LENGTH, PLAYER_NAME_MIN_LENGTH};
+use crate::database::models::{
+    PaginatedResponse, Player, PLAYER_NAME_MAX_LENGTH, PLAYER_NAME_MIN_LENGTH,
+};
 use crate::database::PlayerDatabase;
 use rusqlite::{params, Connection};
 use tauri::State;
@@ -12,7 +14,7 @@ use tauri::State;
 /// 【単一責任】: 名前の長さチェックのみを担当 🔵
 fn validate_player_name(name: &str) -> Result<(), String> {
     let name_len = name.chars().count();
-    if name_len < PLAYER_NAME_MIN_LENGTH || name_len > PLAYER_NAME_MAX_LENGTH {
+    if !(PLAYER_NAME_MIN_LENGTH..=PLAYER_NAME_MAX_LENGTH).contains(&name_len) {
         return Err(format!(
             "Player name must be between {} and {} characters, got: {}",
             PLAYER_NAME_MIN_LENGTH, PLAYER_NAME_MAX_LENGTH, name_len
@@ -171,7 +173,7 @@ pub(crate) fn get_players_internal(
 ) -> Result<PaginatedResponse<Player>, String> {
     // 【デフォルト値設定】: page=1, per_page=20 🔵
     let page = page.unwrap_or(1).max(1); // 最小値1
-    let per_page = per_page.unwrap_or(20).min(100).max(1); // 最小1、最大100
+    let per_page = per_page.unwrap_or(20).clamp(1, 100); // 最小1、最大100
 
     let conn = db.0.lock().unwrap();
 
@@ -181,7 +183,7 @@ pub(crate) fn get_players_internal(
         .map_err(|e| format!("Failed to count players: {}", e))?;
 
     // 【総ページ数計算】: ceil(total / per_page) 🔵
-    let total_pages = (total + per_page - 1) / per_page;
+    let total_pages = total.div_ceil(per_page);
 
     // 【OFFSET/LIMIT計算】: ページネーション用のオフセット計算 🔵
     let offset = (page - 1) * per_page;
@@ -369,8 +371,8 @@ pub(crate) fn get_player_detail_internal(
 
     // 【簡易実装】: 現時点ではプレイヤー基本情報のみJSON化して返す 🟡
     // TODO: 将来的にはカテゴリ、タグ、メモ、総合メモも含める
-    let json = serde_json::to_value(&player)
-        .map_err(|e| format!("Failed to serialize player: {}", e))?;
+    let json =
+        serde_json::to_value(&player).map_err(|e| format!("Failed to serialize player: {}", e))?;
 
     Ok(json)
 }
