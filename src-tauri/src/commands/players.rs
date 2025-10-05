@@ -1,7 +1,88 @@
 use crate::database::models::{PaginatedResponse, Player, PLAYER_NAME_MAX_LENGTH, PLAYER_NAME_MIN_LENGTH};
 use crate::database::PlayerDatabase;
-use rusqlite::params;
+use rusqlite::{params, Connection};
 use tauri::State;
+
+// ============================================
+// ヘルパー関数（DRY原則による共通化）
+// ============================================
+
+/// 【ヘルパー関数】: プレイヤー名のバリデーション 🔵
+/// 【再利用性】: create_player, update_playerで共通利用 🔵
+/// 【単一責任】: 名前の長さチェックのみを担当 🔵
+fn validate_player_name(name: &str) -> Result<(), String> {
+    let name_len = name.chars().count();
+    if name_len < PLAYER_NAME_MIN_LENGTH || name_len > PLAYER_NAME_MAX_LENGTH {
+        return Err(format!(
+            "Player name must be between {} and {} characters, got: {}",
+            PLAYER_NAME_MIN_LENGTH, PLAYER_NAME_MAX_LENGTH, name_len
+        ));
+    }
+    Ok(())
+}
+
+/// 【ヘルパー関数】: プレイヤー存在確認 🔵
+/// 【再利用性】: update_player, delete_playerで共通利用 🔵
+/// 【単一責任】: プレイヤーIDの存在チェックのみを担当 🔵
+/// 【エラーハンドリング】: 存在しない場合は明確なエラーメッセージを返す 🔵
+fn check_player_exists(conn: &Connection, id: i64) -> Result<(), String> {
+    let exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM players WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    if exists == 0 {
+        return Err("Player not found".to_string());
+    }
+    Ok(())
+}
+
+/// 【ヘルパー関数】: 種別ID存在確認 🔵
+/// 【再利用性】: create_player, update_playerで共通利用 🔵
+/// 【単一責任】: 種別IDの存在チェックのみを担当 🔵
+/// 【エラーハンドリング】: 存在しない場合は明確なエラーメッセージを返す 🔵
+fn check_category_exists(conn: &Connection, category_id: i64) -> Result<(), String> {
+    let exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_categories WHERE id = ?1",
+            params![category_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    if exists == 0 {
+        return Err("Category not found".to_string());
+    }
+    Ok(())
+}
+
+/// 【ヘルパー関数】: プレイヤー情報を取得 🔵
+/// 【再利用性】: create_player, update_player, get_player_detailで共通利用 🔵
+/// 【単一責任】: IDからPlayerエンティティを構築するのみを担当 🔵
+/// 【パフォーマンス】: 単一のクエリで必要な情報を全て取得 🔵
+fn get_player_by_id(conn: &Connection, id: i64) -> Result<Player, String> {
+    conn.query_row(
+        "SELECT id, name, category_id, created_at, updated_at FROM players WHERE id = ?1",
+        params![id],
+        |row| {
+            Ok(Player {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                category_id: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        },
+    )
+    .map_err(|e| format!("Player not found: {}", e))
+}
+
+// ============================================
+// CRUDコマンド実装
+// ============================================
 
 /// プレイヤーを作成し、総合メモを自動生成する
 ///
@@ -14,41 +95,22 @@ use tauri::State;
 /// * `Result<Player, String>` - 作成されたプレイヤーまたはエラーメッセージ
 ///
 /// 【機能概要】: プレイヤーを作成し、総合メモを自動生成する 🔵
-/// 【実装方針】: テストを通すための最小実装（バリデーション + DB操作 + 総合メモ自動生成） 🔵
+/// 【改善内容】: ヘルパー関数を活用してコードの重複を削減、可読性を向上 🔵
+/// 【設計方針】: 単一責任原則に従い、各処理をヘルパー関数に委譲 🔵
 /// 【テスト対応】: TC-CREATE-001～003, TC-CREATE-ERR-001～003, TC-CREATE-BOUND-001～002 🔵
 pub(crate) fn create_player_internal(
     name: &str,
     category_id: Option<i64>,
     db: &PlayerDatabase,
 ) -> Result<Player, String> {
-    // 【入力値検証】: プレイヤー名の文字数チェック（1～100文字） 🔵
-    let name_len = name.chars().count();
-    if name_len < PLAYER_NAME_MIN_LENGTH || name_len > PLAYER_NAME_MAX_LENGTH {
-        return Err(format!(
-            "Player name must be between {} and {} characters, got: {}",
-            PLAYER_NAME_MIN_LENGTH, PLAYER_NAME_MAX_LENGTH, name_len
-        ));
-    }
+    // 【入力値検証】: ヘルパー関数を使用した名前バリデーション 🔵
+    validate_player_name(name)?;
 
     let conn = db.0.lock().unwrap();
 
-    // 【種別ID検証】: category_idが指定されている場合、存在確認 🔵
+    // 【種別ID検証】: ヘルパー関数を使用した種別存在確認 🔵
     if let Some(cat_id) = category_id {
-        let exists: Result<i64, _> = conn.query_row(
-            "SELECT COUNT(*) FROM player_categories WHERE id = ?1",
-            params![cat_id],
-            |row| row.get(0),
-        );
-
-        match exists {
-            Ok(count) if count == 0 => {
-                return Err("Category not found".to_string());
-            }
-            Err(e) => {
-                return Err(format!("Database error: {}", e));
-            }
-            _ => {}
-        }
+        check_category_exists(&conn, cat_id)?;
     }
 
     // 【プレイヤー作成】: playersテーブルにINSERT 🔵
@@ -76,24 +138,8 @@ pub(crate) fn create_player_internal(
     )
     .map_err(|e| format!("Failed to create summary: {}", e))?;
 
-    // 【プレイヤー取得】: 作成したプレイヤー情報を返す 🔵
-    let player: Player = conn
-        .query_row(
-            "SELECT id, name, category_id, created_at, updated_at FROM players WHERE id = ?1",
-            params![player_id],
-            |row| {
-                Ok(Player {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    category_id: row.get(2)?,
-                    created_at: row.get(3)?,
-                    updated_at: row.get(4)?,
-                })
-            },
-        )
-        .map_err(|e| format!("Failed to get created player: {}", e))?;
-
-    Ok(player)
+    // 【プレイヤー取得】: ヘルパー関数を使用して作成したプレイヤー情報を返す 🔵
+    get_player_by_id(&conn, player_id)
 }
 
 #[tauri::command]
@@ -195,7 +241,8 @@ pub async fn get_players(
 /// * `Result<Player, String>` - 更新されたプレイヤーまたはエラーメッセージ
 ///
 /// 【機能概要】: プレイヤー情報を部分更新 🔵
-/// 【実装方針】: 存在確認、バリデーション、部分更新、updated_at自動更新 🔵
+/// 【改善内容】: ヘルパー関数を活用してコードの重複を削減 🔵
+/// 【設計方針】: バリデーションロジックを共通化し、保守性を向上 🔵
 /// 【テスト対応】: TC-UPDATE-001, TC-UPDATE-ERR-001 🔵
 pub(crate) fn update_player_internal(
     id: i64,
@@ -205,43 +252,17 @@ pub(crate) fn update_player_internal(
 ) -> Result<Player, String> {
     let conn = db.0.lock().unwrap();
 
-    // 【プレイヤー存在確認】: IDが存在するか確認 🔵
-    let exists: i64 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM players WHERE id = ?1",
-            params![id],
-            |row| row.get(0),
-        )
-        .map_err(|e| format!("Database error: {}", e))?;
+    // 【プレイヤー存在確認】: ヘルパー関数を使用した存在チェック 🔵
+    check_player_exists(&conn, id)?;
 
-    if exists == 0 {
-        return Err("Player not found".to_string());
-    }
-
-    // 【名前バリデーション】: nameが指定されている場合、文字数チェック 🔵
+    // 【名前バリデーション】: ヘルパー関数を使用した名前チェック 🔵
     if let Some(new_name) = name {
-        let name_len = new_name.chars().count();
-        if name_len < PLAYER_NAME_MIN_LENGTH || name_len > PLAYER_NAME_MAX_LENGTH {
-            return Err(format!(
-                "Player name must be between {} and {} characters, got: {}",
-                PLAYER_NAME_MIN_LENGTH, PLAYER_NAME_MAX_LENGTH, name_len
-            ));
-        }
+        validate_player_name(new_name)?;
     }
 
-    // 【種別ID検証】: category_idが指定されている場合、存在確認 🔵
+    // 【種別ID検証】: ヘルパー関数を使用した種別存在確認 🔵
     if let Some(Some(cat_id)) = category_id {
-        let cat_exists: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM player_categories WHERE id = ?1",
-                params![cat_id],
-                |row| row.get(0),
-            )
-            .map_err(|e| format!("Database error: {}", e))?;
-
-        if cat_exists == 0 {
-            return Err("Category not found".to_string());
-        }
+        check_category_exists(&conn, cat_id)?;
     }
 
     // 【部分更新実装】: nameまたはcategory_idが指定された場合のみ更新 🔵
@@ -277,24 +298,8 @@ pub(crate) fn update_player_internal(
     }
     .map_err(|e| format!("Failed to update player: {}", e))?;
 
-    // 【更新後のプレイヤー取得】: 更新されたプレイヤー情報を返す 🔵
-    let player: Player = conn
-        .query_row(
-            "SELECT id, name, category_id, created_at, updated_at FROM players WHERE id = ?1",
-            params![id],
-            |row| {
-                Ok(Player {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    category_id: row.get(2)?,
-                    created_at: row.get(3)?,
-                    updated_at: row.get(4)?,
-                })
-            },
-        )
-        .map_err(|e| format!("Failed to get updated player: {}", e))?;
-
-    Ok(player)
+    // 【更新後のプレイヤー取得】: ヘルパー関数を使用して更新されたプレイヤー情報を返す 🔵
+    get_player_by_id(&conn, id)
 }
 
 #[tauri::command]
@@ -317,23 +322,14 @@ pub async fn update_player(
 /// * `Result<(), String>` - 成功またはエラーメッセージ
 ///
 /// 【機能概要】: プレイヤーを削除（関連データはCASCADE削除） 🔵
-/// 【実装方針】: 存在確認、DELETE実行（外部キー制約でCASCADE削除自動実行） 🔵
+/// 【改善内容】: ヘルパー関数を活用してコードの重複を削減 🔵
+/// 【設計方針】: 存在確認ロジックを共通化し、一貫性を向上 🔵
 /// 【テスト対応】: TC-DELETE-001, TC-DELETE-CASCADE-001 🔵
 pub(crate) fn delete_player_internal(id: i64, db: &PlayerDatabase) -> Result<(), String> {
     let conn = db.0.lock().unwrap();
 
-    // 【プレイヤー存在確認】: IDが存在するか確認 🔵
-    let exists: i64 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM players WHERE id = ?1",
-            params![id],
-            |row| row.get(0),
-        )
-        .map_err(|e| format!("Database error: {}", e))?;
-
-    if exists == 0 {
-        return Err("Player not found".to_string());
-    }
+    // 【プレイヤー存在確認】: ヘルパー関数を使用した存在チェック 🔵
+    check_player_exists(&conn, id)?;
 
     // 【プレイヤー削除】: DELETE実行（CASCADE削除は外部キー制約で自動実行） 🔵
     // スキーマ定義: ON DELETE CASCADE により、player_notes, player_summariesも自動削除
@@ -358,6 +354,8 @@ pub async fn delete_player(id: i64, db: State<'_, PlayerDatabase>) -> Result<(),
 /// * `Result<PlayerDetail, String>` - プレイヤー詳細またはエラーメッセージ
 ///
 /// 【機能概要】: プレイヤー詳細を全関連データと共に取得 🔵
+/// 【改善内容】: ヘルパー関数を活用してコードの重複を削減 🔵
+/// 【設計方針】: プレイヤー取得ロジックを共通化 🔵
 /// 【実装方針】: 簡易実装（現時点ではプレイヤー基本情報のみ返す、将来拡張予定） 🟡
 /// 【テスト対応】: TC-DETAIL-001 🔵
 pub(crate) fn get_player_detail_internal(
@@ -366,22 +364,8 @@ pub(crate) fn get_player_detail_internal(
 ) -> Result<serde_json::Value, String> {
     let conn = db.0.lock().unwrap();
 
-    // 【プレイヤー取得】: 基本情報を取得 🔵
-    let player: Player = conn
-        .query_row(
-            "SELECT id, name, category_id, created_at, updated_at FROM players WHERE id = ?1",
-            params![id],
-            |row| {
-                Ok(Player {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    category_id: row.get(2)?,
-                    created_at: row.get(3)?,
-                    updated_at: row.get(4)?,
-                })
-            },
-        )
-        .map_err(|e| format!("Player not found: {}", e))?;
+    // 【プレイヤー取得】: ヘルパー関数を使用して基本情報を取得 🔵
+    let player = get_player_by_id(&conn, id)?;
 
     // 【簡易実装】: 現時点ではプレイヤー基本情報のみJSON化して返す 🟡
     // TODO: 将来的にはカテゴリ、タグ、メモ、総合メモも含める

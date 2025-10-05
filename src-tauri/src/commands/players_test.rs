@@ -1,5 +1,4 @@
 use super::players::*;
-use crate::database::models::{PLAYER_NAME_MAX_LENGTH, PLAYER_NAME_MIN_LENGTH};
 use crate::database::PlayerDatabase;
 use rusqlite::params;
 

@@ -33,7 +33,8 @@
       "SlashCommand(/tdd-requirements:*)",
       "SlashCommand(/tdd-testcases:*)",
       "SlashCommand(/tdd-red:*)",
-      "SlashCommand(/tdd-green)"
+      "SlashCommand(/tdd-green)",
+      "SlashCommand(/tdd-refactor)"
     ],
     "deny": [
       "Bash(bun test:*)",
