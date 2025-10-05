@@ -32,7 +32,8 @@
       "Bash(gh issue view:*)",
       "SlashCommand(/tdd-requirements:*)",
       "SlashCommand(/tdd-testcases:*)",
-      "SlashCommand(/tdd-red:*)"
+      "SlashCommand(/tdd-red:*)",
+      "SlashCommand(/tdd-green)"
     ],
     "deny": [
       "Bash(bun test:*)",
