@@ -408,3 +408,427 @@ fn test_fts5_summaries_trigger() {
         "Trigger should delete entry from summaries FTS table"
     );
 }
+
+// ============================================
+// プレイヤー-種別関連付けテスト
+// ============================================
+
+#[test]
+fn test_player_category_one_to_one_assignment() {
+    // 【テスト目的】: プレイヤーと種別の1対1関連付けの基本動作を確認
+    // 【テスト内容】: プレイヤー作成時に種別を割り当て、正しく保存されることを検証
+    // 【期待される動作】: プレイヤーのcategory_idが指定した種別IDと一致する
+    // 🔵 信頼性レベル: REQ-104、schema.rs:15に基づく
+
+    // 【テストデータ準備】: 実際のユーザーが種別を設定してプレイヤーを登録するシナリオを再現
+    // 【初期条件設定】: テスト用データベースを初期化し、クリーンな状態を確保
+    let db = PlayerDatabase::new_test().expect("Failed to create test database");
+    let conn = db.0.lock().unwrap();
+
+    // 【前提条件確認】: 種別が正しく作成されていることを確認
+    // 【実際の処理実行】: 種別「タイト」を作成
+    conn.execute(
+        "INSERT INTO player_categories (name, color) VALUES (?1, ?2)",
+        params!["タイト", "#FF0000"],
+    )
+    .expect("Failed to insert category");
+
+    // 【実際の処理実行】: プレイヤー作成SQLを実行
+    // 【処理内容】: category_id = 1を指定してプレイヤー「山田太郎」を作成
+    // 【実行タイミング】: 種別作成直後、外部キー制約を満たす状態で実行
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["山田太郎", 1],
+    )
+    .expect("Failed to insert player");
+
+    // 【結果検証】: プレイヤー情報を取得し、category_idが正しく設定されているか確認
+    // 【期待値確認】: category_id = Some(1)であることを検証
+    // 【品質保証】: REQ-104（1プレイヤーに最大1つの種別）を満たすことを保証
+    let (name, category_id): (String, Option<i64>) = conn
+        .query_row(
+            "SELECT name, category_id FROM players WHERE id = 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("Failed to query player");
+
+    // 【検証項目】: プレイヤー名が正しいことを確認
+    // 🔵 信頼性レベル: テストデータに基づく
+    assert_eq!(name, "山田太郎"); // 【確認内容】: 名前が正しく保存されている
+
+    // 【検証項目】: 種別IDが正しく設定されていることを確認
+    // 🔵 信頼性レベル: REQ-104に基づく
+    assert_eq!(category_id, Some(1)); // 【確認内容】: category_idが種別IDと一致する
+}
+
+#[test]
+fn test_player_category_reassignment() {
+    // 【テスト目的】: 種別の再割り当て機能が正しく動作することを確認
+    // 【テスト内容】: プレイヤーの種別を別の種別に変更し、正しく更新されることを検証
+    // 【期待される動作】: UPDATE文で種別IDを変更した際、正しく反映される
+    // 🔵 信頼性レベル: REQ-104、既存パターン（integration_tests.rs:66-97）に基づく
+
+    // 【テストデータ準備】: ユーザーがプレイヤーの分類を変更するシナリオを再現
+    // 【初期条件設定】: テスト用データベースを初期化
+    let db = PlayerDatabase::new_test().expect("Failed to create test database");
+    let conn = db.0.lock().unwrap();
+
+    // 【前提条件確認】: 種別A「タイト」を作成
+    conn.execute(
+        "INSERT INTO player_categories (name, color) VALUES (?1, ?2)",
+        params!["タイト", "#FF0000"],
+    )
+    .expect("Failed to insert category A");
+
+    // 【前提条件確認】: 種別B「ルース」を作成
+    conn.execute(
+        "INSERT INTO player_categories (name, color) VALUES (?1, ?2)",
+        params!["ルース", "#00FF00"],
+    )
+    .expect("Failed to insert category B");
+
+    // 【初期データ作成】: プレイヤー「田中一郎」を種別A（id=1）で作成
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["田中一郎", 1],
+    )
+    .expect("Failed to insert player");
+
+    // 【実際の処理実行】: プレイヤーの種別を種別B（id=2）に変更
+    // 【処理内容】: UPDATE文でcategory_idを1から2に変更
+    // 【実行タイミング】: 両方の種別が存在する状態で実行
+    conn.execute(
+        "UPDATE players SET category_id = ?1 WHERE id = ?2",
+        params![2, 1],
+    )
+    .expect("Failed to update player category");
+
+    // 【結果検証】: プレイヤー情報を取得し、category_idが変更されているか確認
+    // 【期待値確認】: category_id = Some(2)であることを検証
+    let category_id: Option<i64> = conn
+        .query_row("SELECT category_id FROM players WHERE id = 1", [], |row| {
+            row.get(0)
+        })
+        .expect("Failed to query player category");
+
+    // 【検証項目】: 種別IDが新しい種別IDに変更されていることを確認
+    // 🔵 信頼性レベル: REQ-104に基づく
+    assert_eq!(category_id, Some(2)); // 【確認内容】: category_idが種別Bに変更されている
+}
+
+#[test]
+fn test_player_category_set_null() {
+    // 【テスト目的】: 種別の解除機能（category_id = NULL）が正しく動作することを確認
+    // 【テスト内容】: プレイヤーの種別をNULLに設定し、種別が解除されることを検証
+    // 【期待される動作】: UPDATE文でcategory_id = NULLを設定した際、種別が解除される
+    // 🔵 信頼性レベル: schema.rs:15（NULL許可）、REQ-104に基づく
+
+    // 【テストデータ準備】: ユーザーがプレイヤーの種別を「なし」に戻すシナリオを再現
+    // 【初期条件設定】: テスト用データベースを初期化
+    let db = PlayerDatabase::new_test().expect("Failed to create test database");
+    let conn = db.0.lock().unwrap();
+
+    // 【前提条件確認】: 種別「タイト」を作成
+    conn.execute(
+        "INSERT INTO player_categories (name, color) VALUES (?1, ?2)",
+        params!["タイト", "#FF0000"],
+    )
+    .expect("Failed to insert category");
+
+    // 【初期データ作成】: プレイヤー「佐藤花子」を種別あり（id=1）で作成
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["佐藤花子", 1],
+    )
+    .expect("Failed to insert player");
+
+    // 【実際の処理実行】: プレイヤーの種別をNULLに設定
+    // 【処理内容】: UPDATE文でcategory_idをNULLに変更
+    // 【実行タイミング】: 種別が設定されている状態で解除
+    conn.execute(
+        "UPDATE players SET category_id = NULL WHERE id = ?1",
+        params![1],
+    )
+    .expect("Failed to set category to NULL");
+
+    // 【結果検証】: プレイヤー情報を取得し、category_idがNULLになっているか確認
+    // 【期待値確認】: category_id = Noneであることを検証
+    let category_id: Option<i64> = conn
+        .query_row("SELECT category_id FROM players WHERE id = 1", [], |row| {
+            row.get(0)
+        })
+        .expect("Failed to query player category");
+
+    // 【検証項目】: 種別がNULLに設定されていることを確認
+    // 🔵 信頼性レベル: schema.rs:15（NULL許可）に基づく
+    assert_eq!(category_id, None); // 【確認内容】: category_idがNoneになっている
+}
+
+#[test]
+fn test_category_update_affects_all_players() {
+    // 【テスト目的】: REQ-502（種別編集時の変更伝播）の実装確認
+    // 【テスト内容】: 種別名を編集した際、全プレイヤーから参照される種別情報が更新されることを検証
+    // 【期待される動作】: 種別テーブルのnameを更新すると、JOINで取得される種別名も更新される
+    // 🔵 信頼性レベル: REQ-502、schema.rs:18（FOREIGN KEY定義）に基づく
+
+    // 【テストデータ準備】: 複数のプレイヤーが同じ種別を使用している実運用シナリオを再現
+    // 【初期条件設定】: テスト用データベースを初期化
+    let db = PlayerDatabase::new_test().expect("Failed to create test database");
+    let conn = db.0.lock().unwrap();
+
+    // 【前提条件確認】: 種別「タイト」を作成
+    // 【初期値設定】: 後で「タイトパッシブ」に変更する前の状態
+    conn.execute(
+        "INSERT INTO player_categories (name, color) VALUES (?1, ?2)",
+        params!["タイト", "#FF0000"],
+    )
+    .expect("Failed to insert category");
+
+    // 【初期データ作成】: 3人のプレイヤーに同じ種別（id=1）を割り当て
+    // 【テスト条件】: 複数プレイヤーが1つの種別を参照する多対1関係を構築
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["A", 1],
+    )
+    .expect("Failed to insert player A");
+
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["B", 1],
+    )
+    .expect("Failed to insert player B");
+
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["C", 1],
+    )
+    .expect("Failed to insert player C");
+
+    // 【実際の処理実行】: 種別名を「タイト」から「タイトパッシブ」に変更
+    // 【処理内容】: UPDATE文で種別テーブルのnameカラムを更新
+    // 【実行タイミング】: 3人のプレイヤーが種別を参照している状態で実行
+    conn.execute(
+        "UPDATE player_categories SET name = ?1 WHERE id = ?2",
+        params!["タイトパッシブ", 1],
+    )
+    .expect("Failed to update category name");
+
+    // 【結果検証】: プレイヤーから種別情報を再取得（JOINで確認）
+    // 【期待値確認】: すべてのプレイヤーで種別名が「タイトパッシブ」に更新されている
+    // 【品質保証】: REQ-502（種別編集時の変更伝播）を満たすことを保証
+    let category_names: Vec<String> = conn
+        .prepare(
+            "SELECT c.name FROM players p
+             JOIN player_categories c ON p.category_id = c.id
+             ORDER BY p.id",
+        )
+        .expect("Failed to prepare statement")
+        .query_map([], |row| row.get(0))
+        .expect("Failed to query category names")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("Failed to collect results");
+
+    // 【検証項目】: 3人すべてのプレイヤーが取得されることを確認
+    assert_eq!(category_names.len(), 3); // 【確認内容】: 結果セットの件数が3件
+
+    // 【検証項目】: すべてのプレイヤーで種別名が更新されていることを確認
+    // 🔵 信頼性レベル: REQ-502に基づく
+    assert!(category_names.iter().all(|name| name == "タイトパッシブ"));
+    // 【確認内容】: 全プレイヤーに種別編集が反映されている
+}
+
+#[test]
+fn test_category_delete_sets_players_to_null() {
+    // 【テスト目的】: REQ-504, NFR-202（種別削除時の安全な解除）の実装確認
+    // 【テスト内容】: 種別を削除した際、関連プレイヤーのcategory_idが自動的にNULLに設定されることを検証
+    // 【期待される動作】: ON DELETE SET NULL制約により、種別削除時にcategory_idがNULLになる
+    // 🔵 信頼性レベル: REQ-504, NFR-202、schema.rs:18（ON DELETE SET NULL）に基づく
+
+    // 【テストデータ準備】: ユーザーが不要になった種別を削除するシナリオを再現
+    // 【初期条件設定】: テスト用データベースを初期化
+    let db = PlayerDatabase::new_test().expect("Failed to create test database");
+    let conn = db.0.lock().unwrap();
+
+    // 【前提条件確認】: 種別「アグレッシブ」を作成
+    conn.execute(
+        "INSERT INTO player_categories (name, color) VALUES (?1, ?2)",
+        params!["アグレッシブ", "#0000FF"],
+    )
+    .expect("Failed to insert category");
+
+    // 【初期データ作成】: 2人のプレイヤーに種別（id=1）を割り当て
+    // 【テスト条件】: 複数プレイヤーが削除対象の種別を参照している状態
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["X", 1],
+    )
+    .expect("Failed to insert player X");
+
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["Y", 1],
+    )
+    .expect("Failed to insert player Y");
+
+    // 【実際の処理実行】: 種別を削除
+    // 【処理内容】: DELETE文で種別テーブルからレコードを削除
+    // 【実行タイミング】: 2人のプレイヤーが種別を参照している状態で実行
+    // 【期待される自動処理】: ON DELETE SET NULL制約により、プレイヤーのcategory_idが自動的にNULLになる
+    conn.execute("DELETE FROM player_categories WHERE id = ?1", params![1])
+        .expect("Failed to delete category");
+
+    // 【結果検証】: プレイヤー情報を再取得し、category_idがNULLになっているか確認
+    // 【期待値確認】: すべてのプレイヤーのcategory_id = Noneであることを検証
+    // 【品質保証】: REQ-504, NFR-202を満たすことを保証
+    let category_ids: Vec<Option<i64>> = conn
+        .prepare("SELECT category_id FROM players ORDER BY id")
+        .expect("Failed to prepare statement")
+        .query_map([], |row| row.get(0))
+        .expect("Failed to query category IDs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("Failed to collect results");
+
+    // 【検証項目】: 2人のプレイヤーが取得されることを確認
+    assert_eq!(category_ids.len(), 2); // 【確認内容】: 結果セットの件数が2件
+
+    // 【検証項目】: すべてのプレイヤーのcategory_idがNULLになっていることを確認
+    // 🔵 信頼性レベル: schema.rs:18（ON DELETE SET NULL）に基づく
+    assert!(category_ids.iter().all(|id| id.is_none()));
+    // 【確認内容】: ON DELETE SET NULL制約が正しく動作し、全プレイヤーのcategory_idがNoneになっている
+}
+
+#[test]
+fn test_player_category_foreign_key_violation() {
+    // 【テスト目的】: 外部キー制約が正しく機能することを確認
+    // 【テスト内容】: 存在しない種別IDでプレイヤーを作成した際、エラーが発生することを検証
+    // 【期待される動作】: FOREIGN KEY constraint failedエラーが発生する
+    // 🔵 信頼性レベル: schema.rs:18（FOREIGN KEY制約）、SQLite仕様に基づく
+
+    // 【テストデータ準備】: フロントエンドのバグや、種別削除後の古いデータ参照のシナリオを再現
+    // 【初期条件設定】: テスト用データベースを初期化
+    // 【エラー条件】: 種別テーブルにid=999のレコードが存在しない状態
+    let db = PlayerDatabase::new_test().expect("Failed to create test database");
+    let conn = db.0.lock().unwrap();
+
+    // 【実際の処理実行】: 存在しない種別ID（999）でプレイヤーを作成
+    // 【処理内容】: INSERT文で不正なcategory_idを指定
+    // 【期待される結果】: FOREIGN KEY constraint failedエラーが発生
+    // 【システムの安全性】: データベースが不整合を防ぐため、INSERT/UPDATEを拒否
+    let result = conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["無効プレイヤー", 999],
+    );
+
+    // 【結果検証】: エラーが発生することを確認
+    // 【期待値確認】: Errが返されることを検証
+    // 【品質保証】: 外部キー制約が正しく機能し、データの整合性を保つ
+    assert!(result.is_err()); // 【確認内容】: FOREIGN KEY constraint failedエラーが発生
+
+    // 【追加検証】: エラーメッセージにFOREIGN KEYが含まれることを確認
+    // 🔵 信頼性レベル: SQLiteの標準エラーメッセージに基づく
+    let error_msg = result.unwrap_err().to_string();
+    assert!(error_msg.to_lowercase().contains("foreign key"));
+    // 【確認内容】: エラーメッセージが外部キー制約違反を示している
+}
+
+#[test]
+fn test_player_category_null_on_creation() {
+    // 【テスト目的】: 種別なしプレイヤーの作成が可能であることを確認
+    // 【テスト内容】: プレイヤー作成時にcategory_id = NULLで作成できることを検証
+    // 【期待される動作】: category_id = NULLが有効な状態として扱われる
+    // 🔵 信頼性レベル: schema.rs:15（NULL許可）、REQ-104に基づく
+
+    // 【テストデータ準備】: 種別未設定のままプレイヤーを登録するケースを再現
+    // 【初期条件設定】: テスト用データベースを初期化
+    // 【境界値の意味】: 種別設定が任意（必須ではない）であることの確認
+    let db = PlayerDatabase::new_test().expect("Failed to create test database");
+    let conn = db.0.lock().unwrap();
+
+    // 【実際の処理実行】: プレイヤー作成時にcategory_idを指定しない（NULLで作成）
+    // 【処理内容】: INSERT文でcategory_idを省略
+    // 【実行タイミング】: 種別を設定せずにプレイヤーを作成
+    conn.execute(
+        "INSERT INTO players (name) VALUES (?1)",
+        params!["種別なしプレイヤー"],
+    )
+    .expect("Failed to insert player without category");
+
+    // 【結果検証】: プレイヤー情報を取得し、category_idがNULLであることを確認
+    // 【期待値確認】: category_id = Noneであることを検証
+    // 【堅牢性の確認】: NULLを含むデータでもシステムが正常動作する
+    let (name, category_id): (String, Option<i64>) = conn
+        .query_row(
+            "SELECT name, category_id FROM players WHERE id = 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("Failed to query player");
+
+    // 【検証項目】: プレイヤー名が正しいことを確認
+    assert_eq!(name, "種別なしプレイヤー"); // 【確認内容】: 名前が正しく保存されている
+
+    // 【検証項目】: category_idがNULLであることを確認
+    // 🔵 信頼性レベル: schema.rs:15（NULL許可）に基づく
+    assert_eq!(category_id, None); // 【確認内容】: category_idがNoneになっている
+}
+
+#[test]
+fn test_multiple_players_same_category() {
+    // 【テスト目的】: 多対1関係が正しく機能することを確認
+    // 【テスト内容】: 同じ種別IDを複数のプレイヤーに割り当てられることを検証
+    // 【期待される動作】: 同じcategory_idを持つプレイヤーが複数存在できる
+    // 🔵 信頼性レベル: schema.rs:18（FOREIGN KEY定義）、データベース正規化理論に基づく
+
+    // 【テストデータ準備】: 同じプレイスタイルのプレイヤーが複数いるケースを再現
+    // 【初期条件設定】: テスト用データベースを初期化
+    // 【境界値の意味】: 1つの種別が複数プレイヤーから参照される（多対1関係）
+    let db = PlayerDatabase::new_test().expect("Failed to create test database");
+    let conn = db.0.lock().unwrap();
+
+    // 【前提条件確認】: 種別「タイト」を作成
+    conn.execute(
+        "INSERT INTO player_categories (name, color) VALUES (?1, ?2)",
+        params!["タイト", "#FF0000"],
+    )
+    .expect("Failed to insert category");
+
+    // 【初期データ作成】: 3人のプレイヤーに同じ種別（id=1）を割り当て
+    // 【テスト条件】: 複数プレイヤーが同じ種別を参照する多対1関係を構築
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["プレイヤー1", 1],
+    )
+    .expect("Failed to insert player 1");
+
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["プレイヤー2", 1],
+    )
+    .expect("Failed to insert player 2");
+
+    conn.execute(
+        "INSERT INTO players (name, category_id) VALUES (?1, ?2)",
+        params!["プレイヤー3", 1],
+    )
+    .expect("Failed to insert player 3");
+
+    // 【結果検証】: すべてのプレイヤーのcategory_idを取得
+    // 【期待値確認】: 3人すべてのプレイヤーでcategory_id = Some(1)であることを検証
+    // 【堅牢性の確認】: 複数プレイヤーからの参照でも問題ない
+    let category_ids: Vec<Option<i64>> = conn
+        .prepare("SELECT category_id FROM players ORDER BY id")
+        .expect("Failed to prepare statement")
+        .query_map([], |row| row.get(0))
+        .expect("Failed to query category IDs")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("Failed to collect results");
+
+    // 【検証項目】: 3人のプレイヤーが取得されることを確認
+    assert_eq!(category_ids.len(), 3); // 【確認内容】: 結果セットの件数が3件
+
+    // 【検証項目】: すべてのプレイヤーで同じ種別IDが設定されていることを確認
+    // 🔵 信頼性レベル: データベース正規化理論（多対1関係）に基づく
+    assert!(category_ids.iter().all(|id| *id == Some(1)));
+    // 【確認内容】: 全プレイヤーのcategory_idが同じ値（Some(1)）になっている
+}
