@@ -113,12 +113,8 @@ fn test_update_category_name_only() {
 
     // 【実際の処理実行】: 名前のみを更新
     // 【処理内容】: 色は指定せず、nameのみ「タイトパッシブ」に更新
-    let result = super::categories::update_category_internal(
-        category_id,
-        Some("タイトパッシブ"),
-        None,
-        &db,
-    );
+    let result =
+        super::categories::update_category_internal(category_id, Some("タイトパッシブ"), None, &db);
 
     // 【結果検証】: 名前が更新され、色は元のままであることを確認
     // 【期待値確認】: 部分更新により、colorは変更されない
@@ -480,4 +476,238 @@ fn test_get_all_categories_sorted_by_created_at() {
     assert_eq!(categories[0].id, cat1_id); // 【確認内容】: 1番目が最初に作成された種別 🔵
     assert_eq!(categories[1].id, cat2_id); // 【確認内容】: 2番目が2番目に作成された種別 🔵
     assert_eq!(categories[2].id, cat3_id); // 【確認内容】: 3番目が最後に作成された種別 🔵
+}
+
+// ============================================
+// TC-UPDATE-CAT-002: 色のみ更新 🔵
+// ============================================
+
+#[test]
+fn test_update_category_color_only() {
+    // 【テスト目的】: 種別の色のみを更新できることを確認
+    // 【テスト内容】: 部分更新（colorのみ）が正しく機能することを検証
+    // 【期待される動作】: 色が更新され、名前は変更されず、updated_atが自動更新される
+    // 🔵 信頼性レベル: 要件定義書（REQ-105）に基づく
+
+    // 【テストデータ準備】: 事前に種別を作成してから部分更新を実行
+    // 【初期条件設定】: 種別「タイト」を作成
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "タイト", "#FF0000");
+
+    // 【実際の処理実行】: 色のみを更新
+    // 【処理内容】: 名前は指定せず、colorのみ「#00FF00」に更新
+    let result =
+        super::categories::update_category_internal(category_id, None, Some("#00FF00"), &db);
+
+    // 【結果検証】: 色が更新され、名前は元のままであることを確認
+    // 【期待値確認】: 部分更新により、nameは変更されない
+    assert!(result.is_ok(), "色のみの更新が成功すること"); // 【確認内容】: 更新処理が成功している 🔵
+    let updated = result.unwrap();
+    assert_eq!(updated.name, "タイト"); // 【確認内容】: 名前は変更されていない 🔵
+    assert_eq!(updated.color, "#00FF00"); // 【確認内容】: 色が更新されている 🔵
+}
+
+// ============================================
+// TC-UPDATE-CAT-003: 名前と色を同時更新 🔵
+// ============================================
+
+#[test]
+fn test_update_category_name_and_color() {
+    // 【テスト目的】: 種別の名前と色を同時更新できることを確認
+    // 【テスト内容】: 複数フィールド同時更新が機能することを検証
+    // 【期待される動作】: 両方のフィールドが更新される
+    // 🔵 信頼性レベル: 効率的なAPI設計
+
+    // 【テストデータ準備】: 種別の見直しで名前と色を両方変更するシナリオを想定
+    // 【初期条件設定】: 種別「タイト」を作成
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "タイト", "#FF0000");
+
+    // 【実際の処理実行】: 名前と色を同時に更新
+    // 【処理内容】: 両方のフィールドを指定して更新
+    let result = super::categories::update_category_internal(
+        category_id,
+        Some("ニットアグレッシブ"),
+        Some("#FFFF00"),
+        &db,
+    );
+
+    // 【結果検証】: 両方のフィールドが更新されることを確認
+    // 【期待値確認】: 1回のクエリで両方更新されている
+    assert!(result.is_ok(), "名前と色の同時更新が成功すること"); // 【確認内容】: 更新処理が成功している 🔵
+    let updated = result.unwrap();
+    assert_eq!(updated.name, "ニットアグレッシブ"); // 【確認内容】: 名前が更新されている 🔵
+    assert_eq!(updated.color, "#FFFF00"); // 【確認内容】: 色が更新されている 🔵
+}
+
+// ============================================
+// TC-GET-ALL-CAT-002: 空の種別リストを取得 🔵
+// ============================================
+
+#[test]
+fn test_get_all_categories_empty() {
+    // 【テスト目的】: 種別が存在しない場合、空のVecが返されることを確認
+    // 【テスト内容】: 空データセットでのエラーハンドリングを検証
+    // 【期待される動作】: エラーではなく、空のVecが返される
+    // 🟡 信頼性レベル: 一般的なAPI設計から妥当な推測
+
+    // 【テストデータ準備】: 種別を作成せずにクリーンなDBで実行
+    // 【初期条件設定】: 初期状態または全削除後の状態
+    let db = create_test_db();
+
+    // 【実際の処理実行】: 全種別を取得
+    // 【処理内容】: 種別が0件の場合のレスポンスを確認
+    let result = super::categories::get_all_categories_internal(&db);
+
+    // 【結果検証】: 空のVecが返されることを確認
+    // 【期待値確認】: エラーではなく、空リストが正しい
+    assert!(result.is_ok(), "空状態でも取得が成功すること"); // 【確認内容】: 取得処理が成功している 🟡
+    let categories = result.unwrap();
+    assert_eq!(categories.len(), 0); // 【確認内容】: 空のVecが返される 🟡
+}
+
+// ============================================
+// TC-CREATE-CAT-ERR-005: 不正なHEX文字でエラー 🔵
+// ============================================
+
+#[test]
+fn test_create_category_invalid_hex_characters_error() {
+    // 【テスト目的】: 不正なHEX文字（G-Z）でエラーが返されることを確認
+    // 【テスト内容】: 0-9A-F以外の文字を含むHEXコードでエラーになることを検証
+    // 【期待される動作】: "Invalid HEX color characters" エラーが返される
+    // 🔵 信頼性レベル: models.rs validate_hex_color関数に基づく
+
+    // 【テストデータ準備】: Gは16進数に存在しない文字を使用
+    // 【初期条件設定】: ユーザーがタイプミスしたケースを想定
+    let db = create_test_db();
+
+    // 【実際の処理実行】: 不正なHEX文字で種別作成を試みる
+    // 【処理内容】: HEX文字バリデーションが機能することを確認
+    let result = super::categories::create_category_internal("タイト", "#GGGGGG", &db);
+
+    // 【結果検証】: エラーが返されることを確認
+    // 【期待値確認】: HEX文字が不正であることを明示するエラーメッセージ
+    assert!(result.is_err(), "不正なHEX文字ではエラーが返されること"); // 【確認内容】: エラーが発生している 🔵
+    let error_message = result.unwrap_err();
+    assert!(
+        error_message.contains("HEX") && error_message.contains("characters"),
+        "エラーメッセージにHEX文字エラーが含まれること"
+    ); // 【確認内容】: HEX文字エラーメッセージが返される 🔵
+}
+
+// ============================================
+// TC-UPDATE-CAT-ERR-002: 更新時の同名種別でUNIQUEエラー 🔵
+// ============================================
+
+#[test]
+fn test_update_category_duplicate_name_error() {
+    // 【テスト目的】: 更新により別の種別と名前が重複するとエラーが返されることを確認
+    // 【テスト内容】: 更新時のUNIQUE制約チェックが機能することを検証
+    // 【期待される動作】: "Category name already exists" エラーが返される
+    // 🔵 信頼性レベル: UNIQUE制約の動作
+
+    // 【テストデータ準備】: 2つの種別を作成してから名前の重複を試行
+    // 【初期条件設定】: 「タイト」と「ルース」を作成
+    let db = create_test_db();
+    insert_test_category(&db, "タイト", "#FF0000");
+    let loose_id = insert_test_category(&db, "ルース", "#00FF00");
+
+    // 【実際の処理実行】: 「ルース」を「タイト」に更新しようとする
+    // 【処理内容】: UNIQUE制約違反が検出されることを確認
+    let result = super::categories::update_category_internal(loose_id, Some("タイト"), None, &db);
+
+    // 【結果検証】: エラーが返されることを確認
+    // 【期待値確認】: 重複エラーメッセージが含まれている
+    assert!(result.is_err(), "更新時の同名種別ではエラーが返されること"); // 【確認内容】: エラーが発生している 🔵
+    let error_message = result.unwrap_err();
+    assert!(
+        error_message.contains("already exists"),
+        "エラーメッセージに重複エラーが含まれること"
+    ); // 【確認内容】: 重複エラーメッセージが返される 🔵
+}
+
+// ============================================
+// TC-DELETE-CAT-ERR-001: 存在しない種別IDで削除エラー 🔵
+// ============================================
+
+#[test]
+fn test_delete_category_not_found_error() {
+    // 【テスト目的】: 存在しない種別IDで削除しようとするとエラーが返されることを確認
+    // 【テスト内容】: リソース未検出エラーが正しく処理されることを検証
+    // 【期待される動作】: "Category not found" エラーが返される
+    // 🔵 信頼性レベル: 一般的なエラーハンドリングパターン
+
+    // 【テストデータ準備】: 存在しないID（999）を使用してエラーを発生させる
+    // 【初期条件設定】: 二重削除の試行、または不正なAPI呼び出しを想定
+    let db = create_test_db();
+
+    // 【実際の処理実行】: 存在しないIDで削除を試みる
+    // 【処理内容】: 存在確認チェックが機能することを確認
+    let result = super::categories::delete_category_internal(999, &db);
+
+    // 【結果検証】: エラーが返されることを確認
+    // 【期待値確認】: "Category not found" エラーメッセージが含まれている
+    assert!(result.is_err(), "存在しないIDではエラーが返されること"); // 【確認内容】: エラーが発生している 🔵
+    let error_message = result.unwrap_err();
+    assert!(
+        error_message.contains("Category") && error_message.contains("not found"),
+        "エラーメッセージに種別未検出が含まれること"
+    ); // 【確認内容】: 種別未検出のエラーメッセージが返される 🔵
+}
+
+// ============================================
+// TC-UPDATE-CAT-BOUND-001: 種別名を1文字に更新 🔵
+// ============================================
+
+#[test]
+fn test_update_category_name_to_min_length() {
+    // 【テスト目的】: 種別名を1文字に更新できることを確認
+    // 【テスト内容】: 更新時のCHECK制約最小値でも正常動作することを検証
+    // 【期待される動作】: 1文字に正しく更新される
+    // 🔵 信頼性レベル: 作成と更新の一貫性
+
+    // 【テストデータ準備】: 通常の名前から1文字に短縮するシナリオ
+    // 【初期条件設定】: 種別名を短縮する場合
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "タイト", "#FF0000");
+
+    // 【実際の処理実行】: 名前を1文字に更新
+    // 【処理内容】: 更新時の最小境界値を検証
+    let result = super::categories::update_category_internal(category_id, Some("A"), None, &db);
+
+    // 【結果検証】: 1文字に正しく更新されることを確認
+    // 【期待値確認】: 作成時と同じバリデーション
+    assert!(result.is_ok(), "1文字への更新が成功すること"); // 【確認内容】: 更新処理が成功している 🔵
+    let updated = result.unwrap();
+    assert_eq!(updated.name, "A"); // 【確認内容】: 1文字の名前が正しく設定されている 🔵
+}
+
+// ============================================
+// TC-UPDATE-CAT-BOUND-002: 種別名を50文字に更新 🔵
+// ============================================
+
+#[test]
+fn test_update_category_name_to_max_length() {
+    // 【テスト目的】: 種別名を50文字に更新できることを確認
+    // 【テスト内容】: 更新時のCHECK制約最大値でも正常動作することを検証
+    // 【期待される動作】: 50文字全てが正しく更新される
+    // 🔵 信頼性レベル: 作成と更新の一貫性
+
+    // 【テストデータ準備】: 短い名前から50文字に拡張するシナリオ
+    // 【初期条件設定】: 種別名を詳細化する場合
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "A", "#FF0000");
+    let max_name = "あ".repeat(50); // 50文字
+
+    // 【実際の処理実行】: 名前を50文字に更新
+    // 【処理内容】: 更新時の最大境界値を検証
+    let result =
+        super::categories::update_category_internal(category_id, Some(&max_name), None, &db);
+
+    // 【結果検証】: 50文字全てが正しく更新されることを確認
+    // 【期待値確認】: 文字欠損なし
+    assert!(result.is_ok(), "50文字への更新が成功すること"); // 【確認内容】: 更新処理が成功している 🔵
+    let updated = result.unwrap();
+    assert_eq!(updated.name, max_name); // 【確認内容】: 50文字の名前が正しく設定されている 🔵
+    assert_eq!(updated.name.chars().count(), 50); // 【確認内容】: 文字数が50であること 🔵
 }

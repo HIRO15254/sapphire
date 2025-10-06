@@ -1,4 +1,6 @@
-use crate::database::models::{validate_hex_color, PlayerCategory, NAME_MAX_LENGTH, NAME_MIN_LENGTH};
+use crate::database::models::{
+    validate_hex_color, PlayerCategory, NAME_MAX_LENGTH, NAME_MIN_LENGTH,
+};
 use crate::database::PlayerDatabase;
 use rusqlite::{params, Connection};
 use tauri::State;
