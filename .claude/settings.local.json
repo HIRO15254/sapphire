@@ -33,8 +33,10 @@
       "SlashCommand(/tdd-requirements:*)",
       "SlashCommand(/tdd-testcases:*)",
       "SlashCommand(/tdd-red:*)",
-      "SlashCommand(/tdd-green)",
-      "SlashCommand(/tdd-refactor)"
+      "SlashCommand(/tdd-green:*)",
+      "SlashCommand(/tdd-refactor:*)",
+      "SlashCommand(/tdd-verify-complete:*)",
+      "mcp__github__get_issue_comments"
     ],
     "deny": [
       "Bash(bun test:*)",

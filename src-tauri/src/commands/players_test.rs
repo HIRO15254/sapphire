@@ -11,8 +11,8 @@ fn create_test_db() -> PlayerDatabase {
     PlayerDatabase::new_test().expect("Failed to create test database")
 }
 
-/// テスト用のState型は作成できないため、内部関数を直接テストする
-/// Greenフェーズでは、players.rsに内部関数（State不要）を実装予定
+// テスト用のState型は作成できないため、内部関数を直接テストする
+//　Greenフェーズでは、players.rsに内部関数（State不要）を実装予定
 
 /// テスト用の種別を作成
 fn insert_test_category(db: &PlayerDatabase, name: &str, color: &str) -> i64 {
