@@ -241,3 +241,17 @@ function {{function_name}}(input) {
 ```
 
 次のステップ: `/tdd-refactor` でコードの品質を改善します。
+
+## セッション管理
+
+**Greenフェーズ完了後は `/compact` を実行してください**
+
+詳細は [TDDセッション管理ルール](../../../docs/rule/tdd/session-management.md) を参照してください。
+
+### Compact時の保持情報
+- 実行コマンド: `/tdd-green {{issue_number}}`
+- 現在のフェーズ: Green Phase完了
+- 次のステップ: Refactor Phase（`/tdd-refactor {{issue_number}}`）
+- 技術スタック: プロジェクトの技術スタック定義を保持
+- プロジェクトルール: `docs/rule/` 配下の全ルールを保持
+- 実装した機能: 簡潔な実装内容のサマリーを保持
