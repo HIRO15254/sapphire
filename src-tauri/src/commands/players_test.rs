@@ -682,12 +682,7 @@ fn test_update_player_name_and_category() {
     let player_id = insert_test_player(&db, "旧名前", None);
 
     // 【実際の処理実行】: 名前と種別を同時更新
-    let result = update_player_internal(
-        player_id,
-        Some("新名前"),
-        Some(Some(category_id)),
-        &db,
-    );
+    let result = update_player_internal(player_id, Some("新名前"), Some(Some(category_id)), &db);
 
     // 【結果検証】: 両方のフィールドが更新されることを確認
     assert!(result.is_ok(), "名前と種別の同時更新が成功すること");
