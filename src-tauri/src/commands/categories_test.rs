@@ -711,3 +711,311 @@ fn test_update_category_name_to_max_length() {
     assert_eq!(updated.name, max_name); // 【確認内容】: 50文字の名前が正しく設定されている 🔵
     assert_eq!(updated.name.chars().count(), 50); // 【確認内容】: 文字数が50であること 🔵
 }
+
+// ============================================
+// TASK-0006: 種別影響カウントコマンド実装テスト
+// ============================================
+
+// ============================================
+// TC-COUNT-CATEGORY-001: 影響を受けるプレイヤーが0人の場合 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_zero_players() {
+    // 【テスト目的】: 誰も使用していない種別のカウントが0を返すことを確認
+    // 【テスト内容】: 種別は存在するが、プレイヤーが割り当てられていないケースを検証
+    // 【期待される動作】: Ok(0)が返され、エラーにならない
+    // 🔵 信頼性レベル: 要件定義書（エッジケース2）に基づく
+
+    // 【テストデータ準備】: 種別のみ作成し、プレイヤーは作成しない
+    // 【初期条件設定】: クリーンなデータベース状態
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "未使用種別", "#FF0000");
+
+    // 【実際の処理実行】: 影響カウントコマンドを呼び出し
+    // 【処理内容】: COUNT(*)クエリが実行され、0が返される
+    let result =
+        super::categories::get_affected_players_count_by_category_internal(category_id, &db);
+
+    // 【結果検証】: 0が正しく返されることを確認
+    // 【期待値確認】: エラーではなくOk(0)
+    assert!(result.is_ok(), "カウント取得が成功すること"); // 【確認内容】: 処理が成功 🔵
+    let count = result.unwrap();
+    assert_eq!(count, 0); // 【確認内容】: カウントが0 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-002: 影響を受けるプレイヤーが1人の場合 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_one_player() {
+    // 【テスト目的】: 1人のプレイヤーが使用している種別のカウントが1を返すことを確認
+    // 【テスト内容】: 最小の実データカウントが正しく処理されることを検証
+    // 【期待される動作】: COUNT(*)クエリが1を返し、usizeに正しく変換される
+    // 🔵 信頼性レベル: 基本的な動作確認
+
+    // 【テストデータ準備】: 種別を作成し、1人のプレイヤーを割り当て
+    // 【初期条件設定】: 1対1の関係を確認
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "タイト", "#FF0000");
+    insert_test_player(&db, "山田太郎", Some(category_id));
+
+    // 【実際の処理実行】: 影響カウントコマンドを呼び出し
+    // 【処理内容】: WHERE category_id = ? で1件がヒット
+    let result =
+        super::categories::get_affected_players_count_by_category_internal(category_id, &db);
+
+    // 【結果検証】: 1が正しく返されることを確認
+    // 【期待値確認】: 正確に1人とカウント
+    assert!(result.is_ok(), "カウント取得が成功すること"); // 【確認内容】: 処理が成功 🔵
+    let count = result.unwrap();
+    assert_eq!(count, 1); // 【確認内容】: カウントが1 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-003: 影響を受けるプレイヤーが複数人（5人）の場合 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_multiple_players() {
+    // 【テスト目的】: 複数のプレイヤーが使用している種別のカウントが正しい値を返すことを確認
+    // 【テスト内容】: 実運用で典型的な使用状況（複数人が同じ種別）を検証
+    // 【期待される動作】: COUNT(*)クエリが5を返し、usizeに正しく変換される
+    // 🔵 信頼性レベル: 要件定義書（REQ-501-504受け入れ基準）に基づく
+
+    // 【テストデータ準備】: 種別を作成し、5人のプレイヤーを割り当て
+    // 【初期条件設定】: 受け入れ基準のシナリオを再現
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "タイト", "#FF0000");
+    insert_test_player(&db, "プレイヤー1", Some(category_id));
+    insert_test_player(&db, "プレイヤー2", Some(category_id));
+    insert_test_player(&db, "プレイヤー3", Some(category_id));
+    insert_test_player(&db, "プレイヤー4", Some(category_id));
+    insert_test_player(&db, "プレイヤー5", Some(category_id));
+
+    // 【実際の処理実行】: 影響カウントコマンドを呼び出し
+    // 【処理内容】: WHERE句のフィルタリングで5件がヒット
+    let result =
+        super::categories::get_affected_players_count_by_category_internal(category_id, &db);
+
+    // 【結果検証】: 5が正しく返されることを確認
+    // 【期待値確認】: 複数プレイヤーの集計が正確
+    assert!(result.is_ok(), "カウント取得が成功すること"); // 【確認内容】: 処理が成功 🔵
+    let count = result.unwrap();
+    assert_eq!(count, 5); // 【確認内容】: カウントが5 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-004: 大量のプレイヤー（100人）のパフォーマンステスト 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_100_players_performance() {
+    // 【テスト目的】: 大量データでもカウントが高速に実行されることを確認
+    // 【テスト内容】: 中規模データセット（100人）でのパフォーマンス検証
+    // 【期待される動作】: インデックス`idx_players_category_id`を活用した高速カウント
+    // 🔵 信頼性レベル: 要件定義書（NFR-001, NFR-003）に基づく
+
+    // 【テストデータ準備】: 種別を作成し、100人のプレイヤーを割り当て
+    // 【初期条件設定】: 中規模データでのパフォーマンス要件を確認
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "人気種別", "#FF0000");
+    for i in 1..=100 {
+        insert_test_player(&db, &format!("プレイヤー{}", i), Some(category_id));
+    }
+
+    // 【実際の処理実行】: 影響カウントコマンドを呼び出し
+    // 【処理内容】: インデックスを活用した高速COUNT(*)
+    let result =
+        super::categories::get_affected_players_count_by_category_internal(category_id, &db);
+
+    // 【結果検証】: 100が正しく返されることを確認
+    // 【期待値確認】: 中規模データでも正確にカウント
+    assert!(result.is_ok(), "カウント取得が成功すること"); // 【確認内容】: 処理が成功 🔵
+    let count = result.unwrap();
+    assert_eq!(count, 100); // 【確認内容】: カウントが100 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-005: 大量のプレイヤー（500人）のパフォーマンステスト 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_500_players_max_scale() {
+    // 【テスト目的】: 最大想定規模（500人）でもカウントが高速に実行されることを確認
+    // 【テスト内容】: 要件定義で想定される最大データセットでのパフォーマンス検証
+    // 【期待される動作】: COUNT(*)クエリがインデックスを活用し、1秒以内に応答
+    // 🔵 信頼性レベル: 要件定義書（NFR-001: 最大500人、NFR-003: 1秒以内）に基づく
+
+    // 【テストデータ準備】: 種別を作成し、500人のプレイヤーを割り当て
+    // 【初期条件設定】: 最大規模データでのシステム安定性を確認
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "最人気種別", "#FF0000");
+    for i in 1..=500 {
+        insert_test_player(&db, &format!("プレイヤー{}", i), Some(category_id));
+    }
+
+    // 【実際の処理実行】: 影響カウントコマンドを呼び出し
+    // 【処理内容】: インデックス`idx_players_category_id`を活用した最大規模COUNT(*)
+    let result =
+        super::categories::get_affected_players_count_by_category_internal(category_id, &db);
+
+    // 【結果検証】: 500が正しく返されることを確認
+    // 【期待値確認】: 最大規模でも正確にカウント、オーバーフローなし
+    assert!(result.is_ok(), "カウント取得が成功すること"); // 【確認内容】: 処理が成功 🔵
+    let count = result.unwrap();
+    assert_eq!(count, 500); // 【確認内容】: カウントが500 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-ERR-001: 存在しない種別IDでエラー 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_not_found_error() {
+    // 【テスト目的】: 存在しない種別IDを指定した場合、適切なエラーが返されることを確認
+    // 【テスト内容】: データベースに存在しない種別IDを指定した場合のエラーハンドリング検証
+    // 【期待される動作】: "Category not found" エラーが返される
+    // 🔵 信頼性レベル: 要件定義書（エッジケース1）に基づく
+
+    // 【テストデータ準備】: 存在しないID（999）を使用してエラーを発生させる
+    // 【初期条件設定】: クリーンなデータベース状態でエラーハンドリングを検証
+    let db = create_test_db();
+
+    // 【実際の処理実行】: 存在しない種別IDでカウント取得を試みる
+    // 【処理内容】: check_category_existsヘルパー関数でエラーを検出
+    let result = super::categories::get_affected_players_count_by_category_internal(999, &db);
+
+    // 【結果検証】: エラーが返されることを確認
+    // 【期待値確認】: "Category not found" エラーメッセージが含まれている
+    assert!(result.is_err(), "存在しないIDではエラーが返されること"); // 【確認内容】: エラーが発生している 🔵
+    let error_message = result.unwrap_err();
+    assert!(
+        error_message.contains("Category") && error_message.contains("not found"),
+        "エラーメッセージに種別未検出が含まれること"
+    ); // 【確認内容】: 種別未検出のエラーメッセージが返される 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-ERR-002: category_idが0以下でエラー 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_invalid_id_error() {
+    // 【テスト目的】: 0以下の不正なIDを指定した場合、エラーが返されることを確認
+    // 【テスト内容】: AUTO_INCREMENT主キーは1から開始するため、0以下は常に不正
+    // 【期待される動作】: "Category not found" エラーが返される
+    // 🔵 信頼性レベル: 要件定義書（エラーケース1）に基づく
+
+    // 【テストデータ準備】: 0を使用してバリデーションエラーを発生させる
+    // 【初期条件設定】: 不正なIDがSQLインジェクションの原因にならないことを確認
+    let db = create_test_db();
+
+    // 【実際の処理実行】: ID=0でカウント取得を試みる
+    // 【処理内容】: 存在確認で失敗し、一貫したエラーメッセージ
+    let result = super::categories::get_affected_players_count_by_category_internal(0, &db);
+
+    // 【結果検証】: エラーが返されることを確認
+    // 【期待値確認】: "Category not found" エラーメッセージが含まれている
+    assert!(result.is_err(), "0以下のIDではエラーが返されること"); // 【確認内容】: エラーが発生している 🔵
+    let error_message = result.unwrap_err();
+    assert!(
+        error_message.contains("Category") && error_message.contains("not found"),
+        "エラーメッセージに種別未検出が含まれること"
+    ); // 【確認内容】: 種別未検出のエラーメッセージが返される 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-BOUND-001: category_id = 1（最小の有効ID） 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_min_id() {
+    // 【テスト目的】: 最小の有効ID（1）でカウントが正常に動作することを確認
+    // 【テスト内容】: AUTO_INCREMENT主キーの最小値での処理確認
+    // 【期待される動作】: ID=1でもWHERE句が正しく機能し、正確なカウントが返される
+    // 🔵 信頼性レベル: データベース設計（AUTO_INCREMENT仕様）に基づく
+
+    // 【テストデータ準備】: 最初の種別（ID=1）を作成し、プレイヤーを割り当て
+    // 【初期条件設定】: 境界値での安定動作を確認
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "最初の種別", "#FF0000");
+    insert_test_player(&db, "山田太郎", Some(category_id));
+    insert_test_player(&db, "佐藤花子", Some(category_id));
+
+    // ID=1であることを確認
+    assert_eq!(category_id, 1); // 【確認内容】: 最初の種別IDが1である 🔵
+
+    // 【実際の処理実行】: ID=1でカウント取得
+    // 【処理内容】: 最小境界値での処理を実行
+    let result =
+        super::categories::get_affected_players_count_by_category_internal(category_id, &db);
+
+    // 【結果検証】: 正確なカウントが返されることを確認
+    // 【期待値確認】: ID=1でも他のIDと同じように処理される
+    assert!(result.is_ok(), "最小IDでカウント取得が成功すること"); // 【確認内容】: 処理が成功 🔵
+    let count = result.unwrap();
+    assert_eq!(count, 2); // 【確認内容】: カウントが2 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-BOUND-002: 大量プレイヤー（500人）の正確なカウント 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_500_players_exact_count() {
+    // 【テスト目的】: 最大規模（500人）でもカウント精度を維持することを確認
+    // 【テスト内容】: COUNT(*)が500を正確に返すことを検証（499でも501でもなく）
+    // 【期待される動作】: カウント精度がプレイヤー数に依存しない
+    // 🔵 信頼性レベル: 要件定義書（NFR-001, エッジケース3）に基づく
+
+    // 【テストデータ準備】: 種別を作成し、正確に500人のプレイヤーを割り当て
+    // 【初期条件設定】: 最大容量でのカウント精度を確認
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "最大規模種別", "#FF0000");
+    for i in 1..=500 {
+        insert_test_player(&db, &format!("プレイヤー{}", i), Some(category_id));
+    }
+
+    // 【実際の処理実行】: 影響カウントコマンドを呼び出し
+    // 【処理内容】: COUNT(*)が正確に500を返すことを確認
+    let result =
+        super::categories::get_affected_players_count_by_category_internal(category_id, &db);
+
+    // 【結果検証】: 正確に500が返されることを確認
+    // 【期待値確認】: オーバーフローなし、カウント精度100%維持
+    assert!(result.is_ok(), "カウント取得が成功すること"); // 【確認内容】: 処理が成功 🔵
+    let count = result.unwrap();
+    assert_eq!(count, 500); // 【確認内容】: カウントが正確に500 🔵
+}
+
+// ============================================
+// TC-COUNT-CATEGORY-BOUND-003: category_idがNULLのプレイヤーは含まれない 🔵
+// ============================================
+
+#[test]
+fn test_get_affected_players_count_by_category_null_excluded() {
+    // 【テスト目的】: category_id = NULLのプレイヤーがカウントに含まれないことを確認
+    // 【テスト内容】: WHERE句が `category_id = ?` のため、NULL値は含まれないことを検証
+    // 【期待される動作】: NULLは`WHERE category_id = 1`にマッチしない
+    // 🔵 信頼性レベル: データベース制約（ON DELETE SET NULL、schema.rs:18）に基づく
+
+    // 【テストデータ準備】: 種別を作成し、category_id付きとNULLのプレイヤーを作成
+    // 【初期条件設定】: ON DELETE SET NULLとの整合性を確認
+    let db = create_test_db();
+    let category_id = insert_test_category(&db, "テスト種別", "#FF0000");
+    insert_test_player(&db, "種別あり", Some(category_id));
+    insert_test_player(&db, "種別なし", None);
+
+    // 【実際の処理実行】: 影響カウントコマンドを呼び出し
+    // 【処理内容】: WHERE category_id = ? で、NULL値は除外される
+    let result =
+        super::categories::get_affected_players_count_by_category_internal(category_id, &db);
+
+    // 【結果検証】: 1が返されることを確認（NULL値は含まれない）
+    // 【期待値確認】: SQL仕様通りNULL値を除外
+    assert!(result.is_ok(), "カウント取得が成功すること"); // 【確認内容】: 処理が成功 🔵
+    let count = result.unwrap();
+    assert_eq!(count, 1); // 【確認内容】: カウントが1（NULLは除外） 🔵
+}

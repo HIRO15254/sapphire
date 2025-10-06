@@ -317,3 +317,49 @@ pub async fn get_all_categories(
 ) -> Result<Vec<PlayerCategory>, String> {
     get_all_categories_internal(&db)
 }
+
+/// 種別に関連するプレイヤー数を取得
+///
+/// # Arguments
+/// * `category_id` - 種別ID
+/// * `db` - データベース接続
+///
+/// # Returns
+/// * `Result<usize, String>` - 影響を受けるプレイヤー数またはエラーメッセージ
+///
+/// 【機能概要】: 指定された種別IDを持つプレイヤーの数をカウント
+/// 【実装方針】: ヘルパー関数を活用してコードの重複を削減、可読性を向上
+/// 【セキュリティ】: パラメータバインディングによるSQLインジェクション対策
+/// 【パフォーマンス】: idx_players_category_id インデックスを活用した高速クエリ
+/// 【テスト対応】: TC-COUNT-CATEGORY-001～010の全テストケースに対応
+/// 🔵 信頼性レベル: 要件定義書（REQ-501, REQ-503）に基づく
+pub(crate) fn get_affected_players_count_by_category_internal(
+    category_id: i64,
+    db: &PlayerDatabase,
+) -> Result<usize, String> {
+    let conn = db.0.lock().unwrap();
+
+    // 【種別存在確認】: ヘルパー関数を使用した存在チェック
+    check_category_exists(&conn, category_id)?;
+
+    // 【カウント取得】: COUNT(*)クエリで種別IDに紐づくプレイヤー数を取得
+    // 【NULL除外】: WHERE句により、category_id = NULLのプレイヤーは除外される
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM players WHERE category_id = ?1",
+            params![category_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    // 【型変換】: COUNT(*)の結果をusizeに変換して返す
+    Ok(count as usize)
+}
+
+#[tauri::command]
+pub async fn get_affected_players_count_by_category(
+    category_id: i64,
+    db: State<'_, PlayerDatabase>,
+) -> Result<usize, String> {
+    get_affected_players_count_by_category_internal(category_id, &db)
+}

@@ -36,3 +36,16 @@ TsumikiワークフローではGitHub Issues/Comments上で文書管理を行い
 - `docs/tech-stack.md` - 技術スタック定義
 - `docs/patterns/` - 実装パターン集（今後）
 - `docs/architecture/` - プロジェクト詳細ドキュメント（今後）
+
+## セッション管理
+
+TDD開発では、各ステップ完了時にコンテキストを最適化するために `/compact` を実行してください。
+
+詳細は [TDDセッション管理ルール](./tdd/session-management.md) を参照してください。
+
+### 主要ポイント
+- Red/Green/Refactorの各フェーズ完了後に `/compact` を実行
+- 実行したコマンド履歴を保持
+- プロジェクトルール（`docs/rule/` 配下）を保持
+- 技術スタック定義を保持
+- 次のステップを明確化

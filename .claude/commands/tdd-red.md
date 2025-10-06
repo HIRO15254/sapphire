@@ -510,3 +510,16 @@ npx cypress run --browser chrome
 ```
 
 次のステップ: `/tdd-green` でテストを通すための最小限の実装を行います。
+
+## セッション管理
+
+**Redフェーズ完了後は `/compact` を実行してください**
+
+詳細は [TDDセッション管理ルール](../../../docs/rule/tdd/session-management.md) を参照してください。
+
+### Compact時の保持情報
+- 実行コマンド: `/tdd-red {{issue_number}}`
+- 現在のフェーズ: Red Phase完了
+- 次のステップ: Green Phase（`/tdd-green {{issue_number}}`）
+- 技術スタック: プロジェクトの技術スタック定義を保持
+- プロジェクトルール: `docs/rule/` 配下の全ルールを保持

@@ -36,7 +36,11 @@
       "SlashCommand(/tdd-green:*)",
       "SlashCommand(/tdd-refactor:*)",
       "SlashCommand(/tdd-verify-complete:*)",
-      "mcp__github__get_issue_comments"
+      "mcp__github__get_issue_comments",
+      "Bash(find:*)",
+      "mcp__github__get_me",
+      "mcp__github__search_issues",
+      "mcp__github__list_issues"
     ],
     "deny": [
       "Bash(bun test:*)",
