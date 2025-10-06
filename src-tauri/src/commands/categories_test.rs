@@ -1,4 +1,3 @@
-use crate::database::models::{PlayerCategory, NAME_MAX_LENGTH, NAME_MIN_LENGTH};
 use crate::database::PlayerDatabase;
 use rusqlite::params;
 

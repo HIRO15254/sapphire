@@ -61,6 +61,38 @@ fn get_category_by_id(conn: &Connection, id: i64) -> Result<PlayerCategory, Stri
     .map_err(|e| format!("Category not found: {}", e))
 }
 
+/// 【ヘルパー関数】: 種別名のUNIQUE制約チェック 🟡
+/// 【再利用性】: create_category, update_categoryで共通利用 🟡
+/// 【単一責任】: 名前の重複チェックのみを担当 🟡
+/// 【改善内容】: コード重複を削減し、DRY原則を適用 🟡
+fn check_category_name_unique(
+    conn: &Connection,
+    name: &str,
+    exclude_id: Option<i64>,
+) -> Result<(), String> {
+    let exists: i64 = if let Some(id) = exclude_id {
+        // 【更新時】: 自分自身を除外して重複チェック 🔵
+        conn.query_row(
+            "SELECT COUNT(*) FROM player_categories WHERE name = ?1 AND id != ?2",
+            params![name, id],
+            |row| row.get(0),
+        )
+    } else {
+        // 【作成時】: 同名の種別が存在しないかチェック 🔵
+        conn.query_row(
+            "SELECT COUNT(*) FROM player_categories WHERE name = ?1",
+            params![name],
+            |row| row.get(0),
+        )
+    }
+    .map_err(|e| format!("Database error: {}", e))?;
+
+    if exists > 0 {
+        return Err("Category name already exists".to_string());
+    }
+    Ok(())
+}
+
 // ============================================
 // CRUDコマンド実装
 // ============================================
@@ -91,18 +123,9 @@ pub(crate) fn create_category_internal(
 
     let conn = db.0.lock().unwrap();
 
-    // 【UNIQUE制約チェック】: 同名の種別が既に存在しないか確認 🔵
-    let exists: i64 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM player_categories WHERE name = ?1",
-            params![name],
-            |row| row.get(0),
-        )
-        .map_err(|e| format!("Database error: {}", e))?;
-
-    if exists > 0 {
-        return Err("Category name already exists".to_string());
-    }
+    // 【UNIQUE制約チェック】: ヘルパー関数を使用した重複チェック 🟡
+    // 【改善内容】: 共通ヘルパー関数により、コード重複を削減 🟡
+    check_category_name_unique(&conn, name, None)?;
 
     // 【種別作成】: player_categoriesテーブルにINSERT 🔵
     conn.execute(
@@ -155,18 +178,9 @@ pub(crate) fn update_category_internal(
     if let Some(new_name) = name {
         validate_category_name(new_name)?;
 
-        // 【UNIQUE制約チェック】: 他の種別と名前が重複しないか確認 🔵
-        let exists: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM player_categories WHERE name = ?1 AND id != ?2",
-                params![new_name, id],
-                |row| row.get(0),
-            )
-            .map_err(|e| format!("Database error: {}", e))?;
-
-        if exists > 0 {
-            return Err("Category name already exists".to_string());
-        }
+        // 【UNIQUE制約チェック】: ヘルパー関数を使用した重複チェック 🟡
+        // 【改善内容】: 共通ヘルパー関数により、コード重複を削減 🟡
+        check_category_name_unique(&conn, new_name, Some(id))?;
     }
 
     // 【色バリデーション】: HEXカラーコード形式チェック 🔵
