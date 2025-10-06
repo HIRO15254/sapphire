@@ -7,6 +7,9 @@ use tauri::{AppHandle, Manager, State};
 // Player note database module
 pub mod database;
 
+// Player CRUD commands module
+pub mod commands;
+
 // Data structures
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
