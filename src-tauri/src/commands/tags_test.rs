@@ -148,13 +148,7 @@ fn test_update_tag_name_only() {
 
     // 【実際の処理実行】: タグ名のみ更新コマンドを呼び出し
     // 【処理内容】: タグ名を「超アグレッシブ」に変更、色と強度設定は変更なし
-    let result = super::tags::update_tag_internal(
-        tag_id,
-        Some("超アグレッシブ"),
-        None,
-        None,
-        &db,
-    );
+    let result = super::tags::update_tag_internal(tag_id, Some("超アグレッシブ"), None, None, &db);
 
     // 【結果検証】: 名前のみが更新され、他のフィールドは変更されないことを確認
     // 【期待値確認】: 名前が「超アグレッシブ」に更新され、色と強度設定は元のまま
@@ -241,13 +235,8 @@ fn test_update_tag_all_fields() {
 
     // 【実際の処理実行】: 全フィールド同時更新コマンドを呼び出し
     // 【処理内容】: 名前を「タイト」、色を「#0000FF」、強度設定をfalseに変更
-    let result = super::tags::update_tag_internal(
-        tag_id,
-        Some("タイト"),
-        Some("#0000FF"),
-        Some(false),
-        &db,
-    );
+    let result =
+        super::tags::update_tag_internal(tag_id, Some("タイト"), Some("#0000FF"), Some(false), &db);
 
     // 【結果検証】: 全フィールドが正しく更新されることを確認
     // 【期待値確認】: 名前、色、強度設定が全て新しい値に更新されている
@@ -427,10 +416,7 @@ fn test_create_tag_with_too_long_name_error() {
 
     // 【結果検証】: 適切なエラーが返されることを確認
     // 【期待値確認】: "Tag name must be between 1 and 50 characters" エラー
-    assert!(
-        result.is_err(),
-        "51文字のタグ名でエラーが返されること"
-    ); // 【確認内容】: エラーが返されている 🔵
+    assert!(result.is_err(), "51文字のタグ名でエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
     let error = result.unwrap_err();
     assert!(
         error.contains("Tag name must be between 1 and 50 characters"),
@@ -518,10 +504,7 @@ fn test_create_tag_with_invalid_hex_characters_error() {
 
     // 【結果検証】: 適切なエラーが返されることを確認
     // 【期待値確認】: "Invalid HEX color characters" エラー
-    assert!(
-        result.is_err(),
-        "不正なHEX文字でエラーが返されること"
-    ); // 【確認内容】: エラーが返されている 🔵
+    assert!(result.is_err(), "不正なHEX文字でエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
     let error = result.unwrap_err();
     assert!(
         error.contains("Invalid HEX color characters"),
@@ -550,10 +533,7 @@ fn test_create_tag_with_short_hex_error() {
 
     // 【結果検証】: 適切なエラーが返されることを確認
     // 【期待値確認】: "Invalid HEX color format" エラー
-    assert!(
-        result.is_err(),
-        "短いHEX形式でエラーが返されること"
-    ); // 【確認内容】: エラーが返されている 🔵
+    assert!(result.is_err(), "短いHEX形式でエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
     let error = result.unwrap_err();
     assert!(
         error.contains("Invalid HEX color format"),
@@ -582,10 +562,7 @@ fn test_update_tag_with_nonexistent_id_error() {
 
     // 【結果検証】: 適切なエラーが返されることを確認
     // 【期待値確認】: "Tag not found" エラー
-    assert!(
-        result.is_err(),
-        "存在しないIDでエラーが返されること"
-    ); // 【確認内容】: エラーが返されている 🔵
+    assert!(result.is_err(), "存在しないIDでエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
     let error = result.unwrap_err();
     assert!(
         error.contains("Tag not found"),
@@ -616,10 +593,7 @@ fn test_update_tag_with_duplicate_name_error() {
 
     // 【結果検証】: UNIQUE制約違反エラーが返されることを確認
     // 【期待値確認】: "Tag name already exists" エラー
-    assert!(
-        result.is_err(),
-        "同名タグへの更新でエラーが返されること"
-    ); // 【確認内容】: エラーが返されている 🔵
+    assert!(result.is_err(), "同名タグへの更新でエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
     let error = result.unwrap_err();
     assert!(
         error.contains("Tag name already exists"),
@@ -648,10 +622,7 @@ fn test_delete_tag_with_nonexistent_id_error() {
 
     // 【結果検証】: 適切なエラーが返されることを確認
     // 【期待値確認】: "Tag not found" エラー
-    assert!(
-        result.is_err(),
-        "存在しないIDでエラーが返されること"
-    ); // 【確認内容】: エラーが返されている 🔵
+    assert!(result.is_err(), "存在しないIDでエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
     let error = result.unwrap_err();
     assert!(
         error.contains("Tag not found"),
@@ -788,4 +759,321 @@ fn test_create_tag_with_mixed_case_hex() {
     assert!(result.is_ok(), "混在HEXが作成できること"); // 【確認内容】: 作成処理が成功している 🔵
     let tag = result.unwrap();
     assert_eq!(tag.color, "#AbC123"); // 【確認内容】: 混在HEXが正しく保存されている 🔵
+}
+
+// ============================================
+// TC-UPDATE-TAG-005: updated_at自動更新確認 🔵
+// ============================================
+
+#[test]
+fn test_update_tag_updated_at_auto_update() {
+    // 【テスト目的】: 更新時にupdated_atが自動的に現在時刻に更新されることを確認
+    // 【テスト内容】: REQ-209のupdated_at自動更新機能を検証
+    // 【期待される動作】: updated_atが更新前より新しい時刻になる
+    // 🔵 信頼性レベル: 要件定義書（REQ-209）に基づく
+
+    // 【テストデータ準備】: タグを作成し、少し待ってから更新するシナリオを想定
+    // 【初期条件設定】: 1つのタグを事前に作成
+    let db = create_test_db();
+    let tag = super::tags::create_tag_internal("アグレッシブ", "#FF5733", true, &db).unwrap();
+    let original_updated_at = tag.updated_at.clone();
+
+    // 【待機処理】: updated_atの時刻差を確実に検出するため短時間待機
+    // 【SQLite精度対応】: CURRENT_TIMESTAMPは秒単位の精度のため、1秒待機が必要 🔵
+    std::thread::sleep(std::time::Duration::from_secs(1));
+
+    // 【実際の処理実行】: タグを更新
+    // 【処理内容】: 名前を変更してupdated_atが自動更新されることを確認
+    let result = super::tags::update_tag_internal(tag.id, Some("超アグレッシブ"), None, None, &db);
+
+    // 【結果検証】: updated_atが更新されたことを確認
+    // 【期待値確認】: updated_atが元の値より新しい
+    assert!(result.is_ok(), "タグ更新が成功すること"); // 【確認内容】: 更新処理が成功している 🔵
+    let updated_tag = result.unwrap();
+    assert_ne!(
+        updated_tag.updated_at, original_updated_at,
+        "updated_atが更新されていること"
+    ); // 【確認内容】: updated_atが自動更新されている 🔵
+}
+
+// ============================================
+// TC-GET-ALL-TAGS-SORT-001: created_at昇順ソート確認 🔵
+// ============================================
+
+#[test]
+fn test_get_all_tags_sorted_by_created_at() {
+    // 【テスト目的】: タグリストがcreated_at昇順でソートされることを確認
+    // 【テスト内容】: 3件のタグを時間差で作成し、ソート順を検証
+    // 【期待される動作】: 最初に作成したタグが先頭、最後に作成したタグが末尾
+    // 🔵 信頼性レベル: get_all_tags仕様に基づく
+
+    // 【テストデータ準備】: 3件のタグを時間差で作成
+    // 【初期条件設定】: タグを順番に作成し、created_atに時間差を持たせる
+    let db = create_test_db();
+
+    let tag1 = super::tags::create_tag_internal("タグ1", "#FF0000", true, &db).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(10));
+    let tag2 = super::tags::create_tag_internal("タグ2", "#00FF00", false, &db).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(10));
+    let tag3 = super::tags::create_tag_internal("タグ3", "#0000FF", true, &db).unwrap();
+
+    // 【実際の処理実行】: 全タグ取得コマンドを呼び出し
+    // 【処理内容】: created_at昇順でソートされたタグリストを取得
+    let result = super::tags::get_all_tags_internal(&db);
+
+    // 【結果検証】: created_at昇順でソートされていることを確認
+    // 【期待値確認】: 作成順に並んでいる
+    assert!(result.is_ok(), "全タグ取得が成功すること"); // 【確認内容】: 取得処理が成功している 🔵
+    let tags = result.unwrap();
+    assert_eq!(tags.len(), 3); // 【確認内容】: 3件のタグが取得されている 🔵
+    assert_eq!(tags[0].id, tag1.id); // 【確認内容】: 最初のタグが先頭にある 🔵
+    assert_eq!(tags[1].id, tag2.id); // 【確認内容】: 2番目のタグが中央にある 🔵
+    assert_eq!(tags[2].id, tag3.id); // 【確認内容】: 最後のタグが末尾にある 🔵
+}
+
+// ============================================
+// TC-DELETE-TAG-ERR-002: tag_id=0以下でエラー 🔵
+// ============================================
+
+#[test]
+fn test_delete_tag_with_zero_or_negative_id_error() {
+    // 【テスト目的】: 0以下の不正なIDを指定した場合、エラーが返されることを確認
+    // 【テスト内容】: 不正なID（0, -1）での削除エラー処理を検証
+    // 【期待される動作】: "Tag not found" エラーが返される
+    // 🔵 信頼性レベル: 要件定義書（REQ-210）に基づく
+
+    // 【テストデータ準備】: 不正なID（0）を用意
+    // 【初期条件設定】: 空のデータベース
+    let db = create_test_db();
+
+    // 【実際の処理実行】: ID=0で削除を試行
+    // 【処理内容】: 不正なIDで削除コマンドを呼び出し
+    let result = super::tags::delete_tag_internal(0, &db);
+
+    // 【結果検証】: 適切なエラーが返されることを確認
+    // 【期待値確認】: "Tag not found" エラー
+    assert!(result.is_err(), "ID=0でエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("Tag not found"),
+        "エラーメッセージが正しいこと"
+    ); // 【確認内容】: エラーメッセージが正しい 🔵
+}
+
+// ============================================
+// TC-UPDATE-TAG-BOUND-001: タグ名を1文字に更新 🔵
+// ============================================
+
+#[test]
+fn test_update_tag_name_to_min_length() {
+    // 【テスト目的】: タグ名を1文字に更新できることを確認
+    // 【テスト内容】: 更新時の名前バリデーション（最小長境界値）を検証
+    // 【期待される動作】: 1文字に正しく更新される
+    // 🔵 信頼性レベル: 要件定義書（EDGE-102）に基づく
+
+    // 【テストデータ準備】: 通常のタグを作成し、1文字に短縮するシナリオを想定
+    // 【初期条件設定】: 1つのタグを事前に作成
+    let db = create_test_db();
+    let tag_id = insert_test_tag(&db, "アグレッシブ", "#FF5733", true);
+
+    // 【実際の処理実行】: タグ名を1文字に更新
+    // 【処理内容】: 名前を「A」に変更
+    let result = super::tags::update_tag_internal(tag_id, Some("A"), None, None, &db);
+
+    // 【結果検証】: 1文字に正しく更新されることを確認
+    // 【期待値確認】: 名前が「A」に更新されている
+    assert!(result.is_ok(), "1文字への更新が成功すること"); // 【確認内容】: 更新処理が成功している 🔵
+    let updated_tag = result.unwrap();
+    assert_eq!(updated_tag.name, "A"); // 【確認内容】: 1文字に正しく更新されている 🔵
+}
+
+// ============================================
+// TC-UPDATE-TAG-BOUND-002: タグ名を50文字に更新 🔵
+// ============================================
+
+#[test]
+fn test_update_tag_name_to_max_length() {
+    // 【テスト目的】: タグ名を50文字に更新できることを確認
+    // 【テスト内容】: 更新時の名前バリデーション（最大長境界値）を検証
+    // 【期待される動作】: 50文字全てが正しく更新される
+    // 🔵 信頼性レベル: 要件定義書（EDGE-102）に基づく
+
+    // 【テストデータ準備】: 短いタグを作成し、50文字に拡張するシナリオを想定
+    // 【初期条件設定】: 1つのタグを事前に作成
+    let db = create_test_db();
+    let tag_id = insert_test_tag(&db, "短い", "#FF5733", true);
+
+    // 【実際の処理実行】: タグ名を50文字に更新
+    // 【処理内容】: 名前を50文字に変更
+    let max_name = "A".repeat(50);
+    let result = super::tags::update_tag_internal(tag_id, Some(&max_name), None, None, &db);
+
+    // 【結果検証】: 50文字に正しく更新されることを確認
+    // 【期待値確認】: 50文字全てが更新されている
+    assert!(result.is_ok(), "50文字への更新が成功すること"); // 【確認内容】: 更新処理が成功している 🔵
+    let updated_tag = result.unwrap();
+    assert_eq!(updated_tag.name, max_name); // 【確認内容】: 50文字に正しく更新されている 🔵
+}
+
+// ============================================
+// TC-UPDATE-TAG-ERR-003: タグ名を51文字に更新でエラー 🔵
+// ============================================
+
+#[test]
+fn test_update_tag_name_to_too_long_error() {
+    // 【テスト目的】: 更新時に51文字を指定するとエラーが返されることを確認
+    // 【テスト内容】: 更新時の名前バリデーション（最大長超過）を検証
+    // 【期待される動作】: "Tag name must be between 1 and 50 characters" エラーが返される
+    // 🔵 信頼性レベル: 要件定義書（EDGE-102）に基づく
+
+    // 【テストデータ準備】: タグを作成し、51文字に更新試行するシナリオを想定
+    // 【初期条件設定】: 1つのタグを事前に作成
+    let db = create_test_db();
+    let tag_id = insert_test_tag(&db, "アグレッシブ", "#FF5733", true);
+
+    // 【実際の処理実行】: タグ名を51文字に更新試行
+    // 【処理内容】: 51文字の名前で更新コマンドを呼び出し
+    let too_long_name = "A".repeat(51);
+    let result = super::tags::update_tag_internal(tag_id, Some(&too_long_name), None, None, &db);
+
+    // 【結果検証】: 適切なエラーが返されることを確認
+    // 【期待値確認】: "Tag name must be between 1 and 50 characters" エラー
+    assert!(result.is_err(), "51文字への更新でエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("Tag name must be between 1 and 50 characters"),
+        "エラーメッセージが正しいこと"
+    ); // 【確認内容】: エラーメッセージが正しい 🔵
+}
+
+// ============================================
+// TC-UPDATE-TAG-ERR-004: タグ名を空文字に更新でエラー 🔵
+// ============================================
+
+#[test]
+fn test_update_tag_name_to_empty_error() {
+    // 【テスト目的】: 更新時に空文字を指定するとエラーが返されることを確認
+    // 【テスト内容】: 更新時の名前バリデーション（空文字）を検証
+    // 【期待される動作】: "Tag name must be between 1 and 50 characters" エラーが返される
+    // 🔵 信頼性レベル: 要件定義書（EDGE-102）に基づく
+
+    // 【テストデータ準備】: タグを作成し、空文字に更新試行するシナリオを想定
+    // 【初期条件設定】: 1つのタグを事前に作成
+    let db = create_test_db();
+    let tag_id = insert_test_tag(&db, "アグレッシブ", "#FF5733", true);
+
+    // 【実際の処理実行】: タグ名を空文字に更新試行
+    // 【処理内容】: 空文字の名前で更新コマンドを呼び出し
+    let result = super::tags::update_tag_internal(tag_id, Some(""), None, None, &db);
+
+    // 【結果検証】: 適切なエラーが返されることを確認
+    // 【期待値確認】: "Tag name must be between 1 and 50 characters" エラー
+    assert!(result.is_err(), "空文字への更新でエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("Tag name must be between 1 and 50 characters"),
+        "エラーメッセージが正しいこと"
+    ); // 【確認内容】: エラーメッセージが正しい 🔵
+}
+
+// ============================================
+// TC-UPDATE-TAG-ERR-005: 色を不正HEXに更新でエラー 🔵
+// ============================================
+
+#[test]
+fn test_update_tag_color_to_invalid_hex_error() {
+    // 【テスト目的】: 更新時に不正なHEX形式を指定するとエラーが返されることを確認
+    // 【テスト内容】: 更新時の色バリデーション（不正HEX）を検証
+    // 【期待される動作】: "Invalid HEX color format" エラーが返される
+    // 🔵 信頼性レベル: 要件定義書（REQ-202）に基づく
+
+    // 【テストデータ準備】: タグを作成し、不正HEXに更新試行するシナリオを想定
+    // 【初期条件設定】: 1つのタグを事前に作成
+    let db = create_test_db();
+    let tag_id = insert_test_tag(&db, "アグレッシブ", "#FF5733", true);
+
+    // 【実際の処理実行】: 色を不正HEX形式に更新試行
+    // 【処理内容】: #なしのHEX形式で更新コマンドを呼び出し
+    let result = super::tags::update_tag_internal(tag_id, None, Some("FF0000"), None, &db);
+
+    // 【結果検証】: 適切なエラーが返されることを確認
+    // 【期待値確認】: "Invalid HEX color format" エラー
+    assert!(result.is_err(), "不正HEXへの更新でエラーが返されること"); // 【確認内容】: エラーが返されている 🔵
+    let error = result.unwrap_err();
+    assert!(
+        error.contains("Invalid HEX color format"),
+        "エラーメッセージが正しいこと"
+    ); // 【確認内容】: エラーメッセージが正しい 🔵
+}
+
+// ============================================
+// TC-GET-ALL-TAGS-PERF-001: 大量タグ（100件）のパフォーマンステスト 🔵
+// ============================================
+
+#[test]
+fn test_get_all_tags_performance_100_tags() {
+    // 【テスト目的】: 大量データでも全タグ取得が高速に実行されることを確認
+    // 【テスト内容】: 100件のタグを作成し、1秒以内に取得できることを検証
+    // 【期待される動作】: 100件全てが正しく取得される（1秒以内）
+    // 🔵 信頼性レベル: NFR-003（レスポンス時間要件）に基づく
+
+    // 【テストデータ準備】: 100件のタグを作成
+    // 【初期条件設定】: 大量データのシナリオを想定
+    let db = create_test_db();
+    for i in 0..100 {
+        insert_test_tag(&db, &format!("タグ{}", i), "#FF0000", true);
+    }
+
+    // 【実際の処理実行】: 全タグ取得コマンドを呼び出し
+    // 【処理内容】: パフォーマンスを計測しながら全タグを取得
+    let start = std::time::Instant::now();
+    let result = super::tags::get_all_tags_internal(&db);
+    let duration = start.elapsed();
+
+    // 【結果検証】: 100件全てが1秒以内に取得されることを確認
+    // 【期待値確認】: 全件取得成功、1秒以内の実行時間
+    assert!(result.is_ok(), "100件のタグ取得が成功すること"); // 【確認内容】: 取得処理が成功している 🔵
+    let tags = result.unwrap();
+    assert_eq!(tags.len(), 100); // 【確認内容】: 100件全てが取得されている 🔵
+    assert!(
+        duration.as_secs() < 1,
+        "1秒以内に取得できること（実測: {:?}）",
+        duration
+    ); // 【確認内容】: パフォーマンス要件を満たしている 🔵
+}
+
+// ============================================
+// TC-GET-ALL-TAGS-PERF-002: 最大規模タグ（500件）のパフォーマンステスト 🔵
+// ============================================
+
+#[test]
+fn test_get_all_tags_performance_500_tags() {
+    // 【テスト目的】: 最大想定規模（NFR-001: 最大500人 → タグも500件想定）でも全タグ取得が高速に実行されることを確認
+    // 【テスト内容】: 500件のタグを作成し、1秒以内に取得できることを検証
+    // 【期待される動作】: 500件全てが正しく取得される（1秒以内、NFR-003）
+    // 🔵 信頼性レベル: NFR-001、NFR-003（非機能要件）に基づく
+
+    // 【テストデータ準備】: 500件のタグを作成
+    // 【初期条件設定】: 最大規模のシナリオを想定
+    let db = create_test_db();
+    for i in 0..500 {
+        insert_test_tag(&db, &format!("タグ{}", i), "#FF0000", true);
+    }
+
+    // 【実際の処理実行】: 全タグ取得コマンドを呼び出し
+    // 【処理内容】: パフォーマンスを計測しながら全タグを取得
+    let start = std::time::Instant::now();
+    let result = super::tags::get_all_tags_internal(&db);
+    let duration = start.elapsed();
+
+    // 【結果検証】: 500件全てが1秒以内に取得されることを確認
+    // 【期待値確認】: 全件取得成功、1秒以内の実行時間
+    assert!(result.is_ok(), "500件のタグ取得が成功すること"); // 【確認内容】: 取得処理が成功している 🔵
+    let tags = result.unwrap();
+    assert_eq!(tags.len(), 500); // 【確認内容】: 500件全てが取得されている 🔵
+    assert!(
+        duration.as_secs() < 1,
+        "1秒以内に取得できること（実測: {:?}）",
+        duration
+    ); // 【確認内容】: パフォーマンス要件を満たしている 🔵
 }
