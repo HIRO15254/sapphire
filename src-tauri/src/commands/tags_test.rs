@@ -65,7 +65,7 @@ fn test_create_tag_with_name_color_intensity() {
     let tag = result.unwrap();
     assert_eq!(tag.name, "アグレッシブ"); // 【確認内容】: タグ名が正しく設定されている 🔵
     assert_eq!(tag.color, "#FF5733"); // 【確認内容】: 色が正しく設定されている 🔵
-    assert_eq!(tag.has_intensity, true); // 【確認内容】: 強度設定ありである 🔵
+    assert!(tag.has_intensity); // 【確認内容】: 強度設定ありである 🔵
 }
 
 // ============================================
@@ -91,7 +91,7 @@ fn test_create_tag_without_intensity() {
     // 【期待値確認】: has_intensityがfalseで保存されている
     assert!(result.is_ok(), "強度設定なしタグの作成が成功すること"); // 【確認内容】: 作成処理が成功している 🔵
     let tag = result.unwrap();
-    assert_eq!(tag.has_intensity, false); // 【確認内容】: 強度設定なしである 🔵
+    assert!(!tag.has_intensity); // 【確認内容】: 強度設定なしである 🔵
 }
 
 // ============================================
@@ -156,7 +156,7 @@ fn test_update_tag_name_only() {
     let updated_tag = result.unwrap();
     assert_eq!(updated_tag.name, "超アグレッシブ"); // 【確認内容】: タグ名が正しく更新されている 🔵
     assert_eq!(updated_tag.color, "#FF5733"); // 【確認内容】: 色は変更されていない 🔵
-    assert_eq!(updated_tag.has_intensity, true); // 【確認内容】: 強度設定は変更されていない 🔵
+    assert!(updated_tag.has_intensity); // 【確認内容】: 強度設定は変更されていない 🔵
 }
 
 // ============================================
@@ -185,7 +185,7 @@ fn test_update_tag_color_only() {
     let updated_tag = result.unwrap();
     assert_eq!(updated_tag.name, "アグレッシブ"); // 【確認内容】: タグ名は変更されていない 🔵
     assert_eq!(updated_tag.color, "#00FF00"); // 【確認内容】: 色が正しく更新されている 🔵
-    assert_eq!(updated_tag.has_intensity, true); // 【確認内容】: 強度設定は変更されていない 🔵
+    assert!(updated_tag.has_intensity); // 【確認内容】: 強度設定は変更されていない 🔵
 }
 
 // ============================================
@@ -214,7 +214,7 @@ fn test_update_tag_intensity_only() {
     let updated_tag = result.unwrap();
     assert_eq!(updated_tag.name, "アグレッシブ"); // 【確認内容】: タグ名は変更されていない 🔵
     assert_eq!(updated_tag.color, "#FF5733"); // 【確認内容】: 色は変更されていない 🔵
-    assert_eq!(updated_tag.has_intensity, false); // 【確認内容】: 強度設定が正しく更新されている 🔵
+    assert!(!updated_tag.has_intensity); // 【確認内容】: 強度設定が正しく更新されている 🔵
 }
 
 // ============================================
@@ -244,7 +244,7 @@ fn test_update_tag_all_fields() {
     let updated_tag = result.unwrap();
     assert_eq!(updated_tag.name, "タイト"); // 【確認内容】: タグ名が正しく更新されている 🔵
     assert_eq!(updated_tag.color, "#0000FF"); // 【確認内容】: 色が正しく更新されている 🔵
-    assert_eq!(updated_tag.has_intensity, false); // 【確認内容】: 強度設定が正しく更新されている 🔵
+    assert!(!updated_tag.has_intensity); // 【確認内容】: 強度設定が正しく更新されている 🔵
 }
 
 // ============================================
