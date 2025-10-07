@@ -40,7 +40,8 @@
       "Bash(find:*)",
       "mcp__github__get_me",
       "mcp__github__search_issues",
-      "mcp__github__list_issues"
+      "mcp__github__list_issues",
+      "Bash(gh pr create:*)"
     ],
     "deny": [
       "Bash(bun test:*)",
