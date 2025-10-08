@@ -14,11 +14,8 @@ fn create_test_db() -> PlayerDatabase {
 /// テスト用のプレイヤーを作成
 fn insert_test_player(db: &PlayerDatabase, name: &str) -> i64 {
     let conn = db.0.lock().unwrap();
-    conn.execute(
-        "INSERT INTO players (name) VALUES (?1)",
-        params![name],
-    )
-    .expect("Failed to insert test player");
+    conn.execute("INSERT INTO players (name) VALUES (?1)", params![name])
+        .expect("Failed to insert test player");
     conn.last_insert_rowid()
 }
 
@@ -118,7 +115,10 @@ fn test_create_note_player_not_found() {
 
     // 【結果検証】: エラーが返されることを確認
     // 【期待値確認】: "Player not found" エラーメッセージが含まれる
-    assert!(result.is_err(), "存在しないプレイヤーIDではエラーが返されること"); // 【確認内容】: エラーが発生している 🔵
+    assert!(
+        result.is_err(),
+        "存在しないプレイヤーIDではエラーが返されること"
+    ); // 【確認内容】: エラーが発生している 🔵
     let error_message = result.unwrap_err();
     assert!(
         error_message.contains("Player") && error_message.contains("not found"),

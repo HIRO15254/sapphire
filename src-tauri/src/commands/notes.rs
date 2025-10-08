@@ -278,7 +278,7 @@ pub(crate) fn get_player_notes_internal(
     notes_iter
         .collect::<Result<Vec<_>, _>>()
         .map_err(|_| "Failed to parse note".to_string()) // 【セキュリティ改善】: DB詳細を隠蔽 🔵
-    // 【空配列対応】: メモが0件の場合は空配列を返す（エラーではない） 🔵
+                                                         // 【空配列対応】: メモが0件の場合は空配列を返す（エラーではない） 🔵
 }
 
 // ============================================
