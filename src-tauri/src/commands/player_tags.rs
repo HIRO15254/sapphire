@@ -1,6 +1,4 @@
-use crate::database::models::{
-    validate_tag_intensity, PlayerTag, PlayerTagWithTag, TAG_INTENSITY_MAX, TAG_INTENSITY_MIN,
-};
+use crate::database::models::{validate_tag_intensity, PlayerTag, PlayerTagWithTag};
 use crate::database::PlayerDatabase;
 use rusqlite::{params, Connection};
 
