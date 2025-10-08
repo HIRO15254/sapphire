@@ -22,6 +22,7 @@ fn validate_note_content_size(content: &str) -> Result<(), String> {
 /// 【再利用性】: create_noteで利用 🔵
 /// 【単一責任】: メモ個数の制限チェックのみを担当 🔵
 /// 【エラーハンドリング】: 100個に達している場合は明確なエラーメッセージを返す 🔵
+/// 【セキュリティ】: DoS攻撃防止のため個数制限を実装 🔵
 /// 【テスト対応】: TC-CREATE-NOTE-ERR-003, TC-CREATE-NOTE-BOUND-003, TC-CREATE-NOTE-BOUND-004 🔵
 fn check_player_note_count(conn: &Connection, player_id: i64) -> Result<(), String> {
     let count: i64 = conn
@@ -30,7 +31,7 @@ fn check_player_note_count(conn: &Connection, player_id: i64) -> Result<(), Stri
             params![player_id],
             |row| row.get(0),
         )
-        .map_err(|e| format!("Database error: {}", e))?;
+        .map_err(|_| "Failed to check note count".to_string())?; // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 
     if count >= 100 {
         return Err("Player has reached maximum note limit (100)".to_string());
@@ -42,6 +43,7 @@ fn check_player_note_count(conn: &Connection, player_id: i64) -> Result<(), Stri
 /// 【再利用性】: update_note, delete_noteで共通利用 🔵
 /// 【単一責任】: メモIDの存在チェックのみを担当 🔵
 /// 【エラーハンドリング】: 存在しない場合は明確なエラーメッセージを返す 🔵
+/// 【セキュリティ】: 不正なIDアクセスを防止し、DB詳細を隠蔽 🔵
 /// 【テスト対応】: TC-UPDATE-NOTE-ERR-001, TC-DELETE-NOTE-ERR-001 🔵
 fn check_note_exists(conn: &Connection, id: i64) -> Result<(), String> {
     let exists: i64 = conn
@@ -50,7 +52,7 @@ fn check_note_exists(conn: &Connection, id: i64) -> Result<(), String> {
             params![id],
             |row| row.get(0),
         )
-        .map_err(|e| format!("Database error: {}", e))?;
+        .map_err(|_| "Failed to check note existence".to_string())?; // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 
     if exists == 0 {
         return Err("Note not found".to_string());
@@ -62,6 +64,7 @@ fn check_note_exists(conn: &Connection, id: i64) -> Result<(), String> {
 /// 【再利用性】: create_note, get_player_notesで共通利用 🔵
 /// 【単一責任】: プレイヤーIDの存在チェックのみを担当 🔵
 /// 【エラーハンドリング】: 存在しない場合は明確なエラーメッセージを返す 🔵
+/// 【セキュリティ】: 不正なIDアクセスを防止し、DB詳細を隠蔽 🔵
 /// 【テスト対応】: TC-CREATE-NOTE-ERR-001, TC-GET-NOTES-ERR-001 🔵
 fn check_player_exists(conn: &Connection, player_id: i64) -> Result<(), String> {
     let exists: i64 = conn
@@ -70,7 +73,7 @@ fn check_player_exists(conn: &Connection, player_id: i64) -> Result<(), String> 
             params![player_id],
             |row| row.get(0),
         )
-        .map_err(|e| format!("Database error: {}", e))?;
+        .map_err(|_| "Failed to check player existence".to_string())?; // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 
     if exists == 0 {
         return Err("Player not found".to_string());
@@ -82,6 +85,7 @@ fn check_player_exists(conn: &Connection, player_id: i64) -> Result<(), String> 
 /// 【再利用性】: create_note, update_noteで共通利用 🔵
 /// 【単一責任】: IDからPlayerNoteエンティティを構築するのみを担当 🔵
 /// 【パフォーマンス】: 単一のクエリで必要な情報を全て取得 🔵
+/// 【セキュリティ】: DB詳細を隠蔽し、一般的なエラーメッセージを返す 🔵
 fn get_note_by_id(conn: &Connection, id: i64) -> Result<PlayerNote, String> {
     conn.query_row(
         "SELECT id, player_id, content, created_at, updated_at FROM player_notes WHERE id = ?1",
@@ -96,7 +100,7 @@ fn get_note_by_id(conn: &Connection, id: i64) -> Result<PlayerNote, String> {
             })
         },
     )
-    .map_err(|e| format!("Note not found: {}", e))
+    .map_err(|_| "Note not found".to_string()) // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 }
 
 // ============================================
@@ -137,11 +141,12 @@ pub(crate) fn create_note_internal(
 
     // 【メモ作成】: player_notesテーブルにINSERT 🔵
     // 【FTSトリガー自動実行】: player_notes_aiトリガーが自動実行され、FTSテーブルにも追加される 🔵
+    // 【セキュリティ】: パラメータ化クエリでSQLインジェクション対策 🔵
     conn.execute(
         "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
         params![player_id, content],
     )
-    .map_err(|e| format!("Failed to insert note: {}", e))?;
+    .map_err(|_| "Failed to insert note".to_string())?; // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 
     let note_id = conn.last_insert_rowid();
 
@@ -181,11 +186,12 @@ pub(crate) fn update_note_internal(
     // 【メモ更新】: player_notesテーブルのcontentとupdated_atを更新 🔵
     // 【updated_at自動更新】: CURRENT_TIMESTAMPで自動的に現在時刻に更新される 🔵
     // 【FTSトリガー自動実行】: player_notes_auトリガーが自動実行され、FTSテーブルも同期更新される 🔵
+    // 【セキュリティ】: パラメータ化クエリでSQLインジェクション対策 🔵
     conn.execute(
         "UPDATE player_notes SET content = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
         params![content, id],
     )
-    .map_err(|e| format!("Failed to update note: {}", e))?;
+    .map_err(|_| "Failed to update note".to_string())?; // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 
     // 【メモ取得】: ヘルパー関数を使用して更新後のメモ情報を返す 🔵
     get_note_by_id(&conn, id)
@@ -213,8 +219,9 @@ pub(crate) fn delete_note_internal(id: i64, db: &PlayerDatabase) -> Result<(), S
 
     // 【メモ削除】: player_notesテーブルからDELETE 🔵
     // 【FTSトリガー自動実行】: player_notes_adトリガーが自動実行され、FTSテーブルからも削除される 🔵
+    // 【セキュリティ】: パラメータ化クエリでSQLインジェクション対策 🔵
     conn.execute("DELETE FROM player_notes WHERE id = ?1", params![id])
-        .map_err(|e| format!("Failed to delete note: {}", e))?;
+        .map_err(|_| "Failed to delete note".to_string())?; // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 
     Ok(())
 }
@@ -244,6 +251,7 @@ pub(crate) fn get_player_notes_internal(
 
     // 【メモ一覧取得】: player_notesテーブルからSELECT（updated_at降順） 🔵
     // 【ソート順】: updated_at DESC で新しい順にソート 🔵
+    // 【パフォーマンス】: インデックス(idx_player_notes_updated_at)を活用した効率的なソート 🔵
     let mut stmt = conn
         .prepare(
             "SELECT id, player_id, content, created_at, updated_at
@@ -251,7 +259,7 @@ pub(crate) fn get_player_notes_internal(
              WHERE player_id = ?1
              ORDER BY updated_at DESC",
         )
-        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+        .map_err(|_| "Failed to prepare query".to_string())?; // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 
     let notes_iter = stmt
         .query_map(params![player_id], |row| {
@@ -263,16 +271,14 @@ pub(crate) fn get_player_notes_internal(
                 updated_at: row.get(4)?,
             })
         })
-        .map_err(|e| format!("Failed to query notes: {}", e))?;
+        .map_err(|_| "Failed to query notes".to_string())?; // 【セキュリティ改善】: DB詳細を隠蔽 🔵
 
     // 【結果変換】: Iterator<Result<PlayerNote>>からVec<PlayerNote>に変換 🔵
-    let mut notes = Vec::new();
-    for note in notes_iter {
-        notes.push(note.map_err(|e| format!("Failed to parse note: {}", e))?);
-    }
-
+    // 【パフォーマンス】: collect()を使用した効率的な変換 🔵
+    notes_iter
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "Failed to parse note".to_string()) // 【セキュリティ改善】: DB詳細を隠蔽 🔵
     // 【空配列対応】: メモが0件の場合は空配列を返す（エラーではない） 🔵
-    Ok(notes)
 }
 
 // ============================================
