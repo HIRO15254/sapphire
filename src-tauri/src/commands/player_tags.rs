@@ -233,22 +233,34 @@ pub(crate) fn get_player_tags_internal(
 // ============================================
 
 /// 【内部関数】: プレイヤーのタグ表示順序を一括更新 ♻️
+///
 /// 【機能概要】: ドラッグ&ドロップによるタグ並び替えの実装 🟢
+///
 /// 【引数】: player_id, tag_orders (Vec<(player_tag_id, display_order)>)
+///
 /// 【戻り値】: Result<(), String> - 成功時は空、失敗時はエラーメッセージ
+///
 /// 【実装方針】: トランザクション内で全バリデーション→全UPDATE実行 🔵
+///
 /// 【改善内容】: 所有権確認をループ内個別SELECTから一括SELECTに最適化 🟢
+///
 /// 【パフォーマンス】: DB往復回数 N回→1回に削減（O(n)からO(1)のDB通信） 🟢
+///
 /// 【セキュリティ】: SQLインジェクション対策、入力値検証、トランザクション管理 🔵
+///
 /// 【バリデーション】:
 ///   - player_id存在確認 🔵
 ///   - tag_ordersが空でないこと 🔵
 ///   - display_orderが非負整数であること 🔵
 ///   - display_orderに重複がないこと 🔵
 ///   - 全player_tag_idが同一player_idに属すること 🔵
+///
 /// 【トランザクション】: ACID保証（全UPDATE成功または全失敗） 🔵
+///
 /// 【テスト対応】: TC-REORDER-001～012 🟢
+///
 /// ♻️ Refactor Phase: パフォーマンス最適化・コメント品質向上
+#[allow(dead_code)]
 pub(crate) fn reorder_player_tags_internal(
     player_id: i64,
     tag_orders: Vec<(i64, i32)>,
@@ -258,7 +270,7 @@ pub(crate) fn reorder_player_tags_internal(
 
     // 【プレイヤー存在確認】: トランザクション前に早期チェック 🔵
     // 【実装方針】: 既存のcheck_player_existsヘルパー関数を再利用 🔵
-    check_player_exists(&*conn, player_id)?;
+    check_player_exists(&conn, player_id)?;
 
     // 【空配列チェック】: tag_ordersが空の場合はエラー 🔵
     // 【テスト対応】: TC-REORDER-ERR-005 🔵
@@ -328,9 +340,14 @@ pub(crate) fn reorder_player_tags_internal(
     // 【検証用HashSet構築】: 取得したplayer_tag_idとplayer_idをマッピング 🔵
     // 【目的】: 存在確認と所有者確認を効率的に実施 🔵
     let mut found_tags = std::collections::HashMap::new();
-    while let Some(row) = rows.next().map_err(|e| format!("Failed to read row: {}", e))? {
+    while let Some(row) = rows
+        .next()
+        .map_err(|e| format!("Failed to read row: {}", e))?
+    {
         let id: i64 = row.get(0).map_err(|e| format!("Failed to get id: {}", e))?;
-        let owner: i64 = row.get(1).map_err(|e| format!("Failed to get player_id: {}", e))?;
+        let owner: i64 = row
+            .get(1)
+            .map_err(|e| format!("Failed to get player_id: {}", e))?;
         found_tags.insert(id, owner);
     }
     drop(rows);
