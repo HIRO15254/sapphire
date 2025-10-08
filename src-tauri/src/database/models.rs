@@ -46,6 +46,21 @@ pub struct PlayerTag {
     pub created_at: String,
 }
 
+/// プレイヤータグ + タグ情報結合エンティティ（JOINクエリ用）
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PlayerTagWithTag {
+    pub id: i64,
+    pub player_id: i64,
+    pub tag_id: i64,
+    pub intensity: Option<i32>,
+    pub display_order: i32,
+    pub created_at: String,
+    // Tag情報
+    pub tag_name: String,
+    pub tag_color: String,
+    pub tag_has_intensity: bool,
+}
+
 /// 簡易メモエンティティ
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlayerNote {
