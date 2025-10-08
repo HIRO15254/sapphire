@@ -43,7 +43,9 @@
       "mcp__github__list_issues",
       "Bash(gh pr create:*)",
       "Bash(dir:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [
       "Bash(bun test:*)",
