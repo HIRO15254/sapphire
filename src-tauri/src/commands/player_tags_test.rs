@@ -773,3 +773,273 @@ fn test_reorder_player_tags_transaction_rollback() {
         .unwrap();
     assert_eq!(current_order, original_order); // 【確認内容】: ロールバックされている 🔵
 }
+
+// ============================================
+// 正常系テスト（get_affected_players_count_by_tag）
+// ============================================
+
+// TC-COUNT-001: タグに紐づくプレイヤーが0人の場合 🔵
+#[test]
+fn test_get_affected_players_count_zero() {
+    // 【テスト目的】: タグが存在するが、どのプレイヤーにも割り当てられていない場合の動作確認
+    // 【テスト内容】: player_tagsに該当tag_idのレコードが0件の状態でカウント取得
+    // 【期待される動作】: Ok(0) が返される
+    // 🔵 信頼性レベル: 要件定義書（REQ-505）に基づく
+
+    // 【テストデータ準備】: タグを作成するがプレイヤーには割り当てない
+    // 【初期条件設定】: player_tagsテーブルにはレコードが存在しない状態
+    let db = create_test_db();
+    let tag_id = insert_test_tag(&db, "未割り当てタグ", "#3498DB", false);
+
+    // 【実際の処理実行】: タグに紐づくプレイヤー数を取得
+    // 【処理内容】: get_affected_players_count_by_tag_internal を呼び出し
+    let result = get_affected_players_count_by_tag_internal(tag_id, &db);
+
+    // 【結果検証】: 成功してカウントが0であることを確認
+    // 【期待値確認】: 割り当てがない場合は0人
+    assert!(result.is_ok(), "タグ存在時は成功すること"); // 【確認内容】: 成功 🔵
+    assert_eq!(result.unwrap(), 0); // 【確認内容】: 割り当てなしの場合は0 🔵
+}
+
+// TC-COUNT-002: タグに紐づくプレイヤーが1人の場合 🔵
+#[test]
+fn test_get_affected_players_count_one() {
+    // 【テスト目的】: 基本的なカウント機能（1件）の動作確認
+    // 【テスト内容】: 1プレイヤーにタグを割り当ててカウント取得
+    // 【期待される動作】: Ok(1) が返される
+    // 🔵 信頼性レベル: 要件定義書（REQ-505）に基づく
+
+    // 【テストデータ準備】: 1プレイヤーとタグを作成し、割り当て
+    // 【初期条件設定】: player_tagsテーブルに1件レコードが存在する状態
+    let db = create_test_db();
+    let player_id = insert_test_player(&db, "プレイヤー1");
+    let tag_id = insert_test_tag(&db, "レギュラー", "#3498DB", false);
+    assign_tag_to_player_internal(player_id, tag_id, None, &db).unwrap();
+
+    // 【実際の処理実行】: タグに紐づくプレイヤー数を取得
+    // 【処理内容】: get_affected_players_count_by_tag_internal を呼び出し
+    let result = get_affected_players_count_by_tag_internal(tag_id, &db);
+
+    // 【結果検証】: 成功してカウントが1であることを確認
+    // 【期待値確認】: 1人のプレイヤーに割り当て済みなので1を返す
+    assert!(result.is_ok(), "正常にカウント取得できること"); // 【確認内容】: 成功 🔵
+    assert_eq!(result.unwrap(), 1); // 【確認内容】: 1人のプレイヤーに割り当て済み 🔵
+}
+
+// TC-COUNT-003: タグに紐づくプレイヤーが複数人の場合 🔵
+#[test]
+fn test_get_affected_players_count_multiple() {
+    // 【テスト目的】: 複数プレイヤーへのタグ割り当て時のカウント機能確認
+    // 【テスト内容】: 3プレイヤーに同一タグを割り当ててカウント取得
+    // 【期待される動作】: Ok(3) が返される
+    // 🔵 信頼性レベル: 要件定義書（REQ-505）に基づく
+
+    // 【テストデータ準備】: 3プレイヤーと強度ありタグを作成し、全員に割り当て
+    // 【初期条件設定】: player_tagsテーブルに3件レコードが存在する状態
+    let db = create_test_db();
+    let p1 = insert_test_player(&db, "プレイヤー1");
+    let p2 = insert_test_player(&db, "プレイヤー2");
+    let p3 = insert_test_player(&db, "プレイヤー3");
+    let tag_id = insert_test_tag(&db, "ブラフ", "#FF5733", true);
+
+    assign_tag_to_player_internal(p1, tag_id, Some(3), &db).unwrap();
+    assign_tag_to_player_internal(p2, tag_id, Some(5), &db).unwrap();
+    assign_tag_to_player_internal(p3, tag_id, Some(1), &db).unwrap();
+
+    // 【実際の処理実行】: タグに紐づくプレイヤー数を取得
+    // 【処理内容】: get_affected_players_count_by_tag_internal を呼び出し
+    let result = get_affected_players_count_by_tag_internal(tag_id, &db);
+
+    // 【結果検証】: 成功してカウントが3であることを確認
+    // 【期待値確認】: 3人のプレイヤーに割り当て済みなので3を返す
+    assert!(result.is_ok(), "正常にカウント取得できること"); // 【確認内容】: 成功 🔵
+    assert_eq!(result.unwrap(), 3); // 【確認内容】: 3人のプレイヤーに割り当て済み 🔵
+}
+
+// TC-COUNT-004: DISTINCT動作確認（同一プレイヤー・異なる強度） 🔵
+#[test]
+fn test_get_affected_players_count_distinct() {
+    // 【テスト目的】: REQ-507の核心機能（同一プレイヤー・異なる強度でも1人としてカウント）
+    // 【テスト内容】: 1プレイヤーに同一タグを強度Ⅲと強度Ⅴで割り当て、DISTINCT player_idでカウント
+    // 【期待される動作】: Ok(1) が返される（2ではなく1）
+    // 🔵 信頼性レベル: 要件定義書（REQ-507, REQ-207）およびIssue #15の説明に基づく
+
+    // 【テストデータ準備】: 1プレイヤーと強度ありタグを作成し、異なる強度で2回割り当て
+    // 【初期条件設定】: player_tagsテーブルには2件レコードが存在するが、player_idは同一
+    let db = create_test_db();
+    let player_id = insert_test_player(&db, "テストプレイヤー");
+    let tag_id = insert_test_tag(&db, "ブラフ", "#FF5733", true);
+
+    // 同一プレイヤーに異なる強度で2回割り当て（REQ-207により可能）
+    assign_tag_to_player_internal(player_id, tag_id, Some(3), &db).unwrap();
+    assign_tag_to_player_internal(player_id, tag_id, Some(5), &db).unwrap();
+
+    // 【実際の処理実行】: タグに紐づくプレイヤー数を取得（DISTINCT動作）
+    // 【処理内容】: SELECT COUNT(DISTINCT player_id) により重複を除外したカウント
+    let result = get_affected_players_count_by_tag_internal(tag_id, &db);
+
+    // 【結果検証】: 成功してカウントが1であることを確認
+    // 【期待値確認】: 同一プレイヤーは1人としてカウント（DISTINCT動作）
+    assert!(result.is_ok(), "正常にカウント取得できること"); // 【確認内容】: 成功 🔵
+    assert_eq!(result.unwrap(), 1); // 【確認内容】: 同一プレイヤーは1人としてカウント（DISTINCT動作）🔵
+
+    // 【追加検証】: player_tagsには2件存在することを確認（DISTINCTなしなら2になるはず）
+    // 【確認ポイント】: レコード数は2件だが、DISTINCT player_idでは1件になること
+    let conn = db.0.lock().unwrap();
+    let row_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_tags WHERE tag_id = ?1",
+            params![tag_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(row_count, 2); // 【確認内容】: player_tagsには2件レコードが存在 🔵
+}
+
+// ============================================
+// 異常系テスト（get_affected_players_count_by_tag）
+// ============================================
+
+// TC-COUNT-ERR-001: 存在しないtag_id 🔵
+#[test]
+fn test_get_affected_players_count_nonexistent_tag() {
+    // 【テスト目的】: 不正なタグIDでの操作を防止
+    // 【テスト内容】: 存在しないtag_idでカウント取得を試行
+    // 【期待される動作】: Err("Tag not found")
+    // 🔵 信頼性レベル: 既存パターン（tags.rs:check_tag_exists）に基づく
+
+    // 【テストデータ準備】: タグを作成しない
+    // 【初期条件設定】: tagsテーブルにレコードが存在しない状態
+    let db = create_test_db();
+
+    // 【実際の処理実行】: 存在しないtag_idでカウント取得を試行
+    // 【処理内容】: check_tag_existsヘルパー関数によるバリデーションでエラー
+    let result = get_affected_players_count_by_tag_internal(999, &db);
+
+    // 【結果検証】: エラーが返されることを確認
+    // 【期待値確認】: "Tag not found"エラーメッセージ
+    assert!(result.is_err(), "存在しないtag_idでエラーになること"); // 【確認内容】: エラー 🔵
+    assert!(result.unwrap_err().contains("Tag not found")); // 【確認内容】: エラーメッセージが正しいこと 🔵
+}
+
+// ============================================
+// 境界値テスト（get_affected_players_count_by_tag）
+// ============================================
+
+// TC-COUNT-EDGE-001: CASCADE削除後のカウント 🔵
+#[test]
+fn test_get_affected_players_count_after_cascade_delete() {
+    // 【テスト目的】: ON DELETE CASCADEによる自動削除後の動作確認
+    // 【テスト内容】: タグ削除後、該当player_tagsレコードが自動削除されることを確認
+    // 【期待される動作】: タグ削除後は Err("Tag not found") が返される
+    // 🔵 信頼性レベル: schema.rs:48-49（ON DELETE CASCADE定義）に基づく
+
+    // 【テストデータ準備】: プレイヤーとタグを作成し、タグ割り当て
+    // 【初期条件設定】: player_tagsテーブルにレコードが存在する状態
+    let db = create_test_db();
+    let player_id = insert_test_player(&db, "プレイヤー1");
+    let tag_id = insert_test_tag(&db, "削除予定タグ", "#E74C3C", false);
+    assign_tag_to_player_internal(player_id, tag_id, None, &db).unwrap();
+
+    // 【タグ削除実行】: CASCADE削除でplayer_tagsも削除される
+    // 【CASCADE動作確認】: ON DELETE CASCADEにより関連player_tagsも自動削除
+    let conn = db.0.lock().unwrap();
+    conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])
+        .unwrap();
+    drop(conn);
+
+    // 【実際の処理実行】: 削除済みタグでカウント取得を試行
+    // 【処理内容】: check_tag_existsヘルパー関数によるバリデーションでエラー
+    let result = get_affected_players_count_by_tag_internal(tag_id, &db);
+
+    // 【結果検証】: エラーが返されることを確認
+    // 【期待値確認】: タグ削除後は"Tag not found"エラーが発生
+    assert!(result.is_err(), "削除済みタグでエラーになること"); // 【確認内容】: エラー 🔵
+    assert!(result.unwrap_err().contains("Tag not found")); // 【確認内容】: エラーメッセージが正しいこと 🔵
+}
+
+// TC-COUNT-EDGE-002: 大量のプレイヤー（パフォーマンステスト） 🟡
+#[test]
+fn test_get_affected_players_count_performance() {
+    // 【テスト目的】: 大量データでの性能確認（インデックス効果の検証）
+    // 【テスト内容】: 100プレイヤーに同一タグを割り当ててカウント取得
+    // 【期待される動作】: Ok(100) が返される（idx_player_tags_tag_idが機能すること）
+    // 🟡 信頼性レベル: NFR-203（パフォーマンス要件）から妥当な推測
+
+    // 【テストデータ準備】: 100プレイヤーとタグを作成し、全員に割り当て
+    // 【初期条件設定】: player_tagsテーブルに100件レコードが存在する状態
+    let db = create_test_db();
+    let tag_id = insert_test_tag(&db, "人気タグ", "#2ECC71", false);
+
+    // 100人のプレイヤーに割り当て
+    for i in 0..100 {
+        let player_id = insert_test_player(&db, &format!("プレイヤー{}", i));
+        assign_tag_to_player_internal(player_id, tag_id, None, &db).unwrap();
+    }
+
+    // 【実際の処理実行】: パフォーマンス測定しながらカウント取得
+    // 【処理内容】: idx_player_tags_tag_idインデックスを使用した高速カウント
+    let start = std::time::Instant::now();
+    let result = get_affected_players_count_by_tag_internal(tag_id, &db);
+    let elapsed = start.elapsed();
+
+    // 【結果検証】: 成功してカウントが100であることを確認
+    // 【期待値確認】: 100人全員がカウントされる
+    assert!(result.is_ok(), "大量データでも正常に動作すること"); // 【確認内容】: 成功 🔵
+    assert_eq!(result.unwrap(), 100); // 【確認内容】: 100人全員がカウントされること 🔵
+
+    // 【パフォーマンス検証】: インデックスにより高速に動作すること
+    // 【期待値確認】: インデックスあり: 50ms以内を目安
+    assert!(elapsed.as_millis() < 50); // 【確認内容】: インデックスにより高速に動作すること 🟡
+}
+
+// ============================================
+// 統合テスト（get_affected_players_count_by_tag）
+// ============================================
+
+// TC-COUNT-INT-001: タグ割り当て・カウント・解除・カウントの一連の流れ 🔵
+#[test]
+fn test_get_affected_players_count_integration() {
+    // 【テスト目的】: 既存機能との統合動作確認
+    // 【テスト内容】: assign → count(1) → assign → count(2) → remove → count(1) → remove → count(0)
+    // 【期待される動作】: 各操作後のカウントが正しく更新されること
+    // 🔵 信頼性レベル: 設計書の統合テストとして
+
+    // 【テストデータ準備】: 2プレイヤーとタグを作成
+    // 【初期条件設定】: タグは作成済みだが未割り当ての状態
+    let db = create_test_db();
+    let p1 = insert_test_player(&db, "プレイヤー1");
+    let p2 = insert_test_player(&db, "プレイヤー2");
+    let tag_id = insert_test_tag(&db, "テストタグ", "#9B59B6", false);
+
+    // 【実際の処理実行】: 割り当てとカウントを繰り返す統合テスト
+
+    // 【初期状態確認】: 0人
+    // 【期待値確認】: タグ未割り当て状態では0人
+    let count0 = get_affected_players_count_by_tag_internal(tag_id, &db).unwrap();
+    assert_eq!(count0, 0); // 【確認内容】: 初期状態は0人 🔵
+
+    // 【プレイヤー1に割り当て】: 1人になる
+    // 【期待値確認】: 1人に割り当て後は1人
+    let pt1 = assign_tag_to_player_internal(p1, tag_id, None, &db).unwrap();
+    let count1 = get_affected_players_count_by_tag_internal(tag_id, &db).unwrap();
+    assert_eq!(count1, 1); // 【確認内容】: 1人に割り当て後は1人 🔵
+
+    // 【プレイヤー2に割り当て】: 2人になる
+    // 【期待値確認】: 2人に割り当て後は2人
+    let pt2 = assign_tag_to_player_internal(p2, tag_id, None, &db).unwrap();
+    let count2 = get_affected_players_count_by_tag_internal(tag_id, &db).unwrap();
+    assert_eq!(count2, 2); // 【確認内容】: 2人に割り当て後は2人 🔵
+
+    // 【プレイヤー1のタグを解除】: 1人に戻る
+    // 【期待値確認】: 1人解除後は1人
+    remove_tag_from_player_internal(pt1.id, &db).unwrap();
+    let count3 = get_affected_players_count_by_tag_internal(tag_id, &db).unwrap();
+    assert_eq!(count3, 1); // 【確認内容】: 1人解除後は1人 🔵
+
+    // 【プレイヤー2のタグを解除】: 0人に戻る
+    // 【期待値確認】: 全解除後は0人
+    remove_tag_from_player_internal(pt2.id, &db).unwrap();
+    let count4 = get_affected_players_count_by_tag_internal(tag_id, &db).unwrap();
+    assert_eq!(count4, 0); // 【確認内容】: 全解除後は0人 🔵
+}

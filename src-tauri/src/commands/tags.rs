@@ -26,7 +26,7 @@ fn validate_tag_name(name: &str) -> Result<(), String> {
 /// 【再利用性】: update_tag, delete_tagで共通利用 🔵
 /// 【単一責任】: タグIDの存在チェックのみを担当 🔵
 /// 【エラーハンドリング】: 存在しない場合は明確なエラーメッセージを返す 🔵
-fn check_tag_exists(conn: &Connection, id: i64) -> Result<(), String> {
+pub(crate) fn check_tag_exists(conn: &Connection, id: i64) -> Result<(), String> {
     let exists: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM tags WHERE id = ?1",
