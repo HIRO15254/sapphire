@@ -227,3 +227,101 @@ pub(crate) fn get_player_tags_internal(
     // 【結果返却】: Vec<PlayerTagWithTag> を返す（空の場合もある） 🔵
     Ok(player_tags)
 }
+
+// ============================================
+// タグ並び替え機能
+// ============================================
+
+/// 【内部関数】: プレイヤーのタグ表示順序を一括更新 🟢
+/// 【機能概要】: ドラッグ&ドロップによるタグ並び替えの実装 🟢
+/// 【引数】: player_id, tag_orders (Vec<(player_tag_id, display_order)>)
+/// 【戻り値】: Result<(), String> - 成功時は空、失敗時はエラーメッセージ
+/// 【実装方針】: トランザクション内で全バリデーション→全UPDATE実行 🔵
+/// 【バリデーション】:
+///   - player_id存在確認 🔵
+///   - tag_ordersが空でないこと 🔵
+///   - display_orderが非負整数であること 🔵
+///   - display_orderに重複がないこと 🔵
+///   - 全player_tag_idが同一player_idに属すること 🔵
+/// 【トランザクション】: ACID保証（全UPDATE成功または全失敗） 🔵
+/// 【テスト対応】: TC-REORDER-001～012 🟢
+/// 🟢 Green Phase: テストを通す最小実装
+pub(crate) fn reorder_player_tags_internal(
+    player_id: i64,
+    tag_orders: Vec<(i64, i32)>,
+    db: &PlayerDatabase,
+) -> Result<(), String> {
+    let mut conn = db.0.lock().unwrap();
+
+    // 【プレイヤー存在確認】: トランザクション前に早期チェック 🔵
+    // 【実装方針】: 既存のcheck_player_existsヘルパー関数を再利用 🔵
+    check_player_exists(&*conn, player_id)?;
+
+    // 【空配列チェック】: tag_ordersが空の場合はエラー 🔵
+    // 【テスト対応】: TC-REORDER-ERR-005 🔵
+    if tag_orders.is_empty() {
+        return Err("Tag orders cannot be empty".to_string());
+    }
+
+    // 【非負整数チェック】: display_orderが0以上であることを確認 🔵
+    // 【テスト対応】: TC-REORDER-ERR-006, TC-REORDER-EDGE-001 🔵
+    for (_, display_order) in &tag_orders {
+        if *display_order < 0 {
+            return Err("Display order must be non-negative".to_string());
+        }
+    }
+
+    // 【重複チェック】: display_orderに重複がないことを確認 🔵
+    // 【実装方針】: HashSetで重複検出（O(n)の効率） 🔵
+    // 【テスト対応】: TC-REORDER-ERR-004 🔵
+    let mut seen_orders = std::collections::HashSet::new();
+    for (_, display_order) in &tag_orders {
+        if !seen_orders.insert(display_order) {
+            return Err("Duplicate display_order values".to_string());
+        }
+    }
+
+    // 【トランザクション開始】: ACID保証のため明示的トランザクション使用 🔵
+    // 【実装方針】: rusqliteのtransaction()メソッドでロールバック可能にする 🔵
+    // 【テスト対応】: TC-REORDER-TXN-001（トランザクションロールバック）🔵
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("Failed to start transaction: {}", e))?;
+
+    // 【所有権確認】: 全player_tag_idが同一player_idに属することを検証 🔵
+    // 【実装方針】: トランザクション内で各player_tag_idのplayer_idを確認 🔵
+    // 【テスト対応】: TC-REORDER-ERR-002, TC-REORDER-ERR-003 🔵
+    for (player_tag_id, _) in &tag_orders {
+        // 【player_tag存在確認】: player_tag_idが存在するか確認 🔵
+        let owner_player_id: i64 = tx
+            .query_row(
+                "SELECT player_id FROM player_tags WHERE id = ?1",
+                params![player_tag_id],
+                |row| row.get(0),
+            )
+            .map_err(|_| "Player tag not found".to_string())?;
+
+        // 【所有者一致確認】: 引数のplayer_idと一致するか確認 🔵
+        if owner_player_id != player_id {
+            return Err("All player tags must belong to the same player".to_string());
+        }
+    }
+
+    // 【一括UPDATE実行】: 各player_tagのdisplay_orderを更新 🔵
+    // 【実装方針】: トランザクション内で全UPDATE実行（エラー時は自動ロールバック） 🔵
+    // 【テスト対応】: TC-REORDER-001, TC-REORDER-002, TC-REORDER-003 🔵
+    for (player_tag_id, display_order) in &tag_orders {
+        tx.execute(
+            "UPDATE player_tags SET display_order = ?1 WHERE id = ?2",
+            params![display_order, player_tag_id],
+        )
+        .map_err(|e| format!("Failed to update display_order: {}", e))?;
+    }
+
+    // 【トランザクションコミット】: 全UPDATE成功時のみコミット 🔵
+    // 【ACID保証】: コミット失敗時はロールバック、エラー時は自動ロールバック 🔵
+    tx.commit()
+        .map_err(|e| format!("Failed to commit transaction: {}", e))?;
+
+    Ok(())
+}
