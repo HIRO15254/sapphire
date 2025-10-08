@@ -1,12 +1,16 @@
 use crate::database::models::{PlayerNote, NOTE_CONTENT_MAX_BYTES};
 use crate::database::PlayerDatabase;
+use rusqlite::{params, Connection};
 use tauri::State;
 
 // ============================================
-// ヘルパー関数
+// ヘルパー関数（DRY原則による共通化）
 // ============================================
 
-/// メモ内容のサイズバリデーション
+/// 【ヘルパー関数】: メモ内容のサイズバリデーション 🔵
+/// 【再利用性】: create_note, update_noteで共通利用 🔵
+/// 【単一責任】: contentサイズチェックのみを担当 🔵
+/// 【テスト対応】: TC-CREATE-NOTE-ERR-002, TC-UPDATE-NOTE-ERR-002, TC-CREATE-NOTE-BOUND-001 🔵
 fn validate_note_content_size(content: &str) -> Result<(), String> {
     if content.len() > NOTE_CONTENT_MAX_BYTES {
         return Err("Note content exceeds 1MB limit".to_string());
@@ -14,61 +18,261 @@ fn validate_note_content_size(content: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// プレイヤーのメモ個数チェック（最大100個）
-fn check_player_note_count(_player_id: i64, _db: &PlayerDatabase) -> Result<(), String> {
-    // TODO: Green Phaseで実装
-    Err("Not implemented".to_string())
+/// 【ヘルパー関数】: プレイヤーのメモ個数チェック（最大100個） 🔵
+/// 【再利用性】: create_noteで利用 🔵
+/// 【単一責任】: メモ個数の制限チェックのみを担当 🔵
+/// 【エラーハンドリング】: 100個に達している場合は明確なエラーメッセージを返す 🔵
+/// 【テスト対応】: TC-CREATE-NOTE-ERR-003, TC-CREATE-NOTE-BOUND-003, TC-CREATE-NOTE-BOUND-004 🔵
+fn check_player_note_count(conn: &Connection, player_id: i64) -> Result<(), String> {
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes WHERE player_id = ?1",
+            params![player_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    if count >= 100 {
+        return Err("Player has reached maximum note limit (100)".to_string());
+    }
+    Ok(())
 }
 
-/// メモが存在するかチェック
-fn check_note_exists(_id: i64, _db: &PlayerDatabase) -> Result<(), String> {
-    // TODO: Green Phaseで実装
-    Err("Not implemented".to_string())
+/// 【ヘルパー関数】: メモ存在確認 🔵
+/// 【再利用性】: update_note, delete_noteで共通利用 🔵
+/// 【単一責任】: メモIDの存在チェックのみを担当 🔵
+/// 【エラーハンドリング】: 存在しない場合は明確なエラーメッセージを返す 🔵
+/// 【テスト対応】: TC-UPDATE-NOTE-ERR-001, TC-DELETE-NOTE-ERR-001 🔵
+fn check_note_exists(conn: &Connection, id: i64) -> Result<(), String> {
+    let exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    if exists == 0 {
+        return Err("Note not found".to_string());
+    }
+    Ok(())
 }
 
-/// プレイヤーが存在するかチェック
-fn check_player_exists(_player_id: i64, _db: &PlayerDatabase) -> Result<(), String> {
-    // TODO: Green Phaseで実装
-    Err("Not implemented".to_string())
+/// 【ヘルパー関数】: プレイヤー存在確認 🔵
+/// 【再利用性】: create_note, get_player_notesで共通利用 🔵
+/// 【単一責任】: プレイヤーIDの存在チェックのみを担当 🔵
+/// 【エラーハンドリング】: 存在しない場合は明確なエラーメッセージを返す 🔵
+/// 【テスト対応】: TC-CREATE-NOTE-ERR-001, TC-GET-NOTES-ERR-001 🔵
+fn check_player_exists(conn: &Connection, player_id: i64) -> Result<(), String> {
+    let exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM players WHERE id = ?1",
+            params![player_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    if exists == 0 {
+        return Err("Player not found".to_string());
+    }
+    Ok(())
+}
+
+/// 【ヘルパー関数】: メモ情報を取得 🔵
+/// 【再利用性】: create_note, update_noteで共通利用 🔵
+/// 【単一責任】: IDからPlayerNoteエンティティを構築するのみを担当 🔵
+/// 【パフォーマンス】: 単一のクエリで必要な情報を全て取得 🔵
+fn get_note_by_id(conn: &Connection, id: i64) -> Result<PlayerNote, String> {
+    conn.query_row(
+        "SELECT id, player_id, content, created_at, updated_at FROM player_notes WHERE id = ?1",
+        params![id],
+        |row| {
+            Ok(PlayerNote {
+                id: row.get(0)?,
+                player_id: row.get(1)?,
+                content: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        },
+    )
+    .map_err(|e| format!("Note not found: {}", e))
 }
 
 // ============================================
 // CRUD内部関数（テスタビリティ）
 // ============================================
 
-/// メモ作成内部関数
+/// プレイヤーのメモを作成する
+///
+/// # Arguments
+/// * `player_id` - プレイヤーID
+/// * `content` - HTML形式のメモ内容（最大1MB）
+/// * `db` - データベース接続
+///
+/// # Returns
+/// * `Result<PlayerNote, String>` - 作成されたメモまたはエラーメッセージ
+///
+/// 【機能概要】: プレイヤーにメモを作成し、FTSトリガーで自動的に検索インデックスを更新 🔵
+/// 【実装方針】: バリデーション→存在確認→個数チェック→INSERT→取得の順で処理 🔵
+/// 【設計方針】: ヘルパー関数を活用して単一責任原則を遵守 🔵
+/// 【テスト対応】: TC-CREATE-NOTE-001, TC-CREATE-NOTE-004, TC-CREATE-NOTE-005 🔵
+/// 【テスト対応】: TC-CREATE-NOTE-ERR-001, TC-CREATE-NOTE-ERR-002, TC-CREATE-NOTE-ERR-003 🔵
+/// 【テスト対応】: TC-CREATE-NOTE-BOUND-001, TC-CREATE-NOTE-BOUND-002 🔵
 pub(crate) fn create_note_internal(
-    _player_id: i64,
-    _content: &str,
-    _db: &PlayerDatabase,
+    player_id: i64,
+    content: &str,
+    db: &PlayerDatabase,
 ) -> Result<PlayerNote, String> {
-    // TODO: Green Phaseで実装
-    Err("Not implemented".to_string())
+    // 【入力値検証】: ヘルパー関数を使用したcontentサイズバリデーション 🔵
+    validate_note_content_size(content)?;
+
+    let conn = db.0.lock().unwrap();
+
+    // 【プレイヤー存在確認】: ヘルパー関数を使用したプレイヤー存在チェック 🔵
+    check_player_exists(&conn, player_id)?;
+
+    // 【個数制限チェック】: ヘルパー関数を使用したメモ個数チェック（最大100個） 🔵
+    check_player_note_count(&conn, player_id)?;
+
+    // 【メモ作成】: player_notesテーブルにINSERT 🔵
+    // 【FTSトリガー自動実行】: player_notes_aiトリガーが自動実行され、FTSテーブルにも追加される 🔵
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player_id, content],
+    )
+    .map_err(|e| format!("Failed to insert note: {}", e))?;
+
+    let note_id = conn.last_insert_rowid();
+
+    // 【メモ取得】: ヘルパー関数を使用して作成したメモ情報を返す 🔵
+    get_note_by_id(&conn, note_id)
 }
 
-/// メモ更新内部関数
+/// メモを更新する
+///
+/// # Arguments
+/// * `id` - メモID
+/// * `content` - 新しいHTML形式のメモ内容（最大1MB）
+/// * `db` - データベース接続
+///
+/// # Returns
+/// * `Result<PlayerNote, String>` - 更新されたメモまたはエラーメッセージ
+///
+/// 【機能概要】: メモ内容を更新し、updated_atを自動更新、FTSトリガーで検索インデックスを同期 🔵
+/// 【実装方針】: バリデーション→存在確認→UPDATE→取得の順で処理 🔵
+/// 【設計方針】: ヘルパー関数を活用して単一責任原則を遵守 🔵
+/// 【テスト対応】: TC-UPDATE-NOTE-001, TC-UPDATE-NOTE-002, TC-UPDATE-NOTE-003 🔵
+/// 【テスト対応】: TC-UPDATE-NOTE-ERR-001, TC-UPDATE-NOTE-ERR-002 🔵
+/// 【テスト対応】: TC-UPDATE-NOTE-BOUND-001 🔵
 pub(crate) fn update_note_internal(
-    _id: i64,
-    _content: &str,
-    _db: &PlayerDatabase,
+    id: i64,
+    content: &str,
+    db: &PlayerDatabase,
 ) -> Result<PlayerNote, String> {
-    // TODO: Green Phaseで実装
-    Err("Not implemented".to_string())
+    // 【入力値検証】: ヘルパー関数を使用したcontentサイズバリデーション 🔵
+    validate_note_content_size(content)?;
+
+    let conn = db.0.lock().unwrap();
+
+    // 【メモ存在確認】: ヘルパー関数を使用したメモ存在チェック 🔵
+    check_note_exists(&conn, id)?;
+
+    // 【メモ更新】: player_notesテーブルのcontentとupdated_atを更新 🔵
+    // 【updated_at自動更新】: CURRENT_TIMESTAMPで自動的に現在時刻に更新される 🔵
+    // 【FTSトリガー自動実行】: player_notes_auトリガーが自動実行され、FTSテーブルも同期更新される 🔵
+    conn.execute(
+        "UPDATE player_notes SET content = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
+        params![content, id],
+    )
+    .map_err(|e| format!("Failed to update note: {}", e))?;
+
+    // 【メモ取得】: ヘルパー関数を使用して更新後のメモ情報を返す 🔵
+    get_note_by_id(&conn, id)
 }
 
-/// メモ削除内部関数
-pub(crate) fn delete_note_internal(_id: i64, _db: &PlayerDatabase) -> Result<(), String> {
-    // TODO: Green Phaseで実装
-    Err("Not implemented".to_string())
+/// メモを削除する
+///
+/// # Arguments
+/// * `id` - メモID
+/// * `db` - データベース接続
+///
+/// # Returns
+/// * `Result<(), String>` - 成功またはエラーメッセージ
+///
+/// 【機能概要】: メモを削除し、FTSトリガーで検索インデックスからも削除 🔵
+/// 【実装方針】: 存在確認→DELETEの順で処理 🔵
+/// 【設計方針】: ヘルパー関数を活用して単一責任原則を遵守 🔵
+/// 【テスト対応】: TC-DELETE-NOTE-001, TC-DELETE-NOTE-002 🔵
+/// 【テスト対応】: TC-DELETE-NOTE-ERR-001 🔵
+pub(crate) fn delete_note_internal(id: i64, db: &PlayerDatabase) -> Result<(), String> {
+    let conn = db.0.lock().unwrap();
+
+    // 【メモ存在確認】: ヘルパー関数を使用したメモ存在チェック 🔵
+    check_note_exists(&conn, id)?;
+
+    // 【メモ削除】: player_notesテーブルからDELETE 🔵
+    // 【FTSトリガー自動実行】: player_notes_adトリガーが自動実行され、FTSテーブルからも削除される 🔵
+    conn.execute("DELETE FROM player_notes WHERE id = ?1", params![id])
+        .map_err(|e| format!("Failed to delete note: {}", e))?;
+
+    Ok(())
 }
 
-/// プレイヤーのメモ一覧取得内部関数
+/// プレイヤーのメモ一覧を取得する
+///
+/// # Arguments
+/// * `player_id` - プレイヤーID
+/// * `db` - データベース接続
+///
+/// # Returns
+/// * `Result<Vec<PlayerNote>, String>` - メモ一覧またはエラーメッセージ
+///
+/// 【機能概要】: プレイヤーの全メモをupdated_at降順で取得（空配列の可能性あり） 🔵
+/// 【実装方針】: プレイヤー存在確認→SELECT→結果変換の順で処理 🔵
+/// 【設計方針】: ヘルパー関数を活用して単一責任原則を遵守 🔵
+/// 【テスト対応】: TC-GET-NOTES-001, TC-GET-NOTES-002, TC-GET-NOTES-003 🔵
+/// 【テスト対応】: TC-GET-NOTES-ERR-001 🔵
 pub(crate) fn get_player_notes_internal(
-    _player_id: i64,
-    _db: &PlayerDatabase,
+    player_id: i64,
+    db: &PlayerDatabase,
 ) -> Result<Vec<PlayerNote>, String> {
-    // TODO: Green Phaseで実装
-    Err("Not implemented".to_string())
+    let conn = db.0.lock().unwrap();
+
+    // 【プレイヤー存在確認】: ヘルパー関数を使用したプレイヤー存在チェック 🔵
+    check_player_exists(&conn, player_id)?;
+
+    // 【メモ一覧取得】: player_notesテーブルからSELECT（updated_at降順） 🔵
+    // 【ソート順】: updated_at DESC で新しい順にソート 🔵
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, player_id, content, created_at, updated_at
+             FROM player_notes
+             WHERE player_id = ?1
+             ORDER BY updated_at DESC",
+        )
+        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+    let notes_iter = stmt
+        .query_map(params![player_id], |row| {
+            Ok(PlayerNote {
+                id: row.get(0)?,
+                player_id: row.get(1)?,
+                content: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })
+        .map_err(|e| format!("Failed to query notes: {}", e))?;
+
+    // 【結果変換】: Iterator<Result<PlayerNote>>からVec<PlayerNote>に変換 🔵
+    let mut notes = Vec::new();
+    for note in notes_iter {
+        notes.push(note.map_err(|e| format!("Failed to parse note: {}", e))?);
+    }
+
+    // 【空配列対応】: メモが0件の場合は空配列を返す（エラーではない） 🔵
+    Ok(notes)
 }
 
 // ============================================

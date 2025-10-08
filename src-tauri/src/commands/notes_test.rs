@@ -277,7 +277,8 @@ fn test_update_note_updates_timestamp() {
     drop(conn);
 
     // 少し待機（タイムスタンプの差を確実にする）
-    std::thread::sleep(std::time::Duration::from_millis(10));
+    // SQLiteのCURRENT_TIMESTAMPは秒単位なので、1秒以上待機
+    std::thread::sleep(std::time::Duration::from_secs(1));
 
     // 【実際の処理実行】: メモを更新
     // 【処理内容】: updated_atが自動更新されることを確認
@@ -432,9 +433,9 @@ fn test_get_player_notes_sorted_by_updated_at() {
     let player_id = insert_test_player(&db, "中村八郎");
 
     let note1_id = insert_test_note(&db, player_id, "<p>古いメモ</p>");
-    std::thread::sleep(std::time::Duration::from_millis(10));
+    std::thread::sleep(std::time::Duration::from_secs(1));
     let note2_id = insert_test_note(&db, player_id, "<p>中間メモ</p>");
-    std::thread::sleep(std::time::Duration::from_millis(10));
+    std::thread::sleep(std::time::Duration::from_secs(1));
     let note3_id = insert_test_note(&db, player_id, "<p>新しいメモ</p>");
 
     // 【実際の処理実行】: メモ一覧を取得
