@@ -338,6 +338,12 @@ pub fn run() {
         .setup(|app| {
             let db = Database::new(app.handle()).expect("Failed to initialize database");
             app.manage(db);
+
+            // PlayerDatabase for player notes
+            let player_db = database::PlayerDatabase::new(app.handle())
+                .expect("Failed to initialize player database");
+            app.manage(player_db);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -351,7 +357,12 @@ pub fn run() {
             cleanup_test_db,
             seed_database_small,
             seed_database_medium,
-            seed_database_large
+            seed_database_large,
+            // Player notes commands (簡易メモ)
+            commands::notes::create_player_note,
+            commands::notes::update_player_note,
+            commands::notes::delete_player_note,
+            commands::notes::get_player_notes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

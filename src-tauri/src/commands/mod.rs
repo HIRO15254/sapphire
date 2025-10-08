@@ -11,6 +11,9 @@ pub mod tags;
 // プレイヤータグ割り当てコマンドモジュール
 pub mod player_tags;
 
+// 簡易メモCRUDコマンドモジュール
+pub mod notes;
+
 // テストモジュール
 #[cfg(test)]
 mod players_test;
@@ -23,3 +26,6 @@ mod tags_test;
 
 #[cfg(test)]
 mod player_tags_test;
+
+#[cfg(test)]
+mod notes_test;
