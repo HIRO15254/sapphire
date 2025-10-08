@@ -229,6 +229,43 @@ pub(crate) fn get_player_tags_internal(
 }
 
 // ============================================
+// タグ影響カウント機能
+// ============================================
+
+/// タグに紐づくプレイヤー数をカウントする（内部関数）
+///
+/// 【機能概要】: 指定タグが割り当てられているプレイヤー数をカウント 🔵
+/// 【実装方針】: タグ存在確認 → DISTINCT player_idでカウント 🔵
+/// 【テスト対応】: TC-COUNT-001～008 🔵
+#[allow(dead_code)]
+pub(crate) fn get_affected_players_count_by_tag_internal(
+    tag_id: i64,
+    db: &PlayerDatabase,
+) -> Result<usize, String> {
+    let conn = db.0.lock().unwrap();
+
+    // 【タグ存在確認】: tags.rsのcheck_tag_existsヘルパー関数を再利用 🔵
+    // 【テスト対応】: TC-COUNT-ERR-001, TC-COUNT-EDGE-001 🔵
+    use crate::commands::tags::check_tag_exists;
+    check_tag_exists(&conn, tag_id)?;
+
+    // 【カウント取得】: DISTINCT player_idで重複を除外してカウント 🔵
+    // 【SQL仕様】: REQ-507により同一プレイヤー・異なる強度は1人としてカウント 🔵
+    // 【インデックス活用】: idx_player_tags_tag_idにより高速化 🔵
+    // 【テスト対応】: TC-COUNT-001～004, TC-COUNT-EDGE-002, TC-COUNT-INT-001 🔵
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(DISTINCT player_id) FROM player_tags WHERE tag_id = ?1",
+            params![tag_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Failed to count affected players: {}", e))?;
+
+    // 【型変換】: i64 → usize 🔵
+    Ok(count as usize)
+}
+
+// ============================================
 // タグ並び替え機能
 // ============================================
 
