@@ -37,7 +37,6 @@ fn insert_test_player(db: &PlayerDatabase, name: &str) -> i64 {
     conn.last_insert_rowid()
 }
 
-
 // ============================================
 // 正常系テストケース
 // ============================================
@@ -60,11 +59,8 @@ fn test_update_summary_first_time() {
 
     // 【実際の処理実行】: 総合メモ更新コマンドを呼び出し
     // 【処理内容】: HTML形式のメモ内容をplayer_summariesテーブルに保存
-    let result = update_player_summary_internal(
-        player_id,
-        "<h1>攻略メモ</h1><p>初心者プレイヤー</p>",
-        &db,
-    );
+    let result =
+        update_player_summary_internal(player_id, "<h1>攻略メモ</h1><p>初心者プレイヤー</p>", &db);
 
     // 【結果検証】: 総合メモが正常に更新されることを確認
     // 【期待値確認】: PlayerSummaryエンティティが返され、全フィールドが正しく設定される
@@ -492,11 +488,8 @@ fn test_update_summary_fts_trigger() {
 
     // 【実際の処理実行】: 総合メモを更新
     // 【処理内容】: player_summariesテーブルとplayer_summaries_ftsテーブルが同期される
-    let result = update_player_summary_internal(
-        player_id,
-        "<p>攻略メモ: 初心者向けプレイヤー</p>",
-        &db,
-    );
+    let result =
+        update_player_summary_internal(player_id, "<p>攻略メモ: 初心者向けプレイヤー</p>", &db);
     assert!(result.is_ok(), "総合メモ更新が成功すること");
     let summary = result.unwrap();
 
@@ -608,10 +601,7 @@ fn test_update_summary_with_deep_html_nesting() {
     let content = format!("{}内容{}", opening_tags, closing_tags);
 
     // サイズチェック（1MB以下であることを確認）
-    assert!(
-        content.len() <= 1048576,
-        "テストデータが1MB以下であること"
-    );
+    assert!(content.len() <= 1048576, "テストデータが1MB以下であること");
 
     // 【実際の処理実行】: 深くネストしたHTMLで更新
     // 【処理内容】: 複雑なHTML構造での保存・取得を確認
