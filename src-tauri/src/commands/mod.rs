@@ -14,6 +14,9 @@ pub mod player_tags;
 // 簡易メモCRUDコマンドモジュール
 pub mod notes;
 
+// プレイヤー総合メモ更新・取得コマンドモジュール
+pub mod player_summaries;
+
 // テストモジュール
 #[cfg(test)]
 mod players_test;
@@ -29,3 +32,6 @@ mod player_tags_test;
 
 #[cfg(test)]
 mod notes_test;
+
+#[cfg(test)]
+mod player_summaries_test;
