@@ -470,18 +470,14 @@ fn test_update_summary_at_1mb_plus_one() {
 // TC-UPDATE-SUMMARY-SPECIAL-001: FTSトリガーの動作確認（更新時） 🔵
 // ============================================
 
-// TODO: FTS trigger test fails - FTS entry exists but search returns no results
-// This appears to be a test environment issue as integration tests verify FTS works correctly
-// Investigate during Refactor phase
 #[test]
-#[ignore]
 fn test_update_summary_fts_trigger() {
     // 【テスト目的】: 総合メモ更新時にplayer_summaries_auトリガーが動作し、FTSテーブルが更新されることを確認
     // 【テスト内容】: トリガーによる自動処理の動作確認
     // 【期待される動作】: FTSテーブルも自動的に更新される
     // 🔵 信頼性レベル: 要件定義書（FTSトリガーの動作確認）、schema.rs（トリガー定義）に基づく
 
-    // 【テストデータ準備】: 全文検索対象となるキーワード（「攻略」「初心者」）を含むHTML
+    // 【テストデータ準備】: 全文検索対象となるキーワード（「初心者」）を含むHTML
     // 【初期条件設定】: プレイヤーと総合メモを作成
     let db = create_test_db();
     let player_id = insert_test_player_with_summary(&db, "FTSトリガーテスト");
@@ -505,10 +501,12 @@ fn test_update_summary_fts_trigger() {
         .expect("Failed to query FTS table");
     assert_eq!(fts_count, 1); // 【確認内容】: FTSテーブルにエントリが存在している 🔵
 
-    // 全文検索でヒットすることを確認
+    // 【重要】: trigramトークナイザーは3文字以上の検索語が必要
+    // 「攻略」（2文字）では検索できないが、「初心者」（3文字）では検索可能
+    // これはtrigramトークナイザーの仕様: 3文字（3-gram）のトークンを生成するため
     let search_count: i64 = conn
         .query_row(
-            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH '攻略'",
+            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH '初心者'",
             [],
             |row| row.get(0),
         )
