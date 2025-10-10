@@ -362,7 +362,14 @@ pub fn run() {
             commands::notes::create_player_note,
             commands::notes::update_player_note,
             commands::notes::delete_player_note,
-            commands::notes::get_player_notes
+            commands::notes::get_player_notes,
+            // Player CRUD commands
+            commands::players::create_player,
+            commands::players::get_players,
+            commands::players::update_player,
+            commands::players::delete_player,
+            commands::players::get_player_detail,
+            commands::players::search_players_by_name
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

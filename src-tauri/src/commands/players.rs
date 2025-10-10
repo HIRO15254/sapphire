@@ -82,6 +82,40 @@ fn get_player_by_id(conn: &Connection, id: i64) -> Result<Player, String> {
     .map_err(|e| format!("Player not found: {}", e))
 }
 
+/// 【ヘルパー関数】: LIKE句の特殊文字をエスケープ 🔵
+/// 【再利用性】: 検索機能全般で使用可能 🔵
+/// 【単一責任】: SQLインジェクション防止のための文字エスケープのみを担当 🔵
+/// 【セキュリティ】: %（任意文字列）、_（任意1文字）、\（エスケープ文字）の無害化 🔵
+/// 【実装方針】: バックスラッシュを先にエスケープすることで、二重エスケープを防止 🔵
+fn escape_like_pattern(input: &str) -> String {
+    // 【エスケープ順序】: \を最初に処理しないと、%や_のエスケープが二重になる 🔵
+    // 【例】: "test%" → "test\%" → "test\\%" (誤) vs "test%" → "test\%" (正)
+    input
+        .replace('\\', "\\\\") // バックスラッシュを最初にエスケープ
+        .replace('%', "\\%") // ワイルドカード%をエスケープ
+        .replace('_', "\\_") // ワイルドカード_をエスケープ
+}
+
+/// 【ヘルパー関数】: ページネーションパラメータを正規化 🔵
+/// 【再利用性】: ページネーションを持つ全ての検索・一覧機能で使用可能 🔵
+/// 【単一責任】: ページパラメータのデフォルト値設定と範囲制限のみを担当 🔵
+/// 【安全性】: 不正な値（0以下、上限超過）を適切な範囲に補正 🔵
+/// 【保守性】: デフォルト値を一箇所で管理することで、変更時の影響を最小化 🔵
+fn normalize_pagination(
+    page: Option<usize>,
+    per_page: Option<usize>,
+    default_per_page: usize,
+) -> (usize, usize) {
+    // 【ページ番号正規化】: デフォルト1、最小値1に補正 🔵
+    let normalized_page = page.unwrap_or(1).max(1);
+
+    // 【ページサイズ正規化】: デフォルト値適用、範囲を1～100に制限 🔵
+    // 【パフォーマンス考慮】: 最大100件に制限してレスポンスサイズを管理 🔵
+    let normalized_per_page = per_page.unwrap_or(default_per_page).clamp(1, 100);
+
+    (normalized_page, normalized_per_page)
+}
+
 // ============================================
 // CRUDコマンド実装
 // ============================================
@@ -164,6 +198,7 @@ pub async fn create_player(
 /// * `Result<PaginatedResponse<Player>, String>` - ページネーション付きプレイヤー一覧
 ///
 /// 【機能概要】: プレイヤー一覧をページネーション付きで取得 🔵
+/// 【改善内容】: ヘルパー関数を活用してページネーション処理を共通化 🔵
 /// 【実装方針】: デフォルト値設定、総件数取得、OFFSET/LIMIT、updated_at降順ソート 🔵
 /// 【テスト対応】: TC-GET-001～003 🔵
 pub(crate) fn get_players_internal(
@@ -171,9 +206,9 @@ pub(crate) fn get_players_internal(
     per_page: Option<usize>,
     db: &PlayerDatabase,
 ) -> Result<PaginatedResponse<Player>, String> {
-    // 【デフォルト値設定】: page=1, per_page=20 🔵
-    let page = page.unwrap_or(1).max(1); // 最小値1
-    let per_page = per_page.unwrap_or(20).clamp(1, 100); // 最小1、最大100
+    // 【ページネーション正規化】: ヘルパー関数でデフォルト値設定と範囲制限を実施 🔵
+    // 【デフォルト値】: page=1, per_page=20（一覧表示は20件が標準） 🔵
+    let (page, per_page) = normalize_pagination(page, per_page, 20);
 
     let conn = db.0.lock().unwrap();
 
@@ -383,4 +418,109 @@ pub async fn get_player_detail(
     db: State<'_, PlayerDatabase>,
 ) -> Result<serde_json::Value, String> {
     get_player_detail_internal(id, &db)
+}
+
+// ============================================
+// 検索コマンド実装
+// ============================================
+
+/// プレイヤー名で検索（部分一致、ページネーション付き）
+///
+/// # Arguments
+/// * `keyword` - 検索キーワード（空文字列の場合は全件取得）
+/// * `page` - ページ番号（デフォルト: 1）
+/// * `per_page` - 1ページあたりの件数（デフォルト: 50、最大: 100）
+/// * `db` - データベース接続
+///
+/// # Returns
+/// * `Result<PaginatedResponse<Player>, String>` - ページネーション付きプレイヤー一覧
+///
+/// 【機能概要】: プレイヤー名で部分一致検索、大文字小文字を区別しない 🔵
+/// 【改善内容】: ヘルパー関数を活用してエスケープ処理とページネーション処理を共通化 🔵
+/// 【実装方針】: LIKE句とCOLLATE NOCASE、idx_players_nameインデックス活用 🔵
+/// 【セキュリティ】: LIKE特殊文字（%と_）をエスケープしてSQLインジェクション防止 🔵
+/// 【パフォーマンス】: インデックススキャン + ページング最適化で高速検索を実現 🔵
+/// 【保守性】: DRY原則に従いヘルパー関数で共通処理を抽出 🔵
+/// 【テスト対応】: TC-SEARCH-001～013 🔵
+pub(crate) fn search_players_by_name_internal(
+    keyword: &str,
+    page: Option<usize>,
+    per_page: Option<usize>,
+    db: &PlayerDatabase,
+) -> Result<PaginatedResponse<Player>, String> {
+    // 【ページネーション正規化】: ヘルパー関数でデフォルト値設定と範囲制限を実施 🔵
+    // 【デフォルト値】: page=1, per_page=50（検索は一覧より多めに表示） 🔵
+    let (page, per_page) = normalize_pagination(page, per_page, 50);
+
+    // 【LIKE特殊文字エスケープ】: ヘルパー関数でワイルドカード展開を防ぐ 🔵
+    // 【セキュリティ対応】: TC-SEARCH-EDGE-001, TC-SEARCH-EDGE-002対応 🔵
+    let escaped_keyword = escape_like_pattern(keyword);
+
+    let conn = db.0.lock().unwrap();
+
+    // 【総件数取得】: 検索キーワードに一致するプレイヤー総数をカウント 🔵
+    // 【COLLATE NOCASE】: 大文字小文字を区別しない検索（idx_players_name利用） 🔵
+    // 【ESCAPE句】: バックスラッシュをエスケープ文字として明示 🔵
+    let count_sql =
+        "SELECT COUNT(*) FROM players WHERE name LIKE '%' || ? || '%' ESCAPE '\\' COLLATE NOCASE";
+    let total: usize = conn
+        .query_row(count_sql, params![escaped_keyword], |row| row.get(0))
+        .map_err(|e| format!("Failed to count players: {}", e))?;
+
+    // 【総ページ数計算】: ceil(total / per_page) 🔵
+    let total_pages = if total == 0 {
+        0 // 【エッジケース対応】: TC-SEARCH-ERR-001（ヒット0件時は0ページ） 🔵
+    } else {
+        total.div_ceil(per_page)
+    };
+
+    // 【OFFSET/LIMIT計算】: ページネーション用のオフセット計算 🔵
+    let offset = (page - 1) * per_page;
+
+    // 【プレイヤー検索】: LIKE部分一致、updated_at降順、LIMIT/OFFSET適用 🔵
+    // 【パフォーマンス】: idx_players_name（COLLATE NOCASE）インデックスを活用 🔵
+    // 【ソート】: TC-SEARCH-007対応、最新更新順で表示 🔵
+    // 【ESCAPE句】: バックスラッシュをエスケープ文字として明示 🔵
+    let search_sql = "SELECT id, name, category_id, created_at, updated_at
+                      FROM players
+                      WHERE name LIKE '%' || ? || '%' ESCAPE '\\' COLLATE NOCASE
+                      ORDER BY updated_at DESC
+                      LIMIT ? OFFSET ?";
+
+    let mut stmt = conn
+        .prepare(search_sql)
+        .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+
+    let players = stmt
+        .query_map(params![escaped_keyword, per_page, offset], |row| {
+            Ok(Player {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                category_id: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })
+        .map_err(|e| format!("Failed to query players: {}", e))?
+        .collect::<Result<Vec<Player>, _>>()
+        .map_err(|e| format!("Failed to collect players: {}", e))?;
+
+    // 【レスポンス構築】: ページネーション情報を含むレスポンスを返す 🔵
+    Ok(PaginatedResponse {
+        data: players,
+        total,
+        page,
+        per_page,
+        total_pages,
+    })
+}
+
+#[tauri::command]
+pub async fn search_players_by_name(
+    keyword: String,
+    page: Option<usize>,
+    per_page: Option<usize>,
+    db: State<'_, PlayerDatabase>,
+) -> Result<PaginatedResponse<Player>, String> {
+    search_players_by_name_internal(&keyword, page, per_page, &db)
 }
