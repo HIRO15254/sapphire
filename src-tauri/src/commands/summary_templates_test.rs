@@ -17,7 +17,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::database::models::SummaryTemplate;
+    use crate::commands::summary_templates::{
+        get_summary_template_internal, update_summary_template_internal,
+    };
     use crate::database::PlayerDatabase;
     use rusqlite::Connection;
     use std::sync::Mutex;
@@ -342,27 +344,5 @@ mod tests {
             !updated_template.updated_at.is_empty(),
             "updated_atが更新されていません"
         ); // 【確認内容】: 空文字列更新でもタイムスタンプ更新される 🔵
-    }
-
-    // ============================================
-    // 未実装の関数（Redフェーズ）
-    // ============================================
-    // 【実装予定】: これらの関数はGreenフェーズで実装されます
-
-    /// 【テンプレート取得（内部関数）】
-    /// 🔴 未実装: Greenフェーズで実装予定
-    fn get_summary_template_internal(_db: &PlayerDatabase) -> Result<SummaryTemplate, String> {
-        // 【TODO】: id=1のテンプレートを取得する実装を追加
-        unimplemented!("get_summary_template_internal() is not implemented yet")
-    }
-
-    /// 【テンプレート更新（内部関数）】
-    /// 🔴 未実装: Greenフェーズで実装予定
-    fn update_summary_template_internal(
-        _content: &str,
-        _db: &PlayerDatabase,
-    ) -> Result<SummaryTemplate, String> {
-        // 【TODO】: サイズ検証 → UPDATE実行 → 更新後データ取得の実装を追加
-        unimplemented!("update_summary_template_internal() is not implemented yet")
     }
 }

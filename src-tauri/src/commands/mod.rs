@@ -17,8 +17,8 @@ pub mod notes;
 // プレイヤー総合メモ更新・取得コマンドモジュール
 pub mod player_summaries;
 
-// 総合メモテンプレート管理コマンドモジュール（Greenフェーズで実装予定）
-// pub mod summary_templates;
+// 総合メモテンプレート管理コマンドモジュール
+pub mod summary_templates;
 
 // テストモジュール
 #[cfg(test)]
