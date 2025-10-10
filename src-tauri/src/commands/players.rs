@@ -461,7 +461,8 @@ pub(crate) fn search_players_by_name_internal(
     // 【総件数取得】: 検索キーワードに一致するプレイヤー総数をカウント 🔵
     // 【COLLATE NOCASE】: 大文字小文字を区別しない検索（idx_players_name利用） 🔵
     // 【ESCAPE句】: バックスラッシュをエスケープ文字として明示 🔵
-    let count_sql = "SELECT COUNT(*) FROM players WHERE name LIKE '%' || ? || '%' ESCAPE '\\' COLLATE NOCASE";
+    let count_sql =
+        "SELECT COUNT(*) FROM players WHERE name LIKE '%' || ? || '%' ESCAPE '\\' COLLATE NOCASE";
     let total: usize = conn
         .query_row(count_sql, params![escaped_keyword], |row| row.get(0))
         .map_err(|e| format!("Failed to count players: {}", e))?;
