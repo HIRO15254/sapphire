@@ -384,3 +384,104 @@ pub async fn get_player_detail(
 ) -> Result<serde_json::Value, String> {
     get_player_detail_internal(id, &db)
 }
+
+// ============================================
+// 検索コマンド実装
+// ============================================
+
+/// プレイヤー名で検索（部分一致、ページネーション付き）
+///
+/// # Arguments
+/// * `keyword` - 検索キーワード（空文字列の場合は全件取得）
+/// * `page` - ページ番号（デフォルト: 1）
+/// * `per_page` - 1ページあたりの件数（デフォルト: 50、最大: 100）
+/// * `db` - データベース接続
+///
+/// # Returns
+/// * `Result<PaginatedResponse<Player>, String>` - ページネーション付きプレイヤー一覧
+///
+/// 【機能概要】: プレイヤー名で部分一致検索、大文字小文字を区別しない 🔵
+/// 【実装方針】: LIKE句とCOLLATE NOCASE、idx_players_nameインデックス活用 🔵
+/// 【セキュリティ】: LIKE特殊文字（%と_）をエスケープしてSQLインジェクション防止 🔵
+/// 【テスト対応】: TC-SEARCH-001～013 🔵
+pub(crate) fn search_players_by_name_internal(
+    keyword: &str,
+    page: Option<usize>,
+    per_page: Option<usize>,
+    db: &PlayerDatabase,
+) -> Result<PaginatedResponse<Player>, String> {
+    // 【デフォルト値設定】: page=1, per_page=50（検索は一覧より多めに表示） 🔵
+    let page = page.unwrap_or(1).max(1); // 最小値1
+    let per_page = per_page.unwrap_or(50).clamp(1, 100); // 最小1、最大100
+
+    // 【LIKE特殊文字エスケープ】: %と_をエスケープしてワイルドカード展開を防ぐ 🔵
+    // 【セキュリティ対応】: TC-SEARCH-EDGE-001, TC-SEARCH-EDGE-002対応 🔵
+    let escaped_keyword = keyword.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+
+    let conn = db.0.lock().unwrap();
+
+    // 【総件数取得】: 検索キーワードに一致するプレイヤー総数をカウント 🔵
+    // 【COLLATE NOCASE】: 大文字小文字を区別しない検索（idx_players_name利用） 🔵
+    // 【ESCAPE句】: バックスラッシュをエスケープ文字として明示 🔵
+    let count_sql = "SELECT COUNT(*) FROM players WHERE name LIKE '%' || ? || '%' ESCAPE '\\' COLLATE NOCASE";
+    let total: usize = conn
+        .query_row(count_sql, params![escaped_keyword], |row| row.get(0))
+        .map_err(|e| format!("Failed to count players: {}", e))?;
+
+    // 【総ページ数計算】: ceil(total / per_page) 🔵
+    let total_pages = if total == 0 {
+        0 // 【エッジケース対応】: TC-SEARCH-ERR-001（ヒット0件時は0ページ） 🔵
+    } else {
+        total.div_ceil(per_page)
+    };
+
+    // 【OFFSET/LIMIT計算】: ページネーション用のオフセット計算 🔵
+    let offset = (page - 1) * per_page;
+
+    // 【プレイヤー検索】: LIKE部分一致、updated_at降順、LIMIT/OFFSET適用 🔵
+    // 【パフォーマンス】: idx_players_name（COLLATE NOCASE）インデックスを活用 🔵
+    // 【ソート】: TC-SEARCH-007対応、最新更新順で表示 🔵
+    // 【ESCAPE句】: バックスラッシュをエスケープ文字として明示 🔵
+    let search_sql = "SELECT id, name, category_id, created_at, updated_at
+                      FROM players
+                      WHERE name LIKE '%' || ? || '%' ESCAPE '\\' COLLATE NOCASE
+                      ORDER BY updated_at DESC
+                      LIMIT ? OFFSET ?";
+
+    let mut stmt = conn
+        .prepare(search_sql)
+        .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+
+    let players = stmt
+        .query_map(params![escaped_keyword, per_page, offset], |row| {
+            Ok(Player {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                category_id: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })
+        .map_err(|e| format!("Failed to query players: {}", e))?
+        .collect::<Result<Vec<Player>, _>>()
+        .map_err(|e| format!("Failed to collect players: {}", e))?;
+
+    // 【レスポンス構築】: ページネーション情報を含むレスポンスを返す 🔵
+    Ok(PaginatedResponse {
+        data: players,
+        total,
+        page,
+        per_page,
+        total_pages,
+    })
+}
+
+#[tauri::command]
+pub async fn search_players_by_name(
+    keyword: String,
+    page: Option<usize>,
+    per_page: Option<usize>,
+    db: State<'_, PlayerDatabase>,
+) -> Result<PaginatedResponse<Player>, String> {
+    search_players_by_name_internal(&keyword, page, per_page, &db)
+}

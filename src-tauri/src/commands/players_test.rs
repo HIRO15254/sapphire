@@ -1156,3 +1156,429 @@ fn test_get_player_detail_tags_sorted_by_display_order() {
     // 注: PlayerDetail型の詳細な検証はGreenフェーズで実装済み
     // タグのソート順検証は、PlayerDetail実装時に追加可能
 }
+
+// ============================================
+// プレイヤー名前検索テストケース（13件）
+// TASK-0016: プレイヤー名前検索コマンド実装
+// ============================================
+
+// ============================================
+// TC-SEARCH-001: キーワード部分一致検索（基本） 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_basic_partial_match() {
+    // 【テスト目的】: プレイヤー名の部分一致検索の基本機能を確認
+    // 【テスト内容】: キーワード「alice」で部分一致するプレイヤーが全て検索結果に含まれることを検証
+    // 【期待される動作】: 「alice」を含むプレイヤーが全て取得される
+    // 🔵 信頼性レベル: REQ-401（部分一致検索）に基づく
+
+    // 【テストデータ準備】: 複数のプレイヤーを作成し、一部に「alice」を含める
+    // 【初期条件設定】: 検索対象と非対象のプレイヤーが混在する状態
+    let db = create_test_db();
+    insert_test_player(&db, "Alice", None);
+    insert_test_player(&db, "Alice Johnson", None);
+    insert_test_player(&db, "Bob", None);
+    insert_test_player(&db, "Charlie", None);
+
+    // 【実際の処理実行】: キーワード「alice」で検索
+    // 【処理内容】: LIKE句による部分一致検索を実行
+    let result = search_players_by_name_internal("alice", None, None, &db);
+
+    // 【結果検証】: 「alice」を含むプレイヤーが取得されることを確認
+    // 【期待値確認】: 2件のプレイヤーがヒット
+    assert!(result.is_ok(), "検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.total, 2); // 【確認内容】: 総件数が2件 🔵
+    assert_eq!(response.data.len(), 2); // 【確認内容】: 2件取得されている 🔵
+
+    // 【追加検証】: 検索結果に正しいプレイヤーが含まれることを確認
+    let names: Vec<String> = response.data.iter().map(|p| p.name.clone()).collect();
+    assert!(names.contains(&"Alice".to_string())); // 【確認内容】: "Alice"が含まれる 🔵
+    assert!(names.contains(&"Alice Johnson".to_string())); // 【確認内容】: "Alice Johnson"が含まれる 🔵
+}
+
+// ============================================
+// TC-SEARCH-002: 大文字小文字を区別しない検索 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_case_insensitive() {
+    // 【テスト目的】: COLLATE NOCASEによる大文字小文字の区別なし検索を確認
+    // 【テスト内容】: 大文字「JOHN」で検索しても小文字「john」がヒットすることを検証
+    // 【期待される動作】: 大文字・小文字の違いを無視して検索される
+    // 🔵 信頼性レベル: REQ-401、schema.rs:85（idx_players_name COLLATE NOCASE）に基づく
+
+    // 【テストデータ準備】: 大文字・小文字が混在するプレイヤーを作成
+    // 【初期条件設定】: インデックスのCOLLATE NOCASE機能を検証
+    let db = create_test_db();
+    insert_test_player(&db, "John", None);
+    insert_test_player(&db, "john", None);
+    insert_test_player(&db, "Johnny", None);
+    insert_test_player(&db, "Alice", None);
+
+    // 【実際の処理実行】: 大文字「JOHN」で検索
+    // 【処理内容】: COLLATE NOCASEによる大文字小文字を区別しない検索
+    let result = search_players_by_name_internal("JOHN", None, None, &db);
+
+    // 【結果検証】: 大文字・小文字に関わらず「john」を含むプレイヤーが取得されることを確認
+    // 【期待値確認】: 3件のプレイヤーがヒット
+    assert!(result.is_ok(), "大文字小文字を区別しない検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.total, 3); // 【確認内容】: 総件数が3件 🔵
+    assert_eq!(response.data.len(), 3); // 【確認内容】: 3件取得されている 🔵
+}
+
+// ============================================
+// TC-SEARCH-003: 空文字列で全プレイヤー取得 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_empty_string() {
+    // 【テスト目的】: 空文字列検索で全プレイヤーが返されることを確認
+    // 【テスト内容】: キーワード未入力時の動作を検証
+    // 【期待される動作】: 全プレイヤーが返される（LIKE '%%'は全行にマッチ）
+    // 🔵 信頼性レベル: 要件定義書エッジケース1に基づく
+
+    // 【テストデータ準備】: 複数のプレイヤーを作成
+    // 【初期条件設定】: 全プレイヤーが検索結果に含まれるべき状態
+    let db = create_test_db();
+    insert_test_player(&db, "Player1", None);
+    insert_test_player(&db, "Player2", None);
+    insert_test_player(&db, "Player3", None);
+
+    // 【実際の処理実行】: 空文字列で検索
+    // 【処理内容】: LIKE '%%'により全行にマッチする検索
+    let result = search_players_by_name_internal("", None, None, &db);
+
+    // 【結果検証】: 全プレイヤーが取得されることを確認
+    // 【期待値確認】: 3件のプレイヤー全てが返される
+    assert!(result.is_ok(), "空文字列検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.total, 3); // 【確認内容】: 総件数が3件 🔵
+    assert_eq!(response.data.len(), 3); // 【確認内容】: 3件取得されている 🔵
+}
+
+// ============================================
+// TC-SEARCH-004: ページネーション（1ページ目） 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_pagination_page_one() {
+    // 【テスト目的】: 検索結果のページネーションが正しく動作することを確認
+    // 【テスト内容】: 指定したページサイズで結果が分割されることを検証
+    // 【期待される動作】: LIMIT/OFFSETによるページネーションが機能する
+    // 🔵 信頼性レベル: 既存get_players_internalのページネーションパターンに基づく
+
+    // 【テストデータ準備】: 50人のプレイヤーを作成
+    // 【初期条件設定】: 大量検索結果のページング動作を確認
+    let db = create_test_db();
+    for i in 1..=50 {
+        insert_test_player(&db, &format!("player{}", i), None);
+    }
+
+    // 【実際の処理実行】: キーワード「player」、per_page=20で検索
+    // 【処理内容】: ページネーション付き検索結果の取得
+    let result = search_players_by_name_internal("player", Some(1), Some(20), &db);
+
+    // 【結果検証】: ページネーション情報が正しく設定されることを確認
+    // 【期待値確認】: 20件/50件中、1ページ目
+    assert!(result.is_ok(), "ページネーション検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.data.len(), 20); // 【確認内容】: 20件取得されている 🔵
+    assert_eq!(response.total, 50); // 【確認内容】: 総件数が50件 🔵
+    assert_eq!(response.page, 1); // 【確認内容】: 現在ページが1 🔵
+    assert_eq!(response.per_page, 20); // 【確認内容】: 1ページ件数が20 🔵
+    assert_eq!(response.total_pages, 3); // 【確認内容】: 総ページ数が3（ceil(50/20)） 🔵
+}
+
+// ============================================
+// TC-SEARCH-005: ページネーション（2ページ目） 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_pagination_page_two() {
+    // 【テスト目的】: 2ページ目の検索結果を正しく取得できることを確認
+    // 【テスト内容】: OFFSET計算の正確性を検証
+    // 【期待される動作】: 21～40件目の検索結果が取得される
+    // 🔵 信頼性レベル: 既存TC-GET-003パターンに基づく
+
+    // 【テストデータ準備】: 100人のプレイヤーを作成
+    // 【初期条件設定】: ページング計算の正確性を確認
+    let db = create_test_db();
+    for i in 1..=100 {
+        insert_test_player(&db, &format!("test{:03}", i), None);
+    }
+
+    // 【実際の処理実行】: キーワード「test」、2ページ目、per_page=20で検索
+    // 【処理内容】: OFFSET=20により21～40件目が取得される
+    let result = search_players_by_name_internal("test", Some(2), Some(20), &db);
+
+    // 【結果検証】: 2ページ目のデータが取得されることを確認
+    // 【期待値確認】: OFFSET=20で21～40件目が返される
+    assert!(result.is_ok(), "2ページ目検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.data.len(), 20); // 【確認内容】: 20件取得されている 🔵
+    assert_eq!(response.page, 2); // 【確認内容】: 現在ページが2 🔵
+}
+
+// ============================================
+// TC-SEARCH-006: デフォルトページサイズ（50件） 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_default_per_page() {
+    // 【テスト目的】: per_page未指定時、デフォルト50件で検索されることを確認
+    // 【テスト内容】: デフォルトページサイズの動作を検証
+    // 【期待される動作】: per_page=50が適用される
+    // 🔵 信頼性レベル: Issue #20 実装詳細（デフォルト50）に基づく
+
+    // 【テストデータ準備】: 100人のプレイヤーを作成
+    // 【初期条件設定】: UIでページサイズを変更していない状態
+    let db = create_test_db();
+    for i in 1..=100 {
+        insert_test_player(&db, &format!("p{}", i), None);
+    }
+
+    // 【実際の処理実行】: キーワード「p」、per_page未指定で検索
+    // 【処理内容】: デフォルトper_page=50が適用される
+    let result = search_players_by_name_internal("p", None, None, &db);
+
+    // 【結果検証】: デフォルト50件が取得されることを確認
+    // 【期待値確認】: per_page=50が適用されている
+    assert!(result.is_ok(), "デフォルトページサイズ検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.data.len(), 50); // 【確認内容】: 50件取得されている 🔵
+    assert_eq!(response.per_page, 50); // 【確認内容】: per_pageが50 🔵
+}
+
+// ============================================
+// TC-SEARCH-007: updated_at降順ソート 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_sorted_by_updated_at() {
+    // 【テスト目的】: 検索結果がupdated_at降順でソートされることを確認
+    // 【テスト内容】: ORDER BY updated_at DESCの動作を検証
+    // 【期待される動作】: 最近更新されたプレイヤーが先頭に表示される
+    // 🔵 信頼性レベル: REQ-404、既存TC-GET-SORT-001パターンに基づく
+
+    // 【テストデータ準備】: プレイヤーを作成し、一部を後で更新
+    // 【初期条件設定】: 更新順表示の確認
+    let db = create_test_db();
+    let player1_id = insert_test_player(&db, "test1", None);
+    std::thread::sleep(std::time::Duration::from_millis(1100));
+    let _player2_id = insert_test_player(&db, "test2", None);
+    std::thread::sleep(std::time::Duration::from_millis(1100));
+    let _player3_id = insert_test_player(&db, "test3", None);
+
+    // player1を更新（最新にする）
+    std::thread::sleep(std::time::Duration::from_millis(1100));
+    update_player_internal(player1_id, Some("test1_updated"), None, &db)
+        .expect("Failed to update player");
+
+    // 【実際の処理実行】: キーワード「test」で検索
+    // 【処理内容】: ORDER BY updated_at DESCによるソート
+    let result = search_players_by_name_internal("test", Some(1), Some(10), &db);
+
+    // 【結果検証】: updated_at降順でソートされることを確認
+    // 【期待値確認】: 最後に更新したplayer1が先頭
+    assert!(result.is_ok(), "ソート付き検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.data.len(), 3); // 【確認内容】: 3件取得されている 🔵
+    assert_eq!(response.data[0].id, player1_id); // 【確認内容】: 最新更新が先頭 🔵
+}
+
+// ============================================
+// TC-SEARCH-008: 日本語キーワード検索 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_japanese_keyword() {
+    // 【テスト目的】: 日本語キーワードでも正しく検索できることを確認
+    // 【テスト内容】: マルチバイト文字の検索対応を検証
+    // 【期待される動作】: 日本語名のプレイヤーが正しく検索される
+    // 🟡 信頼性レベル: SQLiteのUTF-8サポートに基づく妥当な推測
+
+    // 【テストデータ準備】: 日本語名のプレイヤーを作成
+    // 【初期条件設定】: 日本人名での検索
+    let db = create_test_db();
+    insert_test_player(&db, "田中太郎", None);
+    insert_test_player(&db, "田中花子", None);
+    insert_test_player(&db, "佐藤一郎", None);
+
+    // 【実際の処理実行】: キーワード「田中」で検索
+    // 【処理内容】: UTF-8マルチバイト文字の部分一致検索
+    let result = search_players_by_name_internal("田中", None, None, &db);
+
+    // 【結果検証】: 日本語キーワードで正しく検索されることを確認
+    // 【期待値確認】: 「田中」を含むプレイヤーが2件ヒット
+    assert!(result.is_ok(), "日本語検索が成功すること"); // 【確認内容】: 検索処理が成功している 🟡
+    let response = result.unwrap();
+    assert_eq!(response.total, 2); // 【確認内容】: 総件数が2件 🟡
+
+    // 【追加検証】: 検索結果に正しいプレイヤーが含まれることを確認
+    let names: Vec<String> = response.data.iter().map(|p| p.name.clone()).collect();
+    assert!(names.contains(&"田中太郎".to_string())); // 【確認内容】: "田中太郎"が含まれる 🟡
+    assert!(names.contains(&"田中花子".to_string())); // 【確認内容】: "田中花子"が含まれる 🟡
+}
+
+// ============================================
+// TC-SEARCH-ERR-001: ヒット件数0件 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_no_results() {
+    // 【テスト目的】: 検索結果が0件の場合、空配列が返されることを確認
+    // 【テスト内容】: 検索キーワードに一致するプレイヤーが存在しない場合の動作を検証
+    // 【期待される動作】: エラーではなく、空結果として正常処理される
+    // 🔵 信頼性レベル: 要件定義書エッジケース2に基づく
+
+    // 【テストデータ準備】: 一致しないプレイヤーのみ作成
+    // 【初期条件設定】: タイポや記憶違いで検索した場合のシナリオ
+    let db = create_test_db();
+    insert_test_player(&db, "Alice", None);
+    insert_test_player(&db, "Bob", None);
+
+    // 【実際の処理実行】: 存在しないキーワード「nonexistent_xyz123」で検索
+    // 【処理内容】: 一致するプレイヤーが存在しない検索
+    let result = search_players_by_name_internal("nonexistent_xyz123", None, None, &db);
+
+    // 【結果検証】: エラーではなく、空結果が返されることを確認
+    // 【期待値確認】: 空配列、total=0、total_pages=0
+    assert!(result.is_ok(), "検索結果0件でもエラーにならないこと"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.data.len(), 0); // 【確認内容】: データが0件 🔵
+    assert_eq!(response.total, 0); // 【確認内容】: 総件数が0件 🔵
+    assert_eq!(response.total_pages, 0); // 【確認内容】: 総ページ数が0 🔵
+}
+
+// ============================================
+// TC-SEARCH-EDGE-001: 特殊文字のエスケープ（%） 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_escape_percent() {
+    // 【テスト目的】: キーワードに「%」を含む場合、ワイルドカードとして解釈されないことを確認
+    // 【テスト内容】: LIKEクエリの特殊文字「%」を通常文字として扱うことを検証
+    // 【期待される動作】: エスケープ処理により安全に検索される
+    // 🔵 信頼性レベル: 要件定義書エッジケース4、セキュリティ要件に基づく
+
+    // 【テストデータ準備】: 「%」を含むプレイヤー名を作成
+    // 【初期条件設定】: LIKEの特殊文字をエスケープする必要があるケース
+    let db = create_test_db();
+    insert_test_player(&db, "play%er", None);
+    insert_test_player(&db, "player", None);
+    insert_test_player(&db, "player1", None);
+
+    // 【実際の処理実行】: キーワード「play%er」で検索
+    // 【処理内容】: 「%」が文字として検索される（ワイルドカードとして展開されない）
+    let result = search_players_by_name_internal("play%er", None, None, &db);
+
+    // 【結果検証】: 「play%er」のみがヒットすることを確認
+    // 【期待値確認】: ワイルドカード展開されず、1件のみヒット
+    assert!(result.is_ok(), "特殊文字%検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.total, 1); // 【確認内容】: 総件数が1件 🔵
+    assert_eq!(response.data[0].name, "play%er"); // 【確認内容】: 「play%er」のみがヒット 🔵
+}
+
+// ============================================
+// TC-SEARCH-EDGE-002: 特殊文字のエスケープ（_） 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_escape_underscore() {
+    // 【テスト目的】: キーワードに「_」を含む場合、ワイルドカードとして解釈されないことを確認
+    // 【テスト内容】: LIKEクエリの特殊文字「_」（任意の1文字）を通常文字として扱うことを検証
+    // 【期待される動作】: エスケープ処理により安全に検索される
+    // 🔵 信頼性レベル: 要件定義書エッジケース4、セキュリティ要件に基づく
+
+    // 【テストデータ準備】: 「_」を含むプレイヤー名を作成
+    // 【初期条件設定】: LIKEの特殊文字「_」のエスケープ必要性を検証
+    let db = create_test_db();
+    insert_test_player(&db, "test_user", None);
+    insert_test_player(&db, "testXuser", None);
+    insert_test_player(&db, "test1user", None);
+
+    // 【実際の処理実行】: キーワード「test_user」で検索
+    // 【処理内容】: 「_」が文字として検索される（任意の1文字ワイルドカードとして展開されない）
+    let result = search_players_by_name_internal("test_user", None, None, &db);
+
+    // 【結果検証】: 「test_user」のみがヒットすることを確認
+    // 【期待値確認】: ワイルドカード展開されず、1件のみヒット
+    assert!(result.is_ok(), "特殊文字_検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.total, 1); // 【確認内容】: 総件数が1件 🔵
+    assert_eq!(response.data[0].name, "test_user"); // 【確認内容】: 「test_user」のみがヒット 🔵
+}
+
+// ============================================
+// TC-SEARCH-PERF-001: 500人データでのパフォーマンステスト 🟡
+// ============================================
+
+#[test]
+fn test_search_players_by_name_performance_500_players() {
+    // 【テスト目的】: 500人のプレイヤーデータで検索が1秒以内に完了することを確認
+    // 【テスト内容】: NFR-001の最大データ件数（500人）での動作を検証
+    // 【期待される動作】: インデックスを活用した高速検索（idx_players_name）
+    // 🟡 信頼性レベル: NFR-001、NFR-003に基づくパフォーマンステスト
+
+    // 【テストデータ準備】: 500人のプレイヤーを作成（250人が「player」を含む）
+    // 【初期条件設定】: ヘビーユーザーが長期間使用した場合のシナリオ
+    let db = create_test_db();
+    for i in 1..=250 {
+        insert_test_player(&db, &format!("player{}", i), None);
+    }
+    for i in 1..=250 {
+        insert_test_player(&db, &format!("user{}", i), None);
+    }
+
+    // 【実際の処理実行】: キーワード「player」で検索
+    // 【処理内容】: 500件中250件がヒットする検索を実行
+    let start = std::time::Instant::now();
+    let result = search_players_by_name_internal("player", Some(1), Some(50), &db);
+    let duration = start.elapsed();
+
+    // 【結果検証】: 1秒以内に検索が完了することを確認
+    // 【期待値確認】: idx_players_nameインデックスにより高速化されている
+    assert!(result.is_ok(), "大量データ検索が成功すること"); // 【確認内容】: 検索処理が成功している 🟡
+    let response = result.unwrap();
+    assert_eq!(response.total, 250); // 【確認内容】: 総件数が250件 🟡
+    assert!(
+        duration.as_secs() < 1,
+        "検索が1秒以内に完了すること（実際: {:?}）",
+        duration
+    ); // 【確認内容】: パフォーマンス要件（NFR-003）を満たしている 🟡
+}
+
+// ============================================
+// TC-SEARCH-BOUND-001: per_page=100（最大値） 🔵
+// ============================================
+
+#[test]
+fn test_search_players_by_name_per_page_max() {
+    // 【テスト目的】: 検索結果を100件で取得できることを確認
+    // 【テスト内容】: per_pageの最大許容値での動作を検証
+    // 【期待される動作】: 100件が正しく取得される
+    // 🔵 信頼性レベル: 既存TC-GET-BOUND-002パターンに基づく
+
+    // 【テストデータ準備】: 150人のプレイヤーを作成
+    // 【初期条件設定】: ユーザーが「全件表示」的な設定を選択
+    let db = create_test_db();
+    for i in 1..=150 {
+        insert_test_player(&db, &format!("test{}", i), None);
+    }
+
+    // 【実際の処理実行】: キーワード「test」、per_page=100で検索
+    // 【処理内容】: 最大ページサイズでの検索処理を実行
+    let result = search_players_by_name_internal("test", Some(1), Some(100), &db);
+
+    // 【結果検証】: 100件が取得されることを確認
+    // 【期待値確認】: 大量取得時もメモリエラーやタイムアウトが発生しない
+    assert!(result.is_ok(), "最大ページサイズ検索が成功すること"); // 【確認内容】: 検索処理が成功している 🔵
+    let response = result.unwrap();
+    assert_eq!(response.data.len(), 100); // 【確認内容】: 100件取得されている 🔵
+    assert_eq!(response.per_page, 100); // 【確認内容】: per_pageが100 🔵
+    assert_eq!(response.total, 150); // 【確認内容】: 総件数が150件 🔵
+}
