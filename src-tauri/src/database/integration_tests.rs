@@ -832,3 +832,721 @@ fn test_multiple_players_same_category() {
     assert!(category_ids.iter().all(|id| *id == Some(1)));
     // 【確認内容】: 全プレイヤーのcategory_idが同じ値（Some(1)）になっている
 }
+
+// ============================================
+// 統合テスト補強（GitHub Issue #19 - TASK-0015）
+// ============================================
+
+/// テスト用のプレイヤーを作成（簡易版）
+fn insert_test_player_simple(db: &PlayerDatabase, name: &str) -> i64 {
+    let conn = db.0.lock().unwrap();
+    conn.execute("INSERT INTO players (name) VALUES (?1)", params![name])
+        .expect("Failed to insert test player");
+    conn.last_insert_rowid()
+}
+
+#[test]
+fn test_cascade_delete_notes_and_summaries() {
+    // 【テスト目的】: プレイヤー削除時に簡易メモと総合メモがCASCADE削除されることを確認
+    // 【テスト内容】: プレイヤーと関連メモを作成後、プレイヤー削除で全関連データが削除されることを検証
+    // 【期待される動作】: ON DELETE CASCADE制約により、親レコード削除時に子レコードも自動削除される
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: プレイヤー、簡易メモ、総合メモを作成
+    // 【初期条件設定】: 各テーブルにデータが存在する状態を構築
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player_id = insert_test_player_simple(&db, "山田太郎");
+
+    // 【簡易メモ作成】: player_notesテーブルに複数レコード追加
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>アグレッシブ</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>タイト</p>"],
+    )
+    .expect("メモ作成に成功すること");
+
+    // 【総合メモ作成】: player_summariesテーブルにレコード追加
+    conn.execute(
+        "INSERT INTO player_summaries (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>総合評価テスト</p>"],
+    )
+    .expect("総合メモ作成に成功すること");
+    drop(conn);
+
+    // 【削除前確認】: メモと総合メモが存在することを確認
+    let conn = db.0.lock().unwrap();
+    let notes_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes WHERE player_id = ?1",
+            params![player_id],
+            |row| row.get(0),
+        )
+        .expect("メモ取得に成功すること");
+    assert_eq!(notes_count, 2, "削除前に2件のメモが存在すること"); // 🔵
+
+    let summary_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries WHERE player_id = ?1",
+            params![player_id],
+            |row| row.get(0),
+        )
+        .expect("総合メモ取得に成功すること");
+    assert_eq!(summary_count, 1, "削除前に1件の総合メモが存在すること"); // 🔵
+    drop(conn);
+
+    // 【実際の処理実行】: プレイヤーを削除
+    // 【処理内容】: DELETE文実行によりCASCADE削除がトリガーされる
+    let conn = db.0.lock().unwrap();
+    conn.execute("DELETE FROM players WHERE id = ?1", params![player_id])
+        .expect("プレイヤー削除に成功すること");
+    drop(conn);
+
+    // 【結果検証】: 簡易メモが削除されていることを確認
+    // 【期待値確認】: CASCADE削除により関連メモが0件になる
+    let conn = db.0.lock().unwrap();
+    let notes_after: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes WHERE player_id = ?1",
+            params![player_id],
+            |row| row.get(0),
+        )
+        .expect("カウントに成功すること");
+    assert_eq!(
+        notes_after, 0,
+        "CASCADE削除により簡易メモが削除されていること"
+    ); // 🔵
+
+    // 【結果検証】: 総合メモが削除されていることを確認
+    // 【期待値確認】: CASCADE削除により総合メモも削除される
+    let summary_after: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries WHERE player_id = ?1",
+            params![player_id],
+            |row| row.get(0),
+        )
+        .expect("カウントに成功すること");
+    assert_eq!(
+        summary_after, 0,
+        "CASCADE削除により総合メモが削除されていること"
+    ); // 🔵
+}
+
+#[test]
+fn test_cascade_delete_fts_entries() {
+    // 【テスト目的】: プレイヤー削除時にFTSテーブルからもエントリが削除されることを確認
+    // 【テスト内容】: プレイヤーと関連メモ作成後、プレイヤー削除でFTSエントリも削除されることを検証
+    // 【期待される動作】: DELETE トリガーによりFTSテーブルのエントリも自動削除される
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: プレイヤーと検索可能なメモを作成
+    // 【初期条件設定】: FTSテーブルに検索対象データが存在する状態
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player_id = insert_test_player_simple(&db, "佐藤次郎");
+
+    // 【簡易メモ作成】: FTSインデックスが作成されるメモを追加
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>ブラフ頻度高い</p>"],
+    )
+    .expect("メモ作成に成功すること");
+
+    // 【総合メモ作成】: FTSインデックスが作成される総合メモを追加
+    conn.execute(
+        "INSERT INTO player_summaries (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>総合的にアグレッシブ</p>"],
+    )
+    .expect("総合メモ作成に成功すること");
+    drop(conn);
+
+    // 【削除前確認】: FTS検索でメモが見つかることを確認
+    let conn = db.0.lock().unwrap();
+    let notes_fts_before: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'ブラフ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert!(notes_fts_before > 0, "削除前にFTS検索で結果が見つかること"); // 🔵
+
+    let summaries_fts_before: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH 'アグレッシブ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert!(
+        summaries_fts_before > 0,
+        "削除前に総合メモFTS検索で結果が見つかること"
+    ); // 🔵
+    drop(conn);
+
+    // 【実際の処理実行】: プレイヤーを削除
+    // 【処理内容】: DELETE トリガーによりFTSエントリも削除される
+    let conn = db.0.lock().unwrap();
+    conn.execute("DELETE FROM players WHERE id = ?1", params![player_id])
+        .expect("プレイヤー削除に成功すること");
+    drop(conn);
+
+    // 【結果検証】: FTS検索で結果が見つからないことを確認
+    // 【期待値確認】: FTSエントリも削除されているため検索結果が0件
+    let conn = db.0.lock().unwrap();
+    let notes_fts_after: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'ブラフ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        notes_fts_after, 0,
+        "DELETE トリガーによりFTSエントリが削除されていること"
+    ); // 🔵
+
+    let summaries_fts_after: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH 'アグレッシブ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        summaries_fts_after, 0,
+        "DELETE トリガーにより総合メモFTSエントリが削除されていること"
+    ); // 🔵
+}
+
+#[test]
+fn test_cascade_delete_large_volume() {
+    // 【テスト目的】: プレイヤー削除時に大量メモ（100件）が正常に削除されることを確認
+    // 【テスト内容】: 100件の簡易メモを持つプレイヤーを削除し、全メモがCASCADE削除されることを検証
+    // 【期待される動作】: 大量データでもCASCADE削除が正常に動作する
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: プレイヤーと100件のメモを作成
+    // 【初期条件設定】: 大量データが存在する状態を構築
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player_id = insert_test_player_simple(&db, "大量メモテスト");
+
+    // 【大量メモ作成】: 100件のメモを追加
+    let conn = db.0.lock().unwrap();
+    for i in 0..100 {
+        let content = format!("<p>メモ{}</p>", i);
+        conn.execute(
+            "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+            params![player_id, content],
+        )
+        .expect("メモ作成に成功すること");
+    }
+    drop(conn);
+
+    // 【削除前確認】: 100件のメモが存在することを確認
+    let conn = db.0.lock().unwrap();
+    let notes_before: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes WHERE player_id = ?1",
+            params![player_id],
+            |row| row.get(0),
+        )
+        .expect("メモ取得に成功すること");
+    assert_eq!(notes_before, 100, "削除前に100件のメモが存在すること"); // 🔵
+    drop(conn);
+
+    // 【実際の処理実行】: プレイヤーを削除
+    // 【処理内容】: CASCADE削除により100件全てが削除される
+    let conn = db.0.lock().unwrap();
+    conn.execute("DELETE FROM players WHERE id = ?1", params![player_id])
+        .expect("プレイヤー削除に成功すること");
+    drop(conn);
+
+    // 【結果検証】: 全メモが削除されていることを確認
+    // 【期待値確認】: 大量データでもCASCADE削除が正常に動作
+    let conn = db.0.lock().unwrap();
+    let notes_after: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes WHERE player_id = ?1",
+            params![player_id],
+            |row| row.get(0),
+        )
+        .expect("カウントに成功すること");
+    assert_eq!(
+        notes_after, 0,
+        "CASCADE削除により100件全てのメモが削除されていること"
+    ); // 🔵
+}
+
+#[test]
+fn test_fts_lifecycle_notes() {
+    // 【テスト目的】: メモのライフサイクル全体（作成→更新→削除）でFTS同期が正常に動作することを確認
+    // 【テスト内容】: メモの作成、更新、削除の各段階でFTSインデックスが正しく同期されることを検証
+    // 【期待される動作】: INSERT/UPDATE/DELETE トリガーが全て正常に動作する
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: プレイヤーを作成
+    // 【初期条件設定】: メモ作成前の状態
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player_id = insert_test_player_simple(&db, "ライフサイクルテスト");
+
+    // 【フェーズ1: メモ作成】: INSERT トリガーの動作確認
+    // 【処理内容】: メモ作成時にFTSインデックスが作成される
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>初期コンテンツ</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    let note_id = conn.last_insert_rowid();
+    drop(conn);
+
+    // 【FTS検索確認】: 作成直後に検索できることを確認
+    let conn = db.0.lock().unwrap();
+    let search_after_create: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH '初期コンテンツ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        search_after_create, 1,
+        "INSERT トリガーによりFTSインデックスが作成されること"
+    ); // 🔵
+    drop(conn);
+
+    // 【フェーズ2: メモ更新】: UPDATE トリガーの動作確認
+    // 【処理内容】: メモ更新時にFTSインデックスが更新される
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "UPDATE player_notes SET content = ?1 WHERE id = ?2",
+        params!["<p>更新後コンテンツ</p>", note_id],
+    )
+    .expect("メモ更新に成功すること");
+    drop(conn);
+
+    // 【FTS検索確認】: 更新後の内容で検索できることを確認
+    let conn = db.0.lock().unwrap();
+    let search_after_update: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH '更新後コンテンツ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        search_after_update, 1,
+        "UPDATE トリガーによりFTSインデックスが更新されること"
+    ); // 🔵
+
+    // 【旧コンテンツ検索確認】: 更新前の内容では検索できないことを確認
+    let search_old: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH '初期コンテンツ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        search_old, 0,
+        "UPDATE トリガーにより古いFTSインデックスが削除されること"
+    ); // 🔵
+    drop(conn);
+
+    // 【フェーズ3: メモ削除】: DELETE トリガーの動作確認
+    // 【処理内容】: メモ削除時にFTSインデックスも削除される
+    let conn = db.0.lock().unwrap();
+    conn.execute("DELETE FROM player_notes WHERE id = ?1", params![note_id])
+        .expect("メモ削除に成功すること");
+    drop(conn);
+
+    // 【FTS検索確認】: 削除後は検索できないことを確認
+    let conn = db.0.lock().unwrap();
+    let search_after_delete: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH '更新後コンテンツ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        search_after_delete, 0,
+        "DELETE トリガーによりFTSインデックスが削除されること"
+    ); // 🔵
+}
+
+#[test]
+fn test_fts_lifecycle_summaries() {
+    // 【テスト目的】: 総合メモのライフサイクル全体（作成→更新→削除）でFTS同期が正常に動作することを確認
+    // 【テスト内容】: 総合メモの作成、更新、削除の各段階でFTSインデックスが正しく同期されることを検証
+    // 【期待される動作】: INSERT/UPDATE/DELETE トリガーが全て正常に動作する
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: プレイヤーを作成
+    // 【初期条件設定】: 総合メモ作成前の状態
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player_id = insert_test_player_simple(&db, "総合メモライフサイクル");
+
+    // 【フェーズ1: 総合メモ作成】: INSERT トリガーの動作確認
+    // 【処理内容】: 総合メモ作成時にFTSインデックスが作成される
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_summaries (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>初期総合評価</p>"],
+    )
+    .expect("総合メモ作成に成功すること");
+    drop(conn);
+
+    // 【FTS検索確認】: 作成直後に検索できることを確認
+    let conn = db.0.lock().unwrap();
+    let search_after_create: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH '初期総合評価'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        search_after_create, 1,
+        "INSERT トリガーによりFTSインデックスが作成されること"
+    ); // 🔵
+    drop(conn);
+
+    // 【フェーズ2: 総合メモ更新】: UPDATE トリガーの動作確認
+    // 【処理内容】: 総合メモ更新時にFTSインデックスが更新される
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "UPDATE player_summaries SET content = ?1 WHERE player_id = ?2",
+        params!["<p>更新後総合評価</p>", player_id],
+    )
+    .expect("総合メモ更新に成功すること");
+    drop(conn);
+
+    // 【FTS検索確認】: 更新後の内容で検索できることを確認
+    let conn = db.0.lock().unwrap();
+    let search_after_update: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH '更新後総合評価'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        search_after_update, 1,
+        "UPDATE トリガーによりFTSインデックスが更新されること"
+    ); // 🔵
+
+    // 【旧コンテンツ検索確認】: 更新前の内容では検索できないことを確認
+    let search_old: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH '初期総合評価'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        search_old, 0,
+        "UPDATE トリガーにより古いFTSインデックスが削除されること"
+    ); // 🔵
+    drop(conn);
+
+    // 【フェーズ3: 総合メモ削除】: DELETE トリガーの動作確認（プレイヤー削除経由）
+    // 【処理内容】: プレイヤー削除により総合メモとFTSインデックスも削除される
+    let conn = db.0.lock().unwrap();
+    conn.execute("DELETE FROM players WHERE id = ?1", params![player_id])
+        .expect("プレイヤー削除に成功すること");
+    drop(conn);
+
+    // 【FTS検索確認】: 削除後は検索できないことを確認
+    let conn = db.0.lock().unwrap();
+    let search_after_delete: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH '更新後総合評価'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    assert_eq!(
+        search_after_delete, 0,
+        "DELETE トリガーによりFTSインデックスが削除されること"
+    ); // 🔵
+}
+
+#[test]
+fn test_japanese_keyword_search_3chars() {
+    // 【テスト目的】: 3文字以上の日本語キーワードでFTS検索が正常に動作することを確認
+    // 【テスト内容】: trigramトークナイザーの最小文字数（3文字）で検索できることを検証
+    // 【期待される動作】: 3文字の日本語キーワードで正確に検索できる
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: 複数のプレイヤーと日本語メモを作成
+    // 【初期条件設定】: 様々な日本語キーワードを含むメモを準備
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player1_id = insert_test_player_simple(&db, "プレイヤー1");
+    let player2_id = insert_test_player_simple(&db, "プレイヤー2");
+
+    // 【メモ作成】: 異なる3文字キーワードを含むメモを追加
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player1_id, "<p>アグレッシブなプレイスタイル</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player2_id, "<p>タイトなプレイヤー</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    drop(conn);
+
+    // 【実際の処理実行】: 3文字キーワードで検索
+    // 【処理内容】: trigramトークナイザーで日本語検索を実行
+    let conn = db.0.lock().unwrap();
+    let search_aggressive: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'アグレッシブ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    let search_tight: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'タイト'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    drop(conn);
+
+    // 【結果検証】: 各キーワードで正確に1件ずつ検索できることを確認
+    // 【期待値確認】: trigramトークナイザーで3文字の日本語が検索可能
+    assert_eq!(
+        search_aggressive, 1,
+        "3文字の日本語キーワード「アグレッシブ」で検索できること"
+    ); // 🔵
+
+    assert_eq!(
+        search_tight, 1,
+        "3文字の日本語キーワード「タイト」で検索できること"
+    ); // 🔵
+}
+
+#[test]
+fn test_japanese_search_notes_and_summaries() {
+    // 【テスト目的】: 簡易メモと総合メモの両方で日本語検索が正常に動作することを確認
+    // 【テスト内容】: 同じキーワードが簡易メモと総合メモに含まれる場合、両方で検索できることを検証
+    // 【期待される動作】: 簡易メモと総合メモで独立したFTS検索が可能
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: プレイヤー、簡易メモ、総合メモを作成
+    // 【初期条件設定】: 同じキーワードを含む簡易メモと総合メモを準備
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player_id = insert_test_player_simple(&db, "両方検索テスト");
+
+    // 【簡易メモ作成】: 「ブラフ」キーワードを含むメモ
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>ブラフ頻度が高い</p>"],
+    )
+    .expect("メモ作成に成功すること");
+
+    // 【総合メモ作成】: 「ブラフ」キーワードを含む総合メモ
+    conn.execute(
+        "INSERT INTO player_summaries (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>ブラフを多用する傾向</p>"],
+    )
+    .expect("総合メモ作成に成功すること");
+    drop(conn);
+
+    // 【実際の処理実行】: 簡易メモと総合メモで同じキーワードを検索
+    // 【処理内容】: 両方のFTSテーブルで検索を実行
+    let conn = db.0.lock().unwrap();
+    let notes_search: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'ブラフ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("メモ検索に成功すること");
+    let summaries_search: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_summaries_fts WHERE content MATCH 'ブラフ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("総合メモ検索に成功すること");
+    drop(conn);
+
+    // 【結果検証】: 簡易メモで検索できることを確認
+    // 【期待値確認】: 簡易メモFTSテーブルで正常に検索可能
+    assert_eq!(
+        notes_search, 1,
+        "簡易メモで「ブラフ」キーワードが検索できること"
+    ); // 🔵
+
+    // 【結果検証】: 総合メモで検索できることを確認
+    // 【期待値確認】: 総合メモFTSテーブルで正常に検索可能
+    assert_eq!(
+        summaries_search, 1,
+        "総合メモで「ブラフ」キーワードが検索できること"
+    ); // 🔵
+}
+
+#[test]
+fn test_japanese_keyword_search_2chars_no_result() {
+    // 【テスト目的】: 2文字以下の日本語キーワードでは検索結果が返らないことを確認
+    // 【テスト内容】: trigramトークナイザーの最小文字数制限（3文字）により2文字では検索できないことを検証
+    // 【期待される動作】: 2文字のキーワードでは検索結果が0件となる
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: 3文字キーワードを含むメモを作成
+    // 【初期条件設定】: 実際には「タイト」というキーワードが含まれている状態
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player_id = insert_test_player_simple(&db, "2文字検索テスト");
+
+    // 【メモ作成】: 「タイト」を含むメモ（実際は3文字以上のキーワード）
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>タイトなプレイヤー</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    drop(conn);
+
+    // 【実際の処理実行】: 2文字キーワードで検索
+    // 【処理内容】: trigramトークナイザーの最小文字数制限をテスト
+    let conn = db.0.lock().unwrap();
+    let search_result: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'タイ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    drop(conn);
+
+    // 【結果検証】: 2文字キーワードでは検索結果が0件であることを確認
+    // 【期待値確認】: trigramトークナイザーは3文字未満を検索対象外とする
+    assert_eq!(
+        search_result, 0,
+        "2文字のキーワード「タイ」では検索結果が返らないこと"
+    ); // 🔵
+}
+
+#[test]
+fn test_japanese_keyword_search_nonexistent() {
+    // 【テスト目的】: 存在しない日本語キーワードで検索結果が0件となることを確認
+    // 【テスト内容】: データベースに存在しないキーワードで検索し、結果が空であることを検証
+    // 【期待される動作】: 存在しないキーワードでは検索結果が0件となる
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: 特定のキーワードを含むメモを作成
+    // 【初期条件設定】: 「アグレッシブ」というキーワードのみ存在する状態
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player_id = insert_test_player_simple(&db, "存在しないキーワード検索");
+
+    // 【メモ作成】: 「アグレッシブ」を含むメモ
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player_id, "<p>アグレッシブなプレイスタイル</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    drop(conn);
+
+    // 【実際の処理実行】: 存在しないキーワードで検索
+    // 【処理内容】: データベースに存在しない日本語キーワードを検索
+    let conn = db.0.lock().unwrap();
+    let search_result: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'パッシブ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    drop(conn);
+
+    // 【結果検証】: 存在しないキーワードでは検索結果が0件であることを確認
+    // 【期待値確認】: FTSインデックスに存在しないキーワードは検索結果なし
+    assert_eq!(
+        search_result, 0,
+        "存在しないキーワード「パッシブ」では検索結果が0件となること"
+    ); // 🔵
+}
+
+#[test]
+fn test_japanese_multiple_keywords_search() {
+    // 【テスト目的】: 複数の日本語キーワードを含むメモの検索が正常に動作することを確認
+    // 【テスト内容】: 異なるキーワードを持つ複数メモから、特定のキーワードで正確に検索できることを検証
+    // 【期待される動作】: 複数メモ環境で各キーワードが正確に検索できる
+    // 🔵 信頼性レベル: 要件定義書とテストケース定義書に基づく
+
+    // 【テストデータ準備】: 複数のプレイヤーと異なるキーワードのメモを作成
+    // 【初期条件設定】: 様々な日本語キーワードを含む複数メモが存在する状態
+    let db = PlayerDatabase::new_test().expect("テストDBの作成に成功すること");
+    let player1_id = insert_test_player_simple(&db, "プレイヤーA");
+    let player2_id = insert_test_player_simple(&db, "プレイヤーB");
+    let player3_id = insert_test_player_simple(&db, "プレイヤーC");
+
+    // 【メモ作成】: 異なる日本語キーワードを含む複数メモ
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player1_id, "<p>アグレッシブで攻撃的</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player2_id, "<p>タイトで堅実</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    conn.execute(
+        "INSERT INTO player_notes (player_id, content) VALUES (?1, ?2)",
+        params![player3_id, "<p>ブラフを多用</p>"],
+    )
+    .expect("メモ作成に成功すること");
+    drop(conn);
+
+    // 【実際の処理実行】: 各キーワードで個別に検索
+    // 【処理内容】: 複数メモ環境で特定キーワードのみを検索
+    let conn = db.0.lock().unwrap();
+    let search_aggressive: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'アグレッシブ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    let search_tight: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'タイト'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    let search_bluff: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM player_notes_fts WHERE content MATCH 'ブラフ'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("検索に成功すること");
+    drop(conn);
+
+    // 【結果検証】: 各キーワードで正確に1件ずつ検索できることを確認
+    // 【期待値確認】: 複数メモ環境でも各キーワードが正確に検索可能
+    assert_eq!(
+        search_aggressive, 1,
+        "「アグレッシブ」で1件のメモが検索されること"
+    ); // 🔵
+
+    assert_eq!(search_tight, 1, "「タイト」で1件のメモが検索されること"); // 🔵
+
+    assert_eq!(search_bluff, 1, "「ブラフ」で1件のメモが検索されること"); // 🔵
+}
