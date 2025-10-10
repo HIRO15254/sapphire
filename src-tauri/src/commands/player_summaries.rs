@@ -1,20 +1,6 @@
-use crate::database::models::PlayerSummary;
+use crate::database::models::{validate_summary_content_size, PlayerSummary};
 use crate::database::PlayerDatabase;
 use rusqlite::params;
-
-// ============================================
-// 定数定義
-// ============================================
-
-/// 【総合メモサイズ上限】: HTMLコンテンツの最大バイト数（1MB）
-/// 【設計根拠】: REQ-303（サイズ制限要件）に基づく
-/// 【パフォーマンス考慮】: メモリ使用量とデータベース負荷のバランスを取った設定
-/// 🔵 信頼性レベル: 要件定義書に明記された制約
-const SUMMARY_CONTENT_MAX_BYTES: usize = 1048576; // 1MB = 1024 * 1024 bytes
-
-// ============================================
-// ヘルパー関数（内部関数）
-// ============================================
 
 /// 【プレイヤー存在確認】: 指定されたplayer_idがplayersテーブルに存在するかを検証
 /// 【セキュリティ】: 不正なIDに対する早期エラー検出で整合性を保証
@@ -44,28 +30,6 @@ fn check_player_exists(conn: &rusqlite::Connection, player_id: i64) -> Result<()
     if exists == 0 {
         // 【ユーザビリティ】: 明確で理解しやすいエラーメッセージ
         return Err("Player not found".to_string());
-    }
-    Ok(())
-}
-
-/// 【総合メモサイズ検証】: HTMLコンテンツが制限サイズ以内であることを確認
-/// 【セキュリティ】: 過大なデータによるDoS攻撃やメモリ枯渇を防止
-/// 【バリデーション】: 入力値の早期検証でシステムの安定性を確保
-/// 【設計方針】: REQ-303のサイズ制限要件を厳格に適用
-/// 🔵 信頼性レベル: 要件定義書（REQ-303）に基づく実装
-///
-/// # Arguments
-/// * `content` - 検証対象のHTMLコンテンツ
-///
-/// # Returns
-/// * `Ok(())` - サイズが制限内の場合
-/// * `Err(String)` - サイズが制限を超える場合（"Summary content exceeds 1MB limit"）
-fn validate_summary_content_size(content: &str) -> Result<(), String> {
-    // 【サイズチェック】: バイト数で制限を判定（UTF-8文字列のバイト長）
-    // 【パフォーマンス】: O(1)の長さ取得で効率的
-    if content.len() > SUMMARY_CONTENT_MAX_BYTES {
-        // 【明確なエラー】: ユーザーが理解しやすいエラーメッセージ
-        return Err("Summary content exceeds 1MB limit".to_string());
     }
     Ok(())
 }

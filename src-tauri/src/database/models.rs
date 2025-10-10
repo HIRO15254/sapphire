@@ -241,6 +241,7 @@ pub const PLAYER_NAME_MAX_LENGTH: usize = 100;
 pub const NAME_MIN_LENGTH: usize = 1;
 pub const NAME_MAX_LENGTH: usize = 50;
 pub const NOTE_CONTENT_MAX_BYTES: usize = 1048576; // 1MB
+pub const SUMMARY_CONTENT_MAX_BYTES: usize = 1048576; // 1MB
 pub const TAG_INTENSITY_MIN: i32 = 1;
 pub const TAG_INTENSITY_MAX: i32 = 5;
 
@@ -268,6 +269,21 @@ pub fn validate_tag_intensity(intensity: i32) -> Result<(), String> {
             "Tag intensity must be between {} and {}, got: {}",
             TAG_INTENSITY_MIN, TAG_INTENSITY_MAX, intensity
         ));
+    }
+    Ok(())
+}
+
+/// 総合メモ・テンプレートサイズをバリデーション
+///
+/// # Arguments
+/// * `content` - 検証対象のHTMLコンテンツ
+///
+/// # Returns
+/// * `Ok(())` - サイズが制限内の場合
+/// * `Err(String)` - サイズが制限を超える場合
+pub fn validate_summary_content_size(content: &str) -> Result<(), String> {
+    if content.len() > SUMMARY_CONTENT_MAX_BYTES {
+        return Err("Summary content exceeds 1MB limit".to_string());
     }
     Ok(())
 }
@@ -317,5 +333,28 @@ mod tests {
         assert_eq!(to_roman_numeral(4), Some("Ⅳ"));
         assert_eq!(to_roman_numeral(5), Some("Ⅴ"));
         assert_eq!(to_roman_numeral(6), None);
+    }
+
+    #[test]
+    fn test_validate_summary_content_size() {
+        // 制限内
+        assert!(validate_summary_content_size("test content").is_ok());
+        assert!(validate_summary_content_size("").is_ok());
+
+        // ちょうど1MB
+        let content_1mb = "x".repeat(1048576);
+        assert!(validate_summary_content_size(&content_1mb).is_ok());
+
+        // 1MB - 1バイト
+        let content_1mb_minus_1 = "x".repeat(1048575);
+        assert!(validate_summary_content_size(&content_1mb_minus_1).is_ok());
+
+        // 1MB + 1バイト (エラー)
+        let content_1mb_plus_1 = "x".repeat(1048577);
+        assert!(validate_summary_content_size(&content_1mb_plus_1).is_err());
+        assert_eq!(
+            validate_summary_content_size(&content_1mb_plus_1).unwrap_err(),
+            "Summary content exceeds 1MB limit"
+        );
     }
 }
