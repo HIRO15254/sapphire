@@ -91,10 +91,7 @@ mod tests {
         ); // 【確認内容】: デフォルト値が空文字列 🔵
 
         // 【期待値確認3】: updated_atが存在（ISO 8601形式の検証は省略）
-        assert!(
-            !template.updated_at.is_empty(),
-            "updated_atが空です"
-        ); // 【確認内容】: タイムスタンプが設定されている 🔵
+        assert!(!template.updated_at.is_empty(), "updated_atが空です"); // 【確認内容】: タイムスタンプが設定されている 🔵
     }
 
     #[test]
@@ -126,10 +123,7 @@ mod tests {
         ); // 【確認内容】: 指定したHTMLコンテンツに更新される 🔵
 
         // 【期待値確認2】: id=1のまま変わらない
-        assert_eq!(
-            updated_template.id, 1,
-            "テンプレートIDが変更されています"
-        ); // 【確認内容】: シングルトンとしてid=1固定 🔵
+        assert_eq!(updated_template.id, 1, "テンプレートIDが変更されています"); // 【確認内容】: シングルトンとしてid=1固定 🔵
 
         // 【期待値確認3】: updated_atが更新されている（空でないことを確認）
         assert!(
@@ -149,8 +143,7 @@ mod tests {
         // 【テストデータ準備】: 既に1回更新されたテンプレート
         let db = setup_test_db();
         let first_content = "旧テンプレート";
-        update_summary_template_internal(first_content, &db)
-            .expect("1回目の更新が失敗しました");
+        update_summary_template_internal(first_content, &db).expect("1回目の更新が失敗しました");
 
         // 【When: 2回目の更新を実行】
         // 【処理内容】: 異なるcontentで再度更新
@@ -231,10 +224,7 @@ mod tests {
 
         // 【Then: 更新成功を確認】
         // 【結果検証】: Ok(SummaryTemplate)が返されることを確認
-        assert!(
-            result.is_ok(),
-            "1MBちょうどの更新が失敗しました"
-        ); // 【確認内容】: 境界値で許可される 🔵
+        assert!(result.is_ok(), "1MBちょうどの更新が失敗しました"); // 【確認内容】: 境界値で許可される 🔵
 
         let updated_template = result.unwrap();
 
@@ -264,10 +254,7 @@ mod tests {
 
         // 【Then: 更新成功を確認】
         // 【結果検証】: Ok(SummaryTemplate)が返されることを確認
-        assert!(
-            result.is_ok(),
-            "1MB-1バイトの更新が失敗しました"
-        ); // 【確認内容】: 制限内なら確実に保存される 🔵
+        assert!(result.is_ok(), "1MB-1バイトの更新が失敗しました"); // 【確認内容】: 制限内なら確実に保存される 🔵
 
         let updated_template = result.unwrap();
 
@@ -297,10 +284,7 @@ mod tests {
 
         // 【Then: エラーが返されることを確認】
         // 【結果検証】: Err(String)が返されることを確認
-        assert!(
-            result.is_err(),
-            "1MB+1バイトがエラーになりませんでした"
-        ); // 【確認内容】: 1バイト超過でもエラー 🔵
+        assert!(result.is_err(), "1MB+1バイトがエラーになりませんでした"); // 【確認内容】: 1バイト超過でもエラー 🔵
 
         // 【期待値確認】: エラーメッセージが正しい
         assert_eq!(
@@ -320,8 +304,7 @@ mod tests {
         // 【Given: 既存のテンプレート内容】
         // 【テストデータ準備】: まず非空のテンプレートに更新
         let db = setup_test_db();
-        update_summary_template_internal("既存コンテンツ", &db)
-            .expect("初回更新が失敗しました");
+        update_summary_template_internal("既存コンテンツ", &db).expect("初回更新が失敗しました");
 
         // 【When: 空文字列で更新】
         // 【処理内容】: 空文字列を渡してテンプレートをリセット
@@ -334,10 +317,7 @@ mod tests {
         let updated_template = result.unwrap();
 
         // 【期待値確認1】: contentが空文字列
-        assert_eq!(
-            updated_template.content, "",
-            "空文字列に更新されていません"
-        ); // 【確認内容】: テンプレートを空にできる 🔵
+        assert_eq!(updated_template.content, "", "空文字列に更新されていません"); // 【確認内容】: テンプレートを空にできる 🔵
 
         // 【期待値確認2】: updated_atは更新されている
         assert!(
