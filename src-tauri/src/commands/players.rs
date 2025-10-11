@@ -384,3 +384,133 @@ pub async fn get_player_detail(
 ) -> Result<serde_json::Value, String> {
     get_player_detail_internal(id, &db)
 }
+
+/// タグでプレイヤーをフィルタリング（ページネーション付き）
+///
+/// # Arguments
+/// * `tag_ids` - フィルタリング対象のタグIDリスト（OR条件）
+/// * `page` - ページ番号（デフォルト: 1）
+/// * `per_page` - 1ページあたりの件数（デフォルト: 20、最大: 100）
+/// * `db` - データベース接続
+///
+/// # Returns
+/// * `Result<PaginatedResponse<Player>, String>` - ページネーション付きプレイヤー一覧
+///
+/// 【機能概要】: 指定したタグを持つプレイヤーをフィルタリングして取得 🔵
+/// 【実装方針】: get_players_internalと同様のページネーションパターンを踏襲 🔵
+/// 【フィルタ条件】: WHERE tag_id IN (...) でOR条件、DISTINCT で重複排除、updated_at降順ソート 🔵
+/// 【テスト対応】: TC-FILTER-001～015（全15テストケース） 🔵
+pub(crate) fn filter_players_by_tags_internal(
+    tag_ids: Vec<i64>,
+    page: Option<usize>,
+    per_page: Option<usize>,
+    db: &PlayerDatabase,
+) -> Result<PaginatedResponse<Player>, String> {
+    // 【入力値検証】: tag_idsが空でないことを確認（TC-FILTER-ERR-001対応） 🔵
+    if tag_ids.is_empty() {
+        return Err("Tag IDs cannot be empty".to_string());
+    }
+
+    // 【デフォルト値設定】: page=1, per_page=20（TC-FILTER-003対応） 🔵
+    let page = page.unwrap_or(1).max(1); // 最小値1（TC-FILTER-BOUND-003対応）
+    let per_page = per_page.unwrap_or(20).clamp(1, 100); // 最小1、最大100（TC-FILTER-BOUND-001,002対応）
+
+    let conn = db.0.lock().unwrap();
+
+    // 【プレースホルダ生成】: IN句用のプレースホルダ (?1, ?2, ...) を動的生成 🔵
+    let placeholders = (1..=tag_ids.len())
+        .map(|i| format!("?{}", i))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    // 【総件数取得】: 指定タグを持つプレイヤー総数をカウント（DISTINCT使用） 🔵
+    // TC-FILTER-EDGE-002: DISTINCT で複数タグを持つプレイヤーの重複排除
+    let count_query = format!(
+        "SELECT COUNT(DISTINCT p.id)
+         FROM players p
+         INNER JOIN player_tags pt ON p.id = pt.player_id
+         WHERE pt.tag_id IN ({})",
+        placeholders
+    );
+
+    let mut count_stmt = conn
+        .prepare(&count_query)
+        .map_err(|e| format!("Failed to prepare count statement: {}", e))?;
+
+    // 【パラメータバインド】: tag_idsを動的にバインド 🔵
+    let count_params: Vec<&dyn rusqlite::ToSql> =
+        tag_ids.iter().map(|id| id as &dyn rusqlite::ToSql).collect();
+
+    let total: usize = count_stmt
+        .query_row(count_params.as_slice(), |row| row.get(0))
+        .map_err(|e| format!("Failed to count players: {}", e))?;
+
+    // 【総ページ数計算】: ceil(total / per_page) 🔵
+    let total_pages = if total == 0 {
+        0 // TC-FILTER-EDGE-001, TC-FILTER-ERR-002: 該当なしの場合は0ページ
+    } else {
+        total.div_ceil(per_page)
+    };
+
+    // 【OFFSET/LIMIT計算】: ページネーション用のオフセット計算 🔵
+    let offset = (page - 1) * per_page;
+
+    // 【プレイヤー取得】: DISTINCT, updated_at降順、LIMIT/OFFSET適用 🔵
+    // TC-FILTER-002: OR条件フィルタ (WHERE tag_id IN (...))
+    // TC-FILTER-006: updated_at降順ソート
+    // TC-FILTER-EDGE-002: DISTINCT で重複排除
+    let select_query = format!(
+        "SELECT DISTINCT p.id, p.name, p.category_id, p.created_at, p.updated_at
+         FROM players p
+         INNER JOIN player_tags pt ON p.id = pt.player_id
+         WHERE pt.tag_id IN ({})
+         ORDER BY p.updated_at DESC
+         LIMIT ?{} OFFSET ?{}",
+        placeholders,
+        tag_ids.len() + 1,
+        tag_ids.len() + 2
+    );
+
+    let mut select_stmt = conn
+        .prepare(&select_query)
+        .map_err(|e| format!("Failed to prepare select statement: {}", e))?;
+
+    // 【パラメータバインド】: tag_ids + per_page + offset を動的にバインド 🔵
+    let mut select_params: Vec<&dyn rusqlite::ToSql> =
+        tag_ids.iter().map(|id| id as &dyn rusqlite::ToSql).collect();
+    select_params.push(&per_page);
+    select_params.push(&offset);
+
+    let players = select_stmt
+        .query_map(select_params.as_slice(), |row| {
+            Ok(Player {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                category_id: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })
+        .map_err(|e| format!("Failed to query players: {}", e))?
+        .collect::<Result<Vec<Player>, _>>()
+        .map_err(|e| format!("Failed to collect players: {}", e))?;
+
+    // 【レスポンス構築】: ページネーション情報を含むレスポンスを返す 🔵
+    Ok(PaginatedResponse {
+        data: players,
+        total,
+        page,
+        per_page,
+        total_pages,
+    })
+}
+
+#[tauri::command]
+pub async fn filter_players_by_tags(
+    tag_ids: Vec<i64>,
+    page: Option<usize>,
+    per_page: Option<usize>,
+    db: State<'_, PlayerDatabase>,
+) -> Result<PaginatedResponse<Player>, String> {
+    filter_players_by_tags_internal(tag_ids, page, per_page, &db)
+}
