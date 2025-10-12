@@ -14,17 +14,6 @@ fn create_test_db() -> PlayerDatabase {
 // テスト用のState型は作成できないため、内部関数を直接テストする
 //　Greenフェーズでは、players.rsに内部関数（State不要）を実装予定
 
-/// テスト用の種別を作成
-fn insert_test_category(db: &PlayerDatabase, name: &str, color: &str) -> i64 {
-    let conn = db.0.lock().unwrap();
-    conn.execute(
-        "INSERT INTO player_categories (name, color) VALUES (?1, ?2)",
-        params![name, color],
-    )
-    .expect("Failed to insert test category");
-    conn.last_insert_rowid()
-}
-
 /// テスト用のプレイヤーを作成
 fn insert_test_player(db: &PlayerDatabase, name: &str, category_id: Option<i64>) -> i64 {
     let conn = db.0.lock().unwrap();
@@ -508,7 +497,8 @@ fn test_filter_players_distinct_no_duplicates() {
 
     // 【実際の処理実行】: 複数タグでフィルタリング（プレイヤーAは全タグを持つ）
     // 【処理内容】: DISTINCT により重複排除されることを確認
-    let result = filter_players_by_tags_internal(vec![tag1_id, tag2_id, tag3_id], Some(1), Some(20), &db);
+    let result =
+        filter_players_by_tags_internal(vec![tag1_id, tag2_id, tag3_id], Some(1), Some(20), &db);
 
     // 【結果検証】: プレイヤーが1回のみ表示されることを確認
     // 【期待値確認】: data.len()=1, total=1（重複なし）
