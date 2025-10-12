@@ -82,6 +82,18 @@ fn get_player_by_id(conn: &Connection, id: i64) -> Result<Player, String> {
     .map_err(|e| format!("Player not found: {}", e))
 }
 
+/// 【ヘルパー関数】: SQLのIN句用プレースホルダ文字列を生成 🟡
+/// 【再利用性】: filter_players_by_tags_internalで複数回使用される処理を共通化 🟡
+/// 【単一責任】: プレースホルダ文字列の生成のみを担当 🟡
+/// 【パフォーマンス】: 文字列結合処理を一箇所に集約し、保守性を向上 🟡
+/// 【DRY原則】: 重複コード削減による可読性とメンテナンス性の向上 🟡
+fn build_sql_placeholders(count: usize, start_index: usize) -> String {
+    (start_index..start_index + count)
+        .map(|i| format!("?{}", i))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 // ============================================
 // CRUDコマンド実装
 // ============================================
@@ -399,6 +411,8 @@ pub async fn get_player_detail(
 /// 【機能概要】: 指定したタグを持つプレイヤーをフィルタリングして取得 🔵
 /// 【実装方針】: get_players_internalと同様のページネーションパターンを踏襲 🔵
 /// 【フィルタ条件】: WHERE tag_id IN (...) でOR条件、DISTINCT で重複排除、updated_at降順ソート 🔵
+/// 【改善内容】: ヘルパー関数build_sql_placeholdersを活用してコード重複を削減 🟡
+/// 【パフォーマンス】: プレースホルダ生成処理を共通化し、保守性を向上 🟡
 /// 【テスト対応】: TC-FILTER-001～015（全15テストケース） 🔵
 pub(crate) fn filter_players_by_tags_internal(
     tag_ids: Vec<i64>,
@@ -417,11 +431,8 @@ pub(crate) fn filter_players_by_tags_internal(
 
     let conn = db.0.lock().unwrap();
 
-    // 【プレースホルダ生成】: IN句用のプレースホルダ (?1, ?2, ...) を動的生成 🔵
-    let placeholders = (1..=tag_ids.len())
-        .map(|i| format!("?{}", i))
-        .collect::<Vec<_>>()
-        .join(", ");
+    // 【プレースホルダ生成】: ヘルパー関数でIN句用プレースホルダを生成（DRY原則） 🟡
+    let placeholders = build_sql_placeholders(tag_ids.len(), 1);
 
     // 【総件数取得】: 指定タグを持つプレイヤー総数をカウント（DISTINCT使用） 🔵
     // TC-FILTER-EDGE-002: DISTINCT で複数タグを持つプレイヤーの重複排除
@@ -459,16 +470,18 @@ pub(crate) fn filter_players_by_tags_internal(
     // TC-FILTER-002: OR条件フィルタ (WHERE tag_id IN (...))
     // TC-FILTER-006: updated_at降順ソート
     // TC-FILTER-EDGE-002: DISTINCT で重複排除
+    // 【改善内容】: LIMIT/OFFSETのプレースホルダもヘルパー関数で生成（一貫性向上） 🟡
+    let pagination_placeholders = build_sql_placeholders(2, tag_ids.len() + 1);
     let select_query = format!(
         "SELECT DISTINCT p.id, p.name, p.category_id, p.created_at, p.updated_at
          FROM players p
          INNER JOIN player_tags pt ON p.id = pt.player_id
          WHERE pt.tag_id IN ({})
          ORDER BY p.updated_at DESC
-         LIMIT ?{} OFFSET ?{}",
+         LIMIT {} OFFSET {}",
         placeholders,
-        tag_ids.len() + 1,
-        tag_ids.len() + 2
+        pagination_placeholders.split(", ").next().unwrap(),
+        pagination_placeholders.split(", ").nth(1).unwrap()
     );
 
     let mut select_stmt = conn
