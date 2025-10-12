@@ -313,3 +313,18 @@ function add(firstNumber, secondNumber) {
 - 次のフェーズ「完全性検証」をTODOに追加
 - 改善が必要な箇所がある場合は新たなTODOとして追加
 ```
+
+## セッション管理
+
+**Refactorフェーズ完了後は `/compact` を実行してください**
+
+詳細は [TDDセッション管理ルール](../../../docs/rule/tdd/session-management.md) を参照してください。
+
+### Compact時の保持情報
+- 実行コマンド: `/tdd-refactor {{issue_number}}`
+- 現在のフェーズ: Refactor Phase完了
+- 次のステップ: 完全性検証（`/tdd-verify-complete {{issue_number}}`）
+- 技術スタック: プロジェクトの技術スタック定義を保持
+- プロジェクトルール: `docs/rule/` 配下の全ルールを保持
+- 改善内容: リファクタリングで行った主要な改善点のサマリーを保持
+- 品質メトリクス: テストカバレッジ、Lint結果、型チェック結果を保持

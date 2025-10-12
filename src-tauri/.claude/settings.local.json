@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//c/Users/hi089/Documents/school/sapphire/src/**)"
-    ],
-    "deny": [],
-    "ask": []
-  }
-}
