@@ -1,23 +1,27 @@
 "use server";
 
-import { signIn as authSignIn, signOut as authSignOut } from "@/server/auth";
+import { signIn, signOut } from "@/server/auth";
 
 /**
- * ログイン処理
- * NextAuth.js v5のsignIn()をServer Actionでラップ
- * redirectToオプションにより、ログイン成功後にホームページへリダイレクト
- * Next.js 15のキャッシュは自動的に無効化される
+ * Googleでログイン
+ * NextAuth.js v5公式パターン: Server ActionでsignIn()を呼び出し
  */
-export async function signIn(provider: "google" | "github") {
-  await authSignIn(provider, { redirectTo: "/" });
+export async function signInWithGoogle() {
+  await signIn("google");
+}
+
+/**
+ * GitHubでログイン
+ * NextAuth.js v5公式パターン: Server ActionでsignIn()を呼び出し
+ */
+export async function signInWithGitHub() {
+  await signIn("github");
 }
 
 /**
  * ログアウト処理
  * NextAuth.js v5のsignOut()をServer Actionでラップ
- * redirectToオプションにより、ログアウト後にホームページへリダイレクト
- * Next.js 15のキャッシュは自動的に無効化される
  */
-export async function signOut() {
-  await authSignOut({ redirectTo: "/" });
+export async function doSignOut() {
+  await signOut();
 }

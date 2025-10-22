@@ -1,31 +1,16 @@
 "use client";
 
-import { Button, Group, Menu, Stack, Text } from "@mantine/core";
-import { IconChartLine, IconLogin, IconLogout } from "@tabler/icons-react";
+import { Button, Group, Stack, Text } from "@mantine/core";
+import { IconBrandGithub, IconBrandGoogle, IconChartLine, IconLogout } from "@tabler/icons-react";
 import Link from "next/link";
-import { useTransition } from "react";
 
-import { signIn, signOut } from "@/app/actions/auth";
+import { doSignOut, signInWithGitHub, signInWithGoogle } from "@/app/actions/auth";
 
 interface AuthButtonsProps {
   isAuthenticated: boolean;
 }
 
 export function AuthButtons({ isAuthenticated }: AuthButtonsProps) {
-  const [isPending, startTransition] = useTransition();
-
-  const handleSignIn = (provider: "google" | "github") => {
-    startTransition(async () => {
-      await signIn(provider);
-    });
-  };
-
-  const handleSignOut = () => {
-    startTransition(async () => {
-      await signOut();
-    });
-  };
-
   if (isAuthenticated) {
     return (
       <Group gap="md">
@@ -37,34 +22,34 @@ export function AuthButtons({ isAuthenticated }: AuthButtonsProps) {
         >
           セッション管理
         </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          leftSection={<IconLogout size={20} />}
-          onClick={handleSignOut}
-          loading={isPending}
-        >
-          ログアウト
-        </Button>
+        <form action={doSignOut}>
+          <Button type="submit" size="lg" variant="outline" leftSection={<IconLogout size={20} />}>
+            ログアウト
+          </Button>
+        </form>
       </Group>
     );
   }
 
   return (
     <Stack gap="md" align="center">
-      <Menu shadow="md" width={200}>
-        <Menu.Target>
-          <Button size="lg" leftSection={<IconLogin size={20} />} loading={isPending}>
-            ログイン
+      <Group gap="md">
+        <form action={signInWithGoogle}>
+          <Button type="submit" size="lg" leftSection={<IconBrandGoogle size={20} />}>
+            Googleでログイン
           </Button>
-        </Menu.Target>
-
-        <Menu.Dropdown>
-          <Menu.Label>アカウントを選択</Menu.Label>
-          <Menu.Item onClick={() => handleSignIn("google")}>Google</Menu.Item>
-          <Menu.Item onClick={() => handleSignIn("github")}>GitHub</Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
+        </form>
+        <form action={signInWithGitHub}>
+          <Button
+            type="submit"
+            size="lg"
+            variant="outline"
+            leftSection={<IconBrandGithub size={20} />}
+          >
+            GitHubでログイン
+          </Button>
+        </form>
+      </Group>
 
       <Text size="sm" c="dimmed" ta="center">
         Googleアカウント または GitHubアカウント でサインイン
