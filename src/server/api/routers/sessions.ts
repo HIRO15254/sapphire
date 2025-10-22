@@ -195,4 +195,32 @@ export const sessionsRouter = createTRPCRouter({
       byLocation,
     };
   }),
+
+  // Get filtered sessions with optional location and date range filters
+  getFiltered: protectedProcedure.input(filterSessionsSchema).query(async ({ ctx, input }) => {
+    // Build where conditions array
+    const conditions = [eq(pokerSessions.userId, ctx.session.user.id)];
+
+    // Add location filter if provided
+    if (input.location) {
+      conditions.push(eq(pokerSessions.location, input.location));
+    }
+
+    // Add date range filters if provided
+    if (input.startDate) {
+      conditions.push(gte(pokerSessions.date, input.startDate));
+    }
+    if (input.endDate) {
+      conditions.push(lte(pokerSessions.date, input.endDate));
+    }
+
+    // Execute query with all conditions
+    const sessions = await ctx.db
+      .select()
+      .from(pokerSessions)
+      .where(and(...conditions))
+      .orderBy(desc(pokerSessions.date));
+
+    return sessions.map(addProfit);
+  }),
 });

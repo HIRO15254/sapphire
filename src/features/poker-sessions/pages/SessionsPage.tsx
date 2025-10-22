@@ -5,8 +5,10 @@ import { notifications } from "@mantine/notifications";
 import { IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { LocationStats } from "@/features/poker-sessions/components/LocationStats";
+import { SessionFilters } from "@/features/poker-sessions/components/SessionFilters";
 import { SessionList } from "@/features/poker-sessions/components/SessionList";
 import { SessionStats } from "@/features/poker-sessions/components/SessionStats";
 import { api } from "@/trpc/react";
@@ -37,6 +39,19 @@ interface SessionsPageProps {
 
 export function SessionsPage({ initialSessions, initialStats }: SessionsPageProps) {
   const router = useRouter();
+  const [filters, setFilters] = useState<{
+    location?: string;
+    startDate?: Date;
+    endDate?: Date;
+  } | null>(null);
+
+  // Use filtered query if filters are active, otherwise use initial data
+  const { data: filteredSessions } = api.sessions.getFiltered.useQuery(
+    filters!,
+    {
+      enabled: filters !== null,
+    }
+  );
 
   const deleteMutation = api.sessions.delete.useMutation({
     onSuccess: () => {
@@ -66,6 +81,26 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
     }
   };
 
+  const handleApplyFilters = (newFilters: {
+    location?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters(null);
+  };
+
+  // Use filtered data if available, otherwise use initial data
+  const displaySessions = filters !== null && filteredSessions ? filteredSessions : initialSessions;
+
+  // Extract unique locations from initial sessions for filter dropdown
+  const uniqueLocations = Array.from(
+    new Set(initialSessions.map((session) => session.location))
+  ).sort();
+
   return (
     <Container size="md" py="xl">
       <Stack gap="xl">
@@ -88,7 +123,22 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
 
         <Divider />
 
-        <SessionList sessions={initialSessions} onEdit={handleEdit} onDelete={handleDelete} />
+        <SessionFilters
+          locations={uniqueLocations}
+          onApplyFilters={handleApplyFilters}
+          onClearFilters={handleClearFilters}
+          isFiltering={filters !== null}
+        />
+
+        {filters !== null && (
+          <Group justify="space-between">
+            <Title order={4} c="dimmed">
+              {displaySessions.length}件のセッションを表示中（全{initialSessions.length}件）
+            </Title>
+          </Group>
+        )}
+
+        <SessionList sessions={displaySessions} onEdit={handleEdit} onDelete={handleDelete} />
       </Stack>
     </Container>
   );

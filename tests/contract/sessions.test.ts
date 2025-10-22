@@ -577,4 +577,176 @@ describe("sessions router - Contract Tests", () => {
       await expect(caller.sessions.getStats()).rejects.toThrow("UNAUTHORIZED");
     });
   });
+
+  describe("getFiltered procedure", () => {
+    it("should return all sessions when no filters applied", async () => {
+      const caller = createCaller(mockSession1);
+
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location B",
+      });
+
+      const filtered = await caller.sessions.getFiltered({});
+
+      expect(filtered).toHaveLength(2);
+    });
+
+    it("should filter by location", async () => {
+      const caller = createCaller(mockSession1);
+
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location B",
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+      });
+
+      const filtered = await caller.sessions.getFiltered({
+        location: "Location A",
+      });
+
+      expect(filtered).toHaveLength(2);
+      expect(filtered.every((s) => s.location === "Location A")).toBe(true);
+    });
+
+    it("should filter by date range", async () => {
+      const caller = createCaller(mockSession1);
+
+      await caller.sessions.create({
+        ...validSessionData,
+        date: new Date("2024-01-15"),
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        date: new Date("2024-02-15"),
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        date: new Date("2024-03-15"),
+      });
+
+      const filtered = await caller.sessions.getFiltered({
+        startDate: new Date("2024-02-01"),
+        endDate: new Date("2024-02-28"),
+      });
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0]?.date.getMonth()).toBe(1); // February (0-indexed)
+    });
+
+    it("should filter by both location and date range", async () => {
+      const caller = createCaller(mockSession1);
+
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+        date: new Date("2024-01-15"),
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location B",
+        date: new Date("2024-02-15"),
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+        date: new Date("2024-02-15"),
+      });
+
+      const filtered = await caller.sessions.getFiltered({
+        location: "Location A",
+        startDate: new Date("2024-02-01"),
+        endDate: new Date("2024-02-28"),
+      });
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0]?.location).toBe("Location A");
+      expect(filtered[0]?.date.getMonth()).toBe(1);
+    });
+
+    it("should reject invalid date range (startDate > endDate)", async () => {
+      const caller = createCaller(mockSession1);
+
+      await expect(
+        caller.sessions.getFiltered({
+          startDate: new Date("2024-02-01"),
+          endDate: new Date("2024-01-01"),
+        })
+      ).rejects.toThrow();
+    });
+
+    it("should only return sessions for authenticated user", async () => {
+      const caller1 = createCaller(mockSession1);
+      const caller2 = createCaller(mockSession2);
+
+      await caller1.sessions.create({
+        ...validSessionData,
+        location: "Shared Location",
+      });
+      await caller2.sessions.create({
+        ...validSessionData,
+        location: "Shared Location",
+      });
+
+      const filtered1 = await caller1.sessions.getFiltered({
+        location: "Shared Location",
+      });
+      const filtered2 = await caller2.sessions.getFiltered({
+        location: "Shared Location",
+      });
+
+      expect(filtered1).toHaveLength(1);
+      expect(filtered2).toHaveLength(1);
+      expect(filtered1[0]?.id).not.toBe(filtered2[0]?.id);
+    });
+
+    it("should require authentication", async () => {
+      const caller = createCaller(null);
+
+      await expect(
+        caller.sessions.getFiltered({
+          location: "Test",
+        })
+      ).rejects.toThrow("UNAUTHORIZED");
+    });
+
+    it("should order filtered results by date DESC", async () => {
+      const caller = createCaller(mockSession1);
+
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+        date: new Date("2024-01-15"),
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+        date: new Date("2024-03-15"),
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+        date: new Date("2024-02-15"),
+      });
+
+      const filtered = await caller.sessions.getFiltered({
+        location: "Location A",
+      });
+
+      expect(filtered).toHaveLength(3);
+      expect(filtered[0]?.date.getTime()).toBeGreaterThan(filtered[1]!.date.getTime());
+      expect(filtered[1]?.date.getTime()).toBeGreaterThan(filtered[2]!.date.getTime());
+    });
+  });
 });
