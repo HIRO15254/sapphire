@@ -443,4 +443,138 @@ describe("sessions router - Contract Tests", () => {
       await expect(caller.sessions.delete({ id: 1 })).rejects.toThrow("UNAUTHORIZED");
     });
   });
+
+  describe("getStats procedure", () => {
+    it("should return zero stats for user with no sessions", async () => {
+      const caller = createCaller(mockSession1);
+
+      const stats = await caller.sessions.getStats();
+
+      expect(stats.totalProfit).toBe(0);
+      expect(stats.sessionCount).toBe(0);
+      expect(stats.avgProfit).toBe(0);
+      expect(stats.byLocation).toEqual([]);
+    });
+
+    it("should calculate total profit correctly", async () => {
+      const caller = createCaller(mockSession1);
+
+      // Create 3 sessions with different profits
+      await caller.sessions.create({
+        ...validSessionData,
+        buyIn: 10000,
+        cashOut: 15000, // +5000
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        buyIn: 20000,
+        cashOut: 18000, // -2000
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        buyIn: 5000,
+        cashOut: 8000, // +3000
+      });
+
+      const stats = await caller.sessions.getStats();
+
+      expect(stats.totalProfit).toBe(6000); // 5000 - 2000 + 3000
+      expect(stats.sessionCount).toBe(3);
+      expect(stats.avgProfit).toBe(2000); // 6000 / 3
+    });
+
+    it("should handle negative total profit", async () => {
+      const caller = createCaller(mockSession1);
+
+      await caller.sessions.create({
+        ...validSessionData,
+        buyIn: 20000,
+        cashOut: 10000, // -10000
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        buyIn: 15000,
+        cashOut: 12000, // -3000
+      });
+
+      const stats = await caller.sessions.getStats();
+
+      expect(stats.totalProfit).toBe(-13000);
+      expect(stats.sessionCount).toBe(2);
+      expect(stats.avgProfit).toBe(-6500);
+    });
+
+    it("should aggregate stats by location", async () => {
+      const caller = createCaller(mockSession1);
+
+      // Sessions at location A
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+        buyIn: 10000,
+        cashOut: 15000, // +5000
+      });
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location A",
+        buyIn: 5000,
+        cashOut: 8000, // +3000
+      });
+
+      // Sessions at location B
+      await caller.sessions.create({
+        ...validSessionData,
+        location: "Location B",
+        buyIn: 20000,
+        cashOut: 18000, // -2000
+      });
+
+      const stats = await caller.sessions.getStats();
+
+      expect(stats.byLocation).toHaveLength(2);
+
+      const locationA = stats.byLocation.find((l) => l.location === "Location A");
+      expect(locationA).toBeDefined();
+      expect(locationA?.profit).toBe(8000); // 5000 + 3000
+      expect(locationA?.count).toBe(2);
+      expect(locationA?.avgProfit).toBe(4000); // 8000 / 2
+
+      const locationB = stats.byLocation.find((l) => l.location === "Location B");
+      expect(locationB).toBeDefined();
+      expect(locationB?.profit).toBe(-2000);
+      expect(locationB?.count).toBe(1);
+      expect(locationB?.avgProfit).toBe(-2000);
+    });
+
+    it("should only return stats for authenticated user", async () => {
+      const caller1 = createCaller(mockSession1);
+      const caller2 = createCaller(mockSession2);
+
+      // Create sessions for both users
+      await caller1.sessions.create({
+        ...validSessionData,
+        buyIn: 10000,
+        cashOut: 20000, // +10000 for user1
+      });
+      await caller2.sessions.create({
+        ...validSessionData,
+        buyIn: 10000,
+        cashOut: 15000, // +5000 for user2
+      });
+
+      const stats1 = await caller1.sessions.getStats();
+      const stats2 = await caller2.sessions.getStats();
+
+      expect(stats1.totalProfit).toBe(10000);
+      expect(stats1.sessionCount).toBe(1);
+      expect(stats2.totalProfit).toBe(5000);
+      expect(stats2.sessionCount).toBe(1);
+    });
+
+    it("should require authentication", async () => {
+      const caller = createCaller(null);
+
+      await expect(caller.sessions.getStats()).rejects.toThrow("UNAUTHORIZED");
+    });
+  });
 });

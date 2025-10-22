@@ -13,10 +13,11 @@ export default async function Page() {
 
   // サーバーサイドでデータ取得
   const sessions = await api.sessions.getAll();
+  const stats = await api.sessions.getStats();
 
   return (
     <HydrateClient>
-      <SessionsPage initialSessions={sessions} />
+      <SessionsPage initialSessions={sessions} initialStats={stats} />
     </HydrateClient>
   );
 }

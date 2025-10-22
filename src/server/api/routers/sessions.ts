@@ -140,4 +140,59 @@ export const sessionsRouter = createTRPCRouter({
 
     return { success: result.length > 0 };
   }),
+
+  // Get statistics for authenticated user
+  getStats: protectedProcedure.query(async ({ ctx }) => {
+    // Get all user sessions
+    const sessions = await ctx.db
+      .select()
+      .from(pokerSessions)
+      .where(eq(pokerSessions.userId, ctx.session.user.id));
+
+    // Return zero stats if no sessions
+    if (sessions.length === 0) {
+      return {
+        totalProfit: 0,
+        sessionCount: 0,
+        avgProfit: 0,
+        byLocation: [],
+      };
+    }
+
+    // Calculate overall stats
+    let totalProfit = 0;
+    const locationMap = new Map<string, { profit: number; count: number }>();
+
+    for (const session of sessions) {
+      const profit = parseNumeric(session.cashOut) - parseNumeric(session.buyIn);
+      totalProfit += profit;
+
+      // Aggregate by location
+      const locationStats = locationMap.get(session.location);
+      if (locationStats) {
+        locationStats.profit += profit;
+        locationStats.count += 1;
+      } else {
+        locationMap.set(session.location, { profit, count: 1 });
+      }
+    }
+
+    const sessionCount = sessions.length;
+    const avgProfit = Math.round(totalProfit / sessionCount);
+
+    // Build location stats array
+    const byLocation = Array.from(locationMap.entries()).map(([location, stats]) => ({
+      location,
+      profit: stats.profit,
+      count: stats.count,
+      avgProfit: Math.round(stats.profit / stats.count),
+    }));
+
+    return {
+      totalProfit,
+      sessionCount,
+      avgProfit,
+      byLocation,
+    };
+  }),
 });

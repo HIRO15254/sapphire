@@ -1,12 +1,14 @@
 "use client";
 
-import { Button, Container, Group, Stack, Title } from "@mantine/core";
+import { Button, Container, Divider, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { LocationStats } from "@/features/poker-sessions/components/LocationStats";
 import { SessionList } from "@/features/poker-sessions/components/SessionList";
+import { SessionStats } from "@/features/poker-sessions/components/SessionStats";
 import { api } from "@/trpc/react";
 
 interface SessionsPageProps {
@@ -20,9 +22,20 @@ interface SessionsPageProps {
     profit: number;
     notes: string | null;
   }>;
+  initialStats: {
+    totalProfit: number;
+    sessionCount: number;
+    avgProfit: number;
+    byLocation: Array<{
+      location: string;
+      profit: number;
+      count: number;
+      avgProfit: number;
+    }>;
+  };
 }
 
-export function SessionsPage({ initialSessions }: SessionsPageProps) {
+export function SessionsPage({ initialSessions, initialStats }: SessionsPageProps) {
   const router = useRouter();
 
   const deleteMutation = api.sessions.delete.useMutation({
@@ -62,6 +75,18 @@ export function SessionsPage({ initialSessions }: SessionsPageProps) {
             新規セッション
           </Button>
         </Group>
+
+        <SessionStats
+          totalProfit={initialStats.totalProfit}
+          sessionCount={initialStats.sessionCount}
+          avgProfit={initialStats.avgProfit}
+        />
+
+        {initialStats.byLocation.length > 0 && (
+          <LocationStats byLocation={initialStats.byLocation} />
+        )}
+
+        <Divider />
 
         <SessionList sessions={initialSessions} onEdit={handleEdit} onDelete={handleDelete} />
       </Stack>
