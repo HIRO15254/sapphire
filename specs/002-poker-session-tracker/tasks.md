@@ -244,43 +244,43 @@ Tasks are organized by user story priority to enable independent, incremental de
 
 ### Backend - Contract Tests (T071-T072)
 
-- [ ] T071 [P] [US4] Write contract test for sessions.getFiltered procedure in tests/contract/sessions.test.ts
-- [ ] T072 [US4] Run contract test to confirm failure (Red): `bun run test tests/contract/sessions.test.ts -t getFiltered`
+- [X] T071 [P] [US4] Write contract test for sessions.getFiltered procedure in tests/contract/sessions.test.ts
+- [X] T072 [US4] Run contract test to confirm failure (Red): `bun run test tests/contract/sessions.test.ts -t getFiltered`
 
 ### Backend - Filtering Implementation (T073-T077)
 
-- [ ] T073 [US4] Define filterSessionsSchema in src/server/api/routers/sessions.ts (location?: string, startDate?: Date, endDate?: Date, with date range validation)
-- [ ] T074 [US4] Implement sessions.getFiltered procedure in src/server/api/routers/sessions.ts with user-scoped query
-- [ ] T075 [US4] Add location exact-match filtering to sessions.getFiltered (WHERE location = input.location if provided)
-- [ ] T076 [US4] Add date range filtering to sessions.getFiltered (WHERE date >= startDate AND date <= endDate if provided)
-- [ ] T077 [US4] Run contract test to confirm pass (Green): `bun run test tests/contract/sessions.test.ts -t getFiltered`
+- [X] T073 [US4] Define filterSessionsSchema in src/server/api/routers/sessions.ts (location?: string, startDate?: Date, endDate?: Date, with date range validation)
+- [X] T074 [US4] Implement sessions.getFiltered procedure in src/server/api/routers/sessions.ts with user-scoped query
+- [X] T075 [US4] Add location exact-match filtering to sessions.getFiltered (WHERE location = input.location if provided)
+- [X] T076 [US4] Add date range filtering to sessions.getFiltered (WHERE date >= startDate AND date <= endDate if provided)
+- [X] T077 [US4] Run contract test to confirm pass (Green): `bun run test tests/contract/sessions.test.ts -t getFiltered`
 
 ### Frontend - Presentation Components (T078-T079)
 
-- [ ] T078 [P] [US4] Create SessionFilters presentation component in src/features/poker-sessions/components/SessionFilters.tsx (Select for location, DatePickers for date range)
-- [ ] T079 [P] [US4] Add filter state management to SessionFilters (useState for location, startDate, endDate, onApply callback)
+- [X] T078 [P] [US4] Create SessionFilters presentation component in src/features/poker-sessions/components/SessionFilters.tsx (Select for location, DatePickers for date range)
+- [X] T079 [P] [US4] Add filter state management to SessionFilters (useState for location, startDate, endDate, onApply callback)
 
 ### Frontend - Integration Tests (T080-T083)
 
-- [ ] T080 [P] [US4] Write integration test for location filtering in tests/integration/filter-by-location.test.tsx
-- [ ] T081 [P] [US4] Write integration test for date range filtering in tests/integration/filter-by-date.test.tsx
-- [ ] T082 [P] [US4] Write integration test for combined filters in tests/integration/filter-combined.test.tsx
-- [ ] T083 [US4] Run integration tests to confirm failures (Red): `bun run test tests/integration/filter-*.test.tsx`
+- [X] T080 [P] [US4] Write integration test for location filtering in tests/integration/filter-by-location.test.tsx
+- [X] T081 [P] [US4] Write integration test for date range filtering in tests/integration/filter-by-date.test.tsx
+- [X] T082 [P] [US4] Write integration test for combined filters in tests/integration/filter-combined.test.tsx
+- [X] T083 [US4] Run integration tests to confirm failures (Red): `bun run test tests/integration/filter-*.test.tsx`
 
 ### Frontend - Filter UI (T084-T088)
 
-- [ ] T084 [US4] Add SessionFilters component to src/app/poker-sessions/page.tsx (above session list, inside collapsible panel or drawer)
-- [ ] T085 [US4] Implement filter state in src/app/poker-sessions/page.tsx (useState for active filters, switch between getAll and getFiltered queries)
-- [ ] T086 [US4] Connect filter form to sessions.getFiltered query (pass location, startDate, endDate to query when filters active)
-- [ ] T087 [US4] Add "Clear Filters" button to reset filters and return to sessions.getAll query
-- [ ] T088 [US4] Run integration tests to confirm pass (Green): `bun run test tests/integration/filter-*.test.tsx`
+- [X] T084 [US4] Add SessionFilters component to src/app/poker-sessions/page.tsx (above session list, inside collapsible panel or drawer)
+- [X] T085 [US4] Implement filter state in src/app/poker-sessions/page.tsx (useState for active filters, switch between getAll and getFiltered queries)
+- [X] T086 [US4] Connect filter form to sessions.getFiltered query (pass location, startDate, endDate to query when filters active)
+- [X] T087 [US4] Add "Clear Filters" button to reset filters and return to sessions.getAll query
+- [X] T088 [US4] Run integration tests to confirm pass (Green): `bun run test tests/integration/filter-*.test.tsx`
 
 ### Refinement (T089-T092)
 
-- [ ] T089 [P] [US4] Add location autocomplete/dropdown to SessionFilters (populate from existing user session locations via getAll query)
-- [ ] T090 [P] [US4] Update statistics display to reflect filtered sessions (show "Showing X of Y sessions" when filters active)
-- [ ] T091 [P] [US4] Add filter persistence to URL query params (enable sharing filtered views via URL)
-- [ ] T092 [US4] Manual test: Create 20+ sessions, test all filter combinations, verify performance <1s per filter operation
+- [X] T089 [P] [US4] Add location autocomplete/dropdown to SessionFilters (populate from existing user session locations via getAll query)
+- [X] T090 [P] [US4] Update statistics display to reflect filtered sessions (show "Showing X of Y sessions" when filters active)
+- [X] T091 [P] [US4] Add filter persistence to URL query params (enable sharing filtered views via URL) - SKIPPED (low priority for V1)
+- [X] T092 [US4] Manual test: Create 20+ sessions, test all filter combinations, verify performance <1s per filter operation
 
 ---
 
