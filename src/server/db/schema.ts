@@ -2,8 +2,12 @@ import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
+  numeric,
   pgTableCreator,
   primaryKey,
+  serial,
+  text,
   timestamp,
   uuid,
   varchar,
@@ -58,6 +62,7 @@ export const users = createTable("user", (d) => ({
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
+  pokerSessions: many(pokerSessions),
 }));
 
 export const accounts = createTable(
@@ -114,3 +119,42 @@ export const verificationTokens = createTable(
   }),
   (t) => [primaryKey({ columns: [t.identifier, t.token] })]
 );
+
+// Poker Session table
+export const pokerSessions = createTable(
+  "poker_session",
+  (d) => ({
+    id: d.serial().primaryKey(),
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: d.timestamp({ mode: "date", withTimezone: true }).notNull(),
+    location: d.varchar({ length: 255 }).notNull(),
+    buyIn: d.numeric({ precision: 10, scale: 2 }).notNull(),
+    cashOut: d.numeric({ precision: 10, scale: 2 }).notNull(),
+    durationMinutes: d.integer().notNull(),
+    notes: d.text(),
+    createdAt: d.timestamp({ mode: "date", withTimezone: true }).notNull().defaultNow(),
+    updatedAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("session_user_date_idx").on(t.userId, t.date.desc()),
+    index("session_user_location_idx").on(t.userId, t.location),
+    index("session_user_date_location_idx").on(t.userId, t.date, t.location),
+  ]
+);
+
+export const pokerSessionsRelations = relations(pokerSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [pokerSessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export type PokerSession = typeof pokerSessions.$inferSelect;
+export type NewPokerSession = typeof pokerSessions.$inferInsert;

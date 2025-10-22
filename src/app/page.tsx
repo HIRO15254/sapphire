@@ -1,7 +1,7 @@
-import { Container, Title, Text, Button, Stack, Group, Card } from "@mantine/core";
-import { IconCards, IconLogin, IconLogout, IconChartLine } from "@tabler/icons-react";
-import Link from "next/link";
 import { auth } from "@/server/auth";
+import { Button, Card, Container, Group, Stack, Text, Title } from "@mantine/core";
+import { IconCards, IconChartLine, IconLogin, IconLogout } from "@tabler/icons-react";
+import Link from "next/link";
 
 export default async function Home() {
   const session = await auth();
@@ -23,9 +23,7 @@ export default async function Home() {
               <Text size="lg" fw={500}>
                 ようこそ、{session.user.name}さん！
               </Text>
-              <Text c="dimmed">
-                {session.user.email}
-              </Text>
+              <Text c="dimmed">{session.user.email}</Text>
             </Stack>
           </Card>
         )}

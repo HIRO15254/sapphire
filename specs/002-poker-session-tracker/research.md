@@ -606,6 +606,257 @@ async function injectTestSession(page, userData) {
 
 ---
 
+## 7. Zod v4 + Mantine Form Integration
+
+### Decision
+
+Use Zod v4 for schema validation with `mantine-form-zod-resolver` v1.3+ and `zod4Resolver` for Mantine Form integration.
+
+### Rationale
+
+- **Zod v4 improvements**: Latest version with improved error handling and type inference
+- **Mantine Form compatibility**: `zod4Resolver` provides proper integration with Zod v4's new API
+- **Consistent validation**: Share same Zod schemas between frontend (Mantine Form) and backend (tRPC)
+- **Type coercion**: `z.coerce.date()` handles string-to-Date conversion from DateTimePicker automatically
+
+### Implementation Pattern
+
+**File**: `src/features/poker-sessions/components/SessionForm.tsx`
+
+```typescript
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
+import { z } from "zod/v4";
+
+// Zod v4 schema definition
+const sessionFormSchema = z.object({
+  // ✅ Correct: Use { error: "..." } for v4
+  date: z.coerce.date({ error: "有効な日時を選択してください" }),
+  location: z
+    .string({ error: "場所を入力してください" })
+    .min(1, { error: "場所を入力してください" })
+    .max(255, { error: "場所は255文字以内で入力してください" })
+    .trim(),
+  buyIn: z
+    .number({ error: "有効な金額を入力してください" })
+    .nonnegative({ error: "バイインは0以上の値を入力してください" }),
+  // ... other fields
+});
+
+export function SessionForm({ initialValues, onSubmit, isSubmitting }) {
+  const form = useForm({
+    initialValues: { ... },
+    validate: zod4Resolver(sessionFormSchema), // Use zod4Resolver, not zodResolver
+  });
+
+  return (
+    <form onSubmit={form.onSubmit(onSubmit)}>
+      <DateTimePicker
+        label="日時"
+        locale="ja"
+        valueFormat="YYYY/MM/DD HH:mm"
+        {...form.getInputProps("date")}
+      />
+      <TextInput
+        label="場所"
+        {...form.getInputProps("location")}
+      />
+      {/* ... */}
+    </form>
+  );
+}
+```
+
+**Backend schema** (`src/server/api/routers/sessions.ts`):
+
+```typescript
+import { z } from "zod";
+
+export const createSessionSchema = z.object({
+  date: z.coerce.date(), // Same coercion for string input from client
+  location: z.string().min(1).max(255).trim(),
+  buyIn: z.number().nonnegative(),
+  // ...
+});
+```
+
+### Key Differences from Zod v3
+
+| Aspect | Zod v3 (Deprecated) | Zod v4 (Correct) |
+|--------|---------------------|------------------|
+| Error messages | `z.string({ message: "..." })` | `z.string({ error: "..." })` |
+| Required errors | `z.date({ required_error: "..." })` | `z.date({ error: "..." })` |
+| Type errors | `z.number({ invalid_type_error: "..." })` | `z.number({ error: "..." })` |
+| Resolver | `zodResolver(schema)` | `zod4Resolver(schema)` |
+| Import | `import { z } from "zod";` | `import { z } from "zod/v4";` |
+
+### DateTimePicker + z.coerce.date() Pattern
+
+**Problem**: Mantine DateTimePicker returns `string`, but schema expects `Date`.
+
+**Solution**: Use `z.coerce.date()` to automatically convert string to Date.
+
+```typescript
+// ❌ Wrong: Validation error "expected date, received string"
+date: z.date({ error: "有効な日時を選択してください" })
+
+// ✅ Correct: Automatically converts string to Date
+date: z.coerce.date({ error: "有効な日時を選択してください" })
+```
+
+**DateTimePicker configuration**:
+```typescript
+<DateTimePicker
+  locale="ja"
+  valueFormat="YYYY/MM/DD HH:mm"  // Standard Japanese date/time format
+  clearable
+  {...form.getInputProps("date")}
+/>
+```
+
+### Alternatives Considered
+
+1. **Stay on Zod v3**
+   - **Rejected**: v4 has better error handling and is actively maintained
+   - Migration to v4 is straightforward with `zod4Resolver`
+
+2. **Manual date parsing**
+   - **Rejected**: `z.coerce.date()` handles it automatically and safely
+   - Less error-prone than custom parsing logic
+
+3. **Using `z.string().transform()`**
+   - **Rejected**: More verbose than `z.coerce.date()`
+   - Coercion is built-in and handles edge cases
+
+### References
+
+- [Zod v4 Documentation](https://zod.dev/)
+- [mantine-form-zod-resolver](https://github.com/mantinedev/mantine-form-zod-resolver)
+- [Mantine DateTimePicker](https://mantine.dev/dates/date-time-picker/)
+- [Zod Coercion](https://zod.dev/?id=coercion-for-primitives)
+
+---
+
+## 8. tRPC v11 Server Components Pattern
+
+### Decision
+
+Use `@/trpc/server` exports (`api` and `HydrateClient`) for Server Component data fetching instead of `createCaller`.
+
+### Rationale
+
+- **Optimized for Server Components**: `@/trpc/server` provides proper integration with Next.js 15 App Router
+- **Automatic hydration**: `HydrateClient` seamlessly transfers server data to client React Query cache
+- **No HTTP overhead**: Server Components call tRPC procedures directly (function calls, not HTTP requests)
+- **Type safety**: Full end-to-end type safety from server to client
+- **Simpler API**: No need to manually create caller context
+
+### Implementation Pattern
+
+**File**: `src/app/poker-sessions/page.tsx` (Server Component)
+
+```typescript
+import { redirect } from "next/navigation";
+import { api, HydrateClient } from "@/trpc/server"; // ✅ Correct import
+import { auth } from "@/server/auth";
+import { SessionsPage } from "@/features/poker-sessions/pages/SessionsPage";
+
+export default async function Page() {
+  // Authentication check
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/api/auth/signin");
+  }
+
+  // Server-side data fetching (no HTTP request, direct function call)
+  const sessions = await api.sessions.getAll();
+
+  // HydrateClient automatically hydrates React Query cache on client
+  return (
+    <HydrateClient>
+      <SessionsPage initialSessions={sessions} />
+    </HydrateClient>
+  );
+}
+```
+
+**File**: `src/features/poker-sessions/pages/SessionsPage.tsx` (Client Component)
+
+```typescript
+"use client";
+
+import { useRouter } from "next/navigation";
+import { api } from "@/trpc/react"; // Client-side tRPC
+
+export function SessionsPage({ initialSessions }) {
+  const router = useRouter();
+
+  // Client-side mutation
+  const deleteMutation = api.sessions.delete.useMutation({
+    onSuccess: () => {
+      router.refresh(); // Re-fetch Server Component data
+    },
+  });
+
+  return (
+    <SessionList
+      sessions={initialSessions}
+      onDelete={(id) => deleteMutation.mutate({ id })}
+    />
+  );
+}
+```
+
+### Pattern Comparison
+
+| Approach | Import | Server Component Usage |
+|----------|--------|------------------------|
+| ❌ **Wrong** | `createCaller` from `@/server/api/root` | `const caller = await createCaller({ session }); const data = await caller.sessions.getAll();` |
+| ✅ **Correct** | `api, HydrateClient` from `@/trpc/server` | `const data = await api.sessions.getAll(); return <HydrateClient>...</HydrateClient>;` |
+
+### Key Benefits
+
+1. **Automatic authentication context**: `api` from `@/trpc/server` already includes session context
+2. **Hydration**: Data fetched server-side is automatically available client-side
+3. **Cache synchronization**: `router.refresh()` re-fetches server data after mutations
+4. **Type safety**: No manual type casting or context creation
+
+### Server vs Client tRPC Usage
+
+```typescript
+// Server Component (app/xxx/page.tsx)
+import { api, HydrateClient } from "@/trpc/server";
+const data = await api.sessions.getAll(); // Direct server call
+
+// Client Component (features/xxx/XxxPage.tsx)
+import { api } from "@/trpc/react";
+const { data } = api.sessions.getAll.useQuery(); // React Query hook
+const mutation = api.sessions.create.useMutation(); // React Query mutation
+```
+
+### Alternatives Considered
+
+1. **Using `createCaller` directly**
+   - **Rejected**: Requires manual context creation, not optimized for Server Components
+   - `@/trpc/server` API is simpler and more efficient
+
+2. **Fetch data in Client Components only**
+   - **Rejected**: Slower initial page load (client-side waterfall)
+   - Server Components enable faster data fetching and better SEO
+
+3. **Using `prefetch` without HydrateClient**
+   - **Rejected**: Manual cache management is error-prone
+   - `HydrateClient` handles hydration automatically
+
+### References
+
+- [tRPC Server Components](https://trpc.io/docs/client/react/server-components)
+- [tRPC v11 Release Notes](https://trpc.io/blog/announcing-trpc-v11)
+- [Next.js 15 Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components)
+- [React Query Hydration](https://tanstack.com/query/latest/docs/framework/react/guides/ssr#using-hydration)
+
+---
+
 ## Summary
 
 All technical decisions support the core requirements:
@@ -616,5 +867,7 @@ All technical decisions support the core requirements:
 4. **UI**: Mantine v8 components with Japanese localization (consistent UX)
 5. **State Management**: TanStack Query with automatic cache invalidation (<2s data freshness)
 6. **Testing**: Playwright E2E with Japanese text selectors, isolated test database
+7. **Form Validation**: Zod v4 + mantine-form-zod-resolver for type-safe frontend/backend schema sharing
+8. **Server Components**: tRPC v11 `@/trpc/server` API for optimized server-side data fetching
 
 These patterns form the foundation for implementing P0-P4 user stories with high quality, security, and maintainability.

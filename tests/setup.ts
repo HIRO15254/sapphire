@@ -5,11 +5,13 @@ import { afterEach, vi } from "vitest";
 // Set up environment variables for tests
 // Use existing DATABASE_URL from environment if available (for CI), otherwise use test database
 process.env.DATABASE_URL =
-  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/todoapp_test";
+  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/sapphire_test";
 process.env.NODE_ENV = "test";
 process.env.AUTH_SECRET = process.env.AUTH_SECRET ?? "test-secret-key-for-testing-only";
-process.env.AUTH_DISCORD_ID = process.env.AUTH_DISCORD_ID ?? "test-discord-id";
-process.env.AUTH_DISCORD_SECRET = process.env.AUTH_DISCORD_SECRET ?? "test-discord-secret";
+process.env.AUTH_GOOGLE_ID = process.env.AUTH_GOOGLE_ID ?? "test-google-id";
+process.env.AUTH_GOOGLE_SECRET = process.env.AUTH_GOOGLE_SECRET ?? "test-google-secret";
+process.env.AUTH_GITHUB_ID = process.env.AUTH_GITHUB_ID ?? "test-github-id";
+process.env.AUTH_GITHUB_SECRET = process.env.AUTH_GITHUB_SECRET ?? "test-github-secret";
 process.env.SKIP_ENV_VALIDATION = "true"; // Skip validation in tests
 
 // Mock window.matchMedia for Mantine and responsive tests
