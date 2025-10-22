@@ -1,7 +1,8 @@
 import { auth } from "@/server/auth";
-import { Button, Card, Container, Group, Stack, Text, Title } from "@mantine/core";
-import { IconCards, IconChartLine, IconLogin, IconLogout } from "@tabler/icons-react";
-import Link from "next/link";
+import { Card, Container, Stack, Text, Title } from "@mantine/core";
+import { IconCards } from "@tabler/icons-react";
+
+import { AuthButtons } from "@/components/AuthButtons";
 
 export default async function Home() {
   const session = await auth();
@@ -40,44 +41,7 @@ export default async function Home() {
           </Stack>
         </Card>
 
-        <Group gap="md">
-          {session?.user ? (
-            <>
-              <Button
-                component={Link}
-                href="/poker-sessions"
-                size="lg"
-                leftSection={<IconChartLine size={20} />}
-              >
-                セッション管理
-              </Button>
-              <Button
-                component={Link}
-                href="/api/auth/signout"
-                size="lg"
-                variant="outline"
-                leftSection={<IconLogout size={20} />}
-              >
-                ログアウト
-              </Button>
-            </>
-          ) : (
-            <Button
-              component={Link}
-              href="/api/auth/signin"
-              size="lg"
-              leftSection={<IconLogin size={20} />}
-            >
-              ログイン
-            </Button>
-          )}
-        </Group>
-
-        {!session?.user && (
-          <Text size="sm" c="dimmed" ta="center">
-            Googleアカウント または GitHubアカウント でサインイン
-          </Text>
-        )}
+        <AuthButtons isAuthenticated={!!session?.user} />
       </Stack>
     </Container>
   );
