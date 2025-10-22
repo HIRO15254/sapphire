@@ -46,12 +46,9 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
   } | null>(null);
 
   // Use filtered query if filters are active, otherwise use initial data
-  const { data: filteredSessions } = api.sessions.getFiltered.useQuery(
-    filters!,
-    {
-      enabled: filters !== null,
-    }
-  );
+  const { data: filteredSessions } = api.sessions.getFiltered.useQuery(filters!, {
+    enabled: filters !== null,
+  });
 
   const deleteMutation = api.sessions.delete.useMutation({
     onSuccess: () => {
