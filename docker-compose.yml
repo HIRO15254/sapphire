@@ -1,9 +1,9 @@
 services:
   postgres:
     image: postgres:16
-    container_name: todoapp-postgres
+    container_name: sapphire-postgres
     environment:
-      POSTGRES_DB: todoapp
+      POSTGRES_DB: sapphire
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:

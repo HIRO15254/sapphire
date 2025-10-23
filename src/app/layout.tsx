@@ -1,7 +1,10 @@
 import "@/styles/globals.css";
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
+import "@mantine/dates/styles.css";
 
 import { ColorSchemeScript, MantineProvider, createTheme, mantineHtmlProps } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 
@@ -23,8 +26,8 @@ const theme = createTheme({
 });
 
 export const metadata: Metadata = {
-  title: "Todoアプリ",
-  description: "シンプルで使いやすいTodoアプリ",
+  title: "ポーカーセッショントラッカー",
+  description: "ポーカーセッションを記録・分析して、パフォーマンスを向上させる",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
@@ -32,7 +35,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Todoアプリ",
+    title: "ポーカーセッショントラッカー",
   },
   formatDetection: {
     telephone: false,
@@ -50,6 +53,8 @@ const geist = Geist({
   subsets: ["latin"],
 });
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ja" {...mantineHtmlProps} suppressHydrationWarning>
@@ -59,6 +64,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={geist.className}>
         <ServiceWorkerRegistration />
         <MantineProvider theme={theme}>
+          <Notifications />
           <TRPCReactProvider>{children}</TRPCReactProvider>
         </MantineProvider>
       </body>

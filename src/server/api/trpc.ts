@@ -37,6 +37,19 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
 };
 
 /**
+ * Inner context for testing (synchronous, without auth())
+ * @see https://trpc.io/docs/server/server-side-calls
+ */
+export const createInnerTRPCContext = (opts: {
+  session: Awaited<ReturnType<typeof auth>> | null;
+}) => {
+  return {
+    db,
+    session: opts.session,
+  };
+};
+
+/**
  * 2. INITIALIZATION
  *
  * This is where the tRPC API is initialized, connecting the context and transformer. We also parse
