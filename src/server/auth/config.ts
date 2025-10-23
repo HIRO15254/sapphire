@@ -33,6 +33,7 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authConfig = {
+  trustHost: true,
   providers: [
     // NextAuth.js v5 automatically infers credentials from environment variables
     // AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET
@@ -46,20 +47,18 @@ export const authConfig = {
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
-    async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allows callback URLs on the same origin
-      if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+    async jwt({ token }) {
+      return token
+    },
+    session({ session, token }) {
+      if (token.sub) {
+        session.user.id = token.sub
+      }
+      return session
     },
   },
 } satisfies NextAuthConfig;

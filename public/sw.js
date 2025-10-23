@@ -1,6 +1,6 @@
 // Service Worker for PWA
 const CACHE_NAME = "todo-app-v1";
-const urlsToCache = ["/", "/offline"];
+const urlsToCache = ["/offline"];
 
 // Install event - cache essential resources
 self.addEventListener("install", (event) => {
