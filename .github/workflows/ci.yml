@@ -25,6 +25,15 @@ jobs:
 
       - name: Run TypeScript type check
         run: bun run typecheck
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/todoapp
+          AUTH_SECRET: test-secret-for-typecheck
+          AUTH_URL: http://localhost:3000
+          AUTH_GOOGLE_ID: test-google-id
+          AUTH_GOOGLE_SECRET: test-google-secret
+          AUTH_GITHUB_ID: test-github-id
+          AUTH_GITHUB_SECRET: test-github-secret
+          SKIP_ENV_VALIDATION: true
 
   test:
     name: Run Tests
@@ -64,8 +73,12 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/todoapp_test
           AUTH_SECRET: test-secret-for-ci
-          AUTH_DISCORD_ID: test-id
-          AUTH_DISCORD_SECRET: test-secret
+          AUTH_URL: http://localhost:3000
+          AUTH_GOOGLE_ID: test-google-id
+          AUTH_GOOGLE_SECRET: test-google-secret
+          AUTH_GITHUB_ID: test-github-id
+          AUTH_GITHUB_SECRET: test-github-secret
+          SKIP_ENV_VALIDATION: true
 
   build:
     name: Build
@@ -85,5 +98,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/todoapp
           AUTH_SECRET: test-secret-for-build
-          AUTH_DISCORD_ID: test-id
-          AUTH_DISCORD_SECRET: test-secret
+          AUTH_URL: http://localhost:3000
+          AUTH_GOOGLE_ID: test-google-id
+          AUTH_GOOGLE_SECRET: test-google-secret
+          AUTH_GITHUB_ID: test-github-id
+          AUTH_GITHUB_SECRET: test-github-secret
+          SKIP_ENV_VALIDATION: true
