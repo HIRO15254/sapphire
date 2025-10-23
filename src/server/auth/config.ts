@@ -52,13 +52,13 @@ export const authConfig = {
   },
   callbacks: {
     async jwt({ token }) {
-      return token
+      return token;
     },
     session({ session, token }) {
       if (token.sub) {
-        session.user.id = token.sub
+        session.user.id = token.sub;
       }
-      return session
+      return session;
     },
   },
 } satisfies NextAuthConfig;
