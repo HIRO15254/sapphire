@@ -20,27 +20,7 @@ import type { AdapterAccount } from "next-auth/adapters";
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
-export const createTable = pgTableCreator((name) => `mantttine_vibe_template_${name}`);
-
-// Tasks table for Todo app
-export const tasks = createTable(
-  "tasks",
-  (d) => ({
-    id: d.uuid().primaryKey().defaultRandom(),
-    content: d.varchar({ length: 500 }).notNull(),
-    completed: d.boolean().notNull().default(false),
-    createdAt: d.timestamp({ withTimezone: true }).notNull().defaultNow(),
-    updatedAt: d
-      .timestamp({ withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  }),
-  (t) => [index("idx_tasks_created_at").on(t.createdAt)]
-);
-
-export type Task = typeof tasks.$inferSelect;
-export type NewTask = typeof tasks.$inferInsert;
+export const createTable = pgTableCreator((name) => `sapphire_${name}`);
 
 // Authentication tables (NextAuth.js)
 export const users = createTable("user", (d) => ({
