@@ -1,11 +1,12 @@
 "use client";
 
-import { Button, Group, NumberInput, Stack, TextInput, Textarea } from "@mantine/core";
+import { Button, Group, NumberInput, Stack, Textarea } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { IconDeviceFloppy, IconX } from "@tabler/icons-react";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
+import { LocationSelectContainer } from "../containers/LocationSelectContainer";
 
 // Zodスキーマ定義（バリデーションルール）
 const sessionFormSchema = z.object({
@@ -63,12 +64,10 @@ export function SessionForm({
           {...form.getInputProps("date")}
         />
 
-        <TextInput
-          label="場所"
-          placeholder="例: ポーカースタジアム渋谷"
-          withAsterisk
-          maxLength={255}
-          {...form.getInputProps("location")}
+        <LocationSelectContainer
+          value={form.values.location}
+          onChange={(value) => form.setFieldValue("location", value ?? "")}
+          error={form.errors.location}
         />
 
         <NumberInput
