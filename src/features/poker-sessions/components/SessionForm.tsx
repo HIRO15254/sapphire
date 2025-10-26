@@ -1,12 +1,13 @@
 "use client";
 
-import { Button, Group, NumberInput, Stack, Textarea } from "@mantine/core";
+import { Button, Group, NumberInput, Stack } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { IconDeviceFloppy, IconX } from "@tabler/icons-react";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
 import { LocationSelectContainer } from "../containers/LocationSelectContainer";
+import { RichTextEditor } from "./RichTextEditor";
 
 // Zodスキーマ定義（バリデーションルール）
 const sessionFormSchema = z.object({
@@ -15,7 +16,7 @@ const sessionFormSchema = z.object({
   buyIn: z.number().nonnegative("バイインは0以上の値を入力してください"),
   cashOut: z.number().nonnegative("キャッシュアウトは0以上の値を入力してください"),
   durationMinutes: z.number().int().positive("プレイ時間は1分以上を入力してください"),
-  notes: z.string().max(10000, "メモは10,000文字以内で入力してください").optional(),
+  notes: z.string().max(50000, "メモは50,000文字以内で入力してください").optional(),
 });
 
 export type SessionFormValues = z.infer<typeof sessionFormSchema>;
@@ -102,15 +103,12 @@ export function SessionForm({
           {...form.getInputProps("durationMinutes")}
         />
 
-        <Textarea
-          label="メモ (任意)"
+        <RichTextEditor
+          value={form.values.notes ?? ""}
+          onChange={(value) => form.setFieldValue("notes", value)}
           placeholder="印象的なハンド、テーブルの雰囲気、学んだことなど"
-          maxLength={10000}
-          rows={4}
-          autosize
-          minRows={4}
-          maxRows={10}
-          {...form.getInputProps("notes")}
+          error={form.errors.notes}
+          label="メモ (任意)"
         />
 
         <Group justify="flex-end" gap="sm">
