@@ -35,10 +35,11 @@ export function NewSessionPage() {
   const handleSubmit = (values: SessionFormValues) => {
     createMutation.mutate({
       date: values.date,
-      location: values.location,
+      newLocationName: values.location,
       buyIn: values.buyIn,
       cashOut: values.cashOut,
       durationMinutes: values.durationMinutes,
+      newTagNames: values.tags,
       notes: values.notes || undefined,
     });
   };
@@ -49,7 +50,7 @@ export function NewSessionPage() {
         新規セッション
       </Title>
       <Paper shadow="sm" p="md" withBorder>
-        <SessionForm onSubmit={handleSubmit} isSubmitting={createMutation.isPending} />
+        <SessionForm onSubmit={handleSubmit} isLoading={createMutation.isPending} />
       </Paper>
     </Container>
   );

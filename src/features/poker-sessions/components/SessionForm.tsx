@@ -116,7 +116,7 @@ export function SessionForm({
           value={form.values.notes ?? ""}
           onChange={(value) => form.setFieldValue("notes", value)}
           placeholder="印象的なハンド、テーブルの雰囲気、学んだことなど"
-          error={form.errors.notes}
+          error={typeof form.errors.notes === "string" ? form.errors.notes : undefined}
           label="メモ (任意)"
         />
 

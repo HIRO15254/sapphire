@@ -109,7 +109,7 @@ export function RichTextEditor({
           </MantineRTE.ControlsGroup>
         </MantineRTE.Toolbar>
 
-        <MantineRTE.Content placeholder={placeholder} />
+        <MantineRTE.Content />
       </MantineRTE>
       {error && (
         <div style={{ color: "var(--mantine-color-error)", fontSize: "12px", marginTop: "4px" }}>

@@ -17,6 +17,8 @@ export interface LocationSelectProps
   isLoading?: boolean;
 }
 
+const CREATE_PREFIX = "__create__:";
+
 export function LocationSelect({
   value,
   onChange,
@@ -28,26 +30,41 @@ export function LocationSelect({
 }: LocationSelectProps) {
   const [searchValue, setSearchValue] = useState("");
 
-  // Prepare select data from locations
-  const selectData = useMemo(
-    () => locations.map((loc) => ({ value: loc.value, label: loc.label })),
-    [locations]
-  );
+  // Prepare select data with optional create option
+  const selectData = useMemo(() => {
+    const locationOptions = locations.map((loc) => ({ value: loc.value, label: loc.label }));
 
-  // Handle creating new location
-  const handleCreate = async (query: string) => {
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery || !onCreateNew) return null;
+    // Add create option if search value doesn't match existing locations and onCreateNew is provided
+    if (searchValue.trim() && onCreateNew) {
+      const existingMatch = locations.find(
+        (loc) => loc.value.toLowerCase() === searchValue.trim().toLowerCase()
+      );
+      if (!existingMatch) {
+        locationOptions.unshift({
+          value: `${CREATE_PREFIX}${searchValue.trim()}`,
+          label: `+ 新規追加: ${searchValue.trim()}`,
+        });
+      }
+    }
 
-    try {
-      await onCreateNew(trimmedQuery);
-      // After creation, select the new location
-      onChange(trimmedQuery);
-      setSearchValue("");
-      return trimmedQuery;
-    } catch (error) {
-      console.error("Failed to create location:", error);
-      return null;
+    return locationOptions;
+  }, [locations, searchValue, onCreateNew]);
+
+  // Handle selection (including create option)
+  const handleChange = async (selectedValue: string | null) => {
+    if (selectedValue?.startsWith(CREATE_PREFIX)) {
+      const newLocationName = selectedValue.slice(CREATE_PREFIX.length);
+      if (onCreateNew) {
+        try {
+          await onCreateNew(newLocationName);
+          onChange(newLocationName);
+          setSearchValue("");
+        } catch (error) {
+          console.error("Failed to create location:", error);
+        }
+      }
+    } else {
+      onChange(selectedValue);
     }
   };
 
@@ -58,23 +75,14 @@ export function LocationSelect({
       withAsterisk
       data={selectData}
       value={value}
-      onChange={onChange}
+      onChange={handleChange}
       searchable
-      creatable={!!onCreateNew}
-      getCreateLabel={(query) => `+ 新規追加: ${query}`}
-      onCreate={onCreateNew ? handleCreate : undefined}
       searchValue={searchValue}
       onSearchChange={setSearchValue}
       disabled={isLoading}
       error={error}
       maxDropdownHeight={300}
       limit={50}
-      filter={({ options, search }) => {
-        const filtered = options.filter((option) =>
-          option.label.toLowerCase().includes(search.toLowerCase().trim())
-        );
-        return filtered;
-      }}
       {...props}
     />
   );

@@ -4,7 +4,10 @@ import { IconMapPin } from "@tabler/icons-react";
 import { formatCurrency } from "@/lib/utils/currency";
 
 interface LocationStat {
-  location: string;
+  location: {
+    id: number;
+    name: string;
+  };
   profit: number;
   count: number;
   avgProfit: number;
@@ -43,9 +46,9 @@ export function LocationStats({ byLocation }: LocationStatsProps) {
                 stat.avgProfit > 0 ? "green" : stat.avgProfit < 0 ? "red" : "gray";
 
               return (
-                <Table.Tr key={stat.location}>
+                <Table.Tr key={stat.location.id}>
                   <Table.Td>
-                    <Text fw={500}>{stat.location}</Text>
+                    <Text fw={500}>{stat.location.name}</Text>
                   </Table.Td>
                   <Table.Td style={{ textAlign: "right" }}>
                     <Text c={profitColor} fw={600}>

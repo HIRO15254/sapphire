@@ -9,7 +9,10 @@ interface SessionDetailPageProps {
   session: {
     id: number;
     date: Date;
-    location: string;
+    location: {
+      id: number;
+      name: string;
+    };
     buyIn: string;
     cashOut: string;
     durationMinutes: number;
@@ -69,7 +72,7 @@ export function SessionDetailPage({ session }: SessionDetailPageProps) {
           <Stack gap="lg">
             <Group justify="space-between" align="flex-start">
               <Stack gap="xs">
-                <Title order={2}>{session.location}</Title>
+                <Title order={2}>{session.location.name}</Title>
                 <Text size="sm" c="dimmed">
                   {formatDate(session.date)}
                 </Text>

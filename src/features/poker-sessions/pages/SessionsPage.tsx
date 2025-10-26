@@ -20,12 +20,18 @@ interface SessionsPageProps {
   initialSessions: Array<{
     id: number;
     date: Date;
-    location: string;
+    location: {
+      id: number;
+      name: string;
+    };
     buyIn: string;
     cashOut: string;
     durationMinutes: number;
     profit: number;
-    tags?: string[];
+    tags: Array<{
+      id: number;
+      name: string;
+    }>;
     notes: string | null;
   }>;
   initialStats: {
@@ -33,7 +39,10 @@ interface SessionsPageProps {
     sessionCount: number;
     avgProfit: number;
     byLocation: Array<{
-      location: string;
+      location: {
+        id: number;
+        name: string;
+      };
       profit: number;
       count: number;
       avgProfit: number;
@@ -50,16 +59,7 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
     startDate?: Date;
     endDate?: Date;
   } | null>(null);
-  const [editingSession, setEditingSession] = useState<{
-    id: number;
-    date: Date;
-    location: string;
-    buyIn: string;
-    cashOut: string;
-    durationMinutes: number;
-    tags?: string[];
-    notes: string | null;
-  } | null>(null);
+  const [editingSession, setEditingSession] = useState<SessionsPageProps["initialSessions"][0] | null>(null);
 
   // Fetch tags for filter dropdown
   const { data: tags = [] } = api.tags.getAll.useQuery({});
@@ -125,7 +125,7 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
 
   // Extract unique locations from initial sessions for filter dropdown
   const uniqueLocations = Array.from(
-    new Set(initialSessions.map((session) => session.location))
+    new Set(initialSessions.map((session) => session.location.name))
   ).sort();
 
   return (
@@ -179,12 +179,12 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
               sessionId={editingSession.id}
               initialValues={{
                 date: editingSession.date,
-                location: editingSession.location,
+                location: editingSession.location.name,
                 buyIn: Number.parseFloat(editingSession.buyIn),
                 cashOut: Number.parseFloat(editingSession.cashOut),
                 durationMinutes: editingSession.durationMinutes,
-                tags: editingSession.tags,
-                notes: editingSession.notes,
+                tags: editingSession.tags.map((tag) => tag.name),
+                notes: editingSession.notes ?? undefined,
               }}
               onSuccess={() => { closeEditModal(); setEditingSession(null); }}
               onCancel={() => { closeEditModal(); setEditingSession(null); }}

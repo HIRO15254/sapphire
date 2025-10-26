@@ -3,7 +3,8 @@ import { JSDOM } from "jsdom";
 
 // Server-side DOMPurify setup with JSDOM
 const window = new JSDOM("").window;
-const purify = DOMPurify(window as unknown as Window);
+// biome-ignore lint/suspicious/noExplicitAny: DOMPurify type compatibility with JSDOM
+const purify = DOMPurify(window as any);
 
 // Allowed HTML tags for rich text memos
 const ALLOWED_TAGS = [
@@ -28,10 +29,8 @@ const ALLOWED_TAGS = [
   "blockquote",
 ];
 
-// Allowed attributes for specific tags
-const ALLOWED_ATTR: { [key: string]: string[] } = {
-  a: ["href", "rel", "target"],
-};
+// Allowed attributes (flat list for DOMPurify)
+const ALLOWED_ATTR = ["href", "rel", "target"];
 
 /**
  * Sanitizes HTML content to prevent XSS attacks

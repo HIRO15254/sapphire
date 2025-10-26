@@ -14,7 +14,10 @@ interface EditSessionPageProps {
   session: {
     id: number;
     date: Date;
-    location: string;
+    location: {
+      id: number;
+      name: string;
+    };
     buyIn: string;
     cashOut: string;
     durationMinutes: number;
@@ -48,10 +51,11 @@ export function EditSessionPage({ session }: EditSessionPageProps) {
     updateMutation.mutate({
       id: session.id,
       date: values.date,
-      location: values.location,
+      newLocationName: values.location,
       buyIn: values.buyIn,
       cashOut: values.cashOut,
       durationMinutes: values.durationMinutes,
+      newTagNames: values.tags,
       notes: values.notes || null,
     });
   };
@@ -65,14 +69,14 @@ export function EditSessionPage({ session }: EditSessionPageProps) {
         <SessionForm
           initialValues={{
             date: new Date(session.date),
-            location: session.location,
+            location: session.location.name,
             buyIn: Number.parseFloat(session.buyIn),
             cashOut: Number.parseFloat(session.cashOut),
             durationMinutes: session.durationMinutes,
             notes: session.notes || "",
           }}
           onSubmit={handleSubmit}
-          isSubmitting={updateMutation.isPending}
+          isLoading={updateMutation.isPending}
           submitLabel="更新"
         />
       </Paper>

@@ -6,12 +6,18 @@ export interface SessionCardProps {
   session: {
     id: number;
     date: Date;
-    location: string;
+    location: {
+      id: number;
+      name: string;
+    };
     buyIn: string;
     cashOut: string;
     durationMinutes: number;
     profit: number;
-    tags?: string[];
+    tags: Array<{
+      id: number;
+      name: string;
+    }>;
     notes: string | null;
   };
   onEdit?: (id: number) => void;
@@ -51,7 +57,7 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
         <Group justify="space-between" align="flex-start">
           <Stack gap={4}>
             <Text fw={600} size="lg">
-              {session.location}
+              {session.location.name}
             </Text>
             <Text size="sm" c="dimmed">
               {formatDate(session.date)}
@@ -87,8 +93,8 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
         {session.tags && session.tags.length > 0 && (
           <Group gap="xs">
             {session.tags.map((tag) => (
-              <Badge key={tag} variant="light" size="sm">
-                {tag}
+              <Badge key={tag.id} variant="light" size="sm">
+                {tag.name}
               </Badge>
             ))}
           </Group>
