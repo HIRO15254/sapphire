@@ -4,13 +4,16 @@ import { Button, Container, Divider, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconPlus } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { LocationStats } from "@/features/poker-sessions/components/LocationStats";
 import { SessionFilters } from "@/features/poker-sessions/components/SessionFilters";
 import { SessionList } from "@/features/poker-sessions/components/SessionList";
+import { SessionModal } from "@/features/poker-sessions/components/SessionModal";
 import { SessionStats } from "@/features/poker-sessions/components/SessionStats";
+import { SessionFormContainer } from "@/features/poker-sessions/containers/SessionFormContainer";
 import { SessionModalContainer } from "@/features/poker-sessions/containers/SessionModalContainer";
+import { useSessionModal } from "@/features/poker-sessions/hooks/useSessionModal";
 import { api } from "@/trpc/react";
 
 interface SessionsPageProps {
@@ -40,15 +43,33 @@ interface SessionsPageProps {
 
 export function SessionsPage({ initialSessions, initialStats }: SessionsPageProps) {
   const router = useRouter();
+  const { opened: editModalOpened, open: openEditModal, close: closeEditModal } = useSessionModal();
   const [filters, setFilters] = useState<{
     location?: string;
     tagIds?: number[];
     startDate?: Date;
     endDate?: Date;
   } | null>(null);
+  const [editingSession, setEditingSession] = useState<{
+    id: number;
+    date: Date;
+    location: string;
+    buyIn: string;
+    cashOut: string;
+    durationMinutes: number;
+    tags?: string[];
+    notes: string | null;
+  } | null>(null);
 
   // Fetch tags for filter dropdown
   const { data: tags = [] } = api.tags.getAll.useQuery({});
+
+  // Open edit modal when editing session changes
+  useEffect(() => {
+    if (editingSession) {
+      openEditModal();
+    }
+  }, [editingSession, openEditModal]);
 
   // Use filtered query if filters are active, otherwise use initial data
   const { data: filteredSessions } = api.sessions.getFiltered.useQuery(filters!, {
@@ -74,7 +95,10 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
   });
 
   const handleEdit = (id: number) => {
-    router.push(`/poker-sessions/${id}/edit`);
+    const session = displaySessions.find((s) => s.id === id);
+    if (session) {
+      setEditingSession(session);
+    }
   };
 
   const handleDelete = (id: number) => {
@@ -148,6 +172,26 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
         )}
 
         <SessionList sessions={displaySessions} onEdit={handleEdit} onDelete={handleDelete} />
+
+        {editingSession && (
+          <SessionModal opened={editModalOpened} onClose={() => { closeEditModal(); setEditingSession(null); }} title="セッション編集">
+            <SessionFormContainer
+              sessionId={editingSession.id}
+              initialValues={{
+                date: editingSession.date,
+                location: editingSession.location,
+                buyIn: Number.parseFloat(editingSession.buyIn),
+                cashOut: Number.parseFloat(editingSession.cashOut),
+                durationMinutes: editingSession.durationMinutes,
+                tags: editingSession.tags,
+                notes: editingSession.notes,
+              }}
+              onSuccess={() => { closeEditModal(); setEditingSession(null); }}
+              onCancel={() => { closeEditModal(); setEditingSession(null); }}
+              submitLabel="更新"
+            />
+          </SessionModal>
+        )}
       </Stack>
     </Container>
   );

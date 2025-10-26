@@ -10,6 +10,7 @@ import { api } from "@/trpc/react";
 export interface SessionFormContainerProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  sessionId?: number;
   initialValues?: Partial<SessionFormValues>;
   submitLabel?: string;
 }
@@ -18,13 +19,14 @@ export interface SessionFormContainerProps {
  * SessionFormコンポーネントのContainer
  *
  * @remarks
- * - tRPC mutationを使用してセッションを作成
+ * - tRPC mutationを使用してセッションを作成または更新
  * - 成功時にキャッシュを無効化してモーダルを閉じる
  * - エラー時に通知を表示
  */
 export function SessionFormContainer({
   onSuccess,
   onCancel,
+  sessionId,
   initialValues,
   submitLabel = "保存",
 }: SessionFormContainerProps) {
@@ -33,7 +35,6 @@ export function SessionFormContainer({
 
   const createSession = api.sessions.create.useMutation({
     onSuccess: async () => {
-      // キャッシュ無効化
       await utils.sessions.getAll.invalidate();
       await utils.sessions.getStats.invalidate();
 
@@ -55,16 +56,57 @@ export function SessionFormContainer({
     },
   });
 
+  const updateSession = api.sessions.update.useMutation({
+    onSuccess: async () => {
+      await utils.sessions.getAll.invalidate();
+      await utils.sessions.getStats.invalidate();
+      if (sessionId) {
+        await utils.sessions.getById.invalidate({ id: sessionId });
+      }
+
+      notifications.show({
+        title: "成功",
+        message: "セッションを更新しました",
+        color: "green",
+      });
+
+      onSuccess?.();
+      router.refresh();
+    },
+    onError: (error) => {
+      notifications.show({
+        title: "エラー",
+        message: error.message || "セッションの更新に失敗しました",
+        color: "red",
+      });
+    },
+  });
+
   const handleSubmit = (values: SessionFormValues) => {
-    createSession.mutate({
-      date: values.date,
-      newLocationName: values.location,
-      buyIn: values.buyIn,
-      cashOut: values.cashOut,
-      durationMinutes: values.durationMinutes,
-      newTagNames: values.tags,
-      notes: values.notes,
-    });
+    if (sessionId) {
+      // 編集モード
+      updateSession.mutate({
+        id: sessionId,
+        date: values.date,
+        newLocationName: values.location,
+        buyIn: values.buyIn,
+        cashOut: values.cashOut,
+        durationMinutes: values.durationMinutes,
+        newTagNames: values.tags,
+        notes: values.notes,
+      });
+    } else {
+      // 新規作成モード
+      createSession.mutate({
+        date: values.date,
+        newLocationName: values.location,
+        buyIn: values.buyIn,
+        cashOut: values.cashOut,
+        durationMinutes: values.durationMinutes,
+        newTagNames: values.tags,
+        notes: values.notes,
+      });
+    }
   };
 
   return (
@@ -72,7 +114,7 @@ export function SessionFormContainer({
       initialValues={initialValues}
       onSubmit={handleSubmit}
       onCancel={onCancel}
-      isLoading={createSession.isPending}
+      isLoading={createSession.isPending || updateSession.isPending}
       submitLabel={submitLabel}
     />
   );

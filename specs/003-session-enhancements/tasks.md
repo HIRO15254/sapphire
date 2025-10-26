@@ -482,7 +482,7 @@
 
 ### Presentationコンポーネント
 
-- [ ] [T065] [P4] [US4] `TagMultiSelect`コンポーネントを作成する
+- [X] [T065] [P4] [US4] `TagMultiSelect`コンポーネントを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/components/TagMultiSelect.tsx`
   - Props: `value`, `onChange`, `tags`, `onCreateNew`, `isLoading`
   - Mantine `MultiSelect`（searchable, creatable）を使用
@@ -490,37 +490,37 @@
   - タグ削除アイコン（AS4.2）
   - 最大20タグのバリデーション
 
-- [ ] [T066] [P4] [US4] `SessionForm`コンポーネントにタグフィールドを追加する
+- [X] [T066] [P4] [US4] `SessionForm`コンポーネントにタグフィールドを追加する ✓ DONE
   - `TagMultiSelect`コンポーネントを統合
 
-- [ ] [T067] [P4] [US4] `SessionCard`コンポーネントを更新してタグを表示する
+- [X] [T067] [P4] [US4] `SessionCard`コンポーネントを更新してタグを表示する ✓ DONE
   - ファイル: `src/features/poker-sessions/components/SessionCard.tsx`
   - タグをバッジで表示（Mantine `Badge`）
 
-- [ ] [T068] [P4] [US4] `SessionList`コンポーネントにタグフィルターUIを追加する
-  - ファイル: `src/features/poker-sessions/components/SessionList.tsx`
-  - タグフィルター選択UI
+- [X] [T068] [P4] [US4] `SessionFilters`コンポーネントにタグフィルターUIを追加する ✓ DONE
+  - ファイル: `src/features/poker-sessions/components/SessionFilters.tsx`
+  - タグフィルター選択UI (MultiSelect)
   - フィルター適用ボタン
 
 ### Containerコンポーネント
 
-- [ ] [T069] [P4] [US4] `useTags` hookを作成する
+- [X] [T069] [P4] [US4] `useTags` hookを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/hooks/useTags.ts`
   - `api.tags.getAll.useQuery()`を使用
   - タグリストをフォーマット（`{ value, label }`形式）
   - 検索フィルター対応
 
-- [ ] [T070] [P4] [US4] `TagMultiSelectContainer`コンポーネントを作成する
+- [X] [T070] [P4] [US4] `TagMultiSelectContainer`コンポーネントを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/containers/TagMultiSelectContainer.tsx`
   - `useTags` hookを使用
   - `api.tags.create.useMutation()`で新規タグ作成
   - 新規作成時のキャッシュ無効化
   - `TagMultiSelect`をレンダリング
 
-- [ ] [T071] [P4] [US4] `SessionFormContainer`を更新して`TagMultiSelectContainer`を統合する
+- [X] [T071] [P4] [US4] `SessionFormContainer`を更新して`TagMultiSelectContainer`を統合する ✓ DONE
 
-- [ ] [T072] [P4] [US4] `SessionListContainer`を更新してタグフィルター機能を追加する
-  - ファイル: `src/features/poker-sessions/containers/SessionListContainer.tsx`
+- [X] [T072] [P4] [US4] `SessionsPage`を更新してタグフィルター機能を追加する ✓ DONE
+  - ファイル: `src/features/poker-sessions/pages/SessionsPage.tsx`
   - タグフィルター状態管理
   - `api.sessions.getFiltered.useQuery({ tagIds })`を使用
   - AND条件フィルタリング（AS4.4）
