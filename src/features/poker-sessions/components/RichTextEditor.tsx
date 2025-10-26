@@ -2,6 +2,7 @@
 
 import { RichTextEditor as MantineRTE, Link as TiptapLink } from "@mantine/tiptap";
 import { useEditor } from "@tiptap/react";
+import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect } from "react";
 
@@ -22,35 +23,41 @@ export function RichTextEditor({
   label = "メモ",
   withAsterisk = false,
 }: RichTextEditorProps) {
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit.configure({
+          heading: {
+            levels: [1, 2, 3],
+          },
+        }),
+        TiptapLink.configure({
+          openOnClick: false,
+          HTMLAttributes: {
+            rel: "noopener noreferrer",
+            target: "_blank",
+          },
+        }),
+        Placeholder.configure({
+          placeholder,
+        }),
+      ],
+      content: value || "",
+      onUpdate: ({ editor: updatedEditor }) => {
+        const html = updatedEditor.getHTML();
+        // Only call onChange if content actually changed
+        if (html !== value) {
+          onChange(html);
+        }
+      },
+      editorProps: {
+        attributes: {
+          style: "min-height: 200px; max-height: 400px; overflow-y: auto;",
         },
-      }),
-      TiptapLink.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          rel: "noopener noreferrer",
-          target: "_blank",
-        },
-      }),
-    ],
-    content: value || "",
-    onUpdate: ({ editor: updatedEditor }) => {
-      const html = updatedEditor.getHTML();
-      // Only call onChange if content actually changed
-      if (html !== value) {
-        onChange(html);
-      }
-    },
-    editorProps: {
-      attributes: {
-        style: "min-height: 200px; max-height: 400px; overflow-y: auto;",
       },
     },
-  });
+    [] // 依存配列を空にして再初期化を防ぐ
+  );
 
   // Update editor content when value prop changes externally
   useEffect(() => {
@@ -58,10 +65,6 @@ export function RichTextEditor({
       editor.commands.setContent(value || "");
     }
   }, [editor, value]);
-
-  if (!editor) {
-    return null;
-  }
 
   return (
     <div>
@@ -78,7 +81,12 @@ export function RichTextEditor({
           {withAsterisk && <span style={{ color: "red", marginLeft: "4px" }}>*</span>}
         </label>
       )}
-      <MantineRTE editor={editor} style={{ ...(error && { borderColor: "var(--mantine-color-error)" }) }}>
+      {!editor ? (
+        <div style={{ minHeight: "200px", padding: "12px", border: "1px solid #dee2e6", borderRadius: "4px" }}>
+          読み込み中...
+        </div>
+      ) : (
+        <MantineRTE editor={editor} style={{ ...(error && { borderColor: "var(--mantine-color-error)" }) }}>
         <MantineRTE.Toolbar sticky stickyOffset={60}>
           <MantineRTE.ControlsGroup>
             <MantineRTE.Bold />
@@ -111,6 +119,7 @@ export function RichTextEditor({
 
         <MantineRTE.Content />
       </MantineRTE>
+      )}
       {error && (
         <div style={{ color: "var(--mantine-color-error)", fontSize: "12px", marginTop: "4px" }}>
           {error}

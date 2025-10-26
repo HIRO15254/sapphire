@@ -65,6 +65,7 @@
     "@tabler/icons-react": "^3.35.0",
     "@tanstack/react-query": "^5.90.5",
     "@tiptap/extension-link": "^2.10.4",
+    "@tiptap/extension-placeholder": "^3.8.0",
     "@tiptap/react": "^2.10.4",
     "@tiptap/starter-kit": "^2.10.4",
     "@trpc/client": "^11.6.0",
