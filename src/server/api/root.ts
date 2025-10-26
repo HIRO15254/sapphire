@@ -1,4 +1,6 @@
+import { locationsRouter } from "@/server/api/routers/locations";
 import { sessionsRouter } from "@/server/api/routers/sessions";
+import { tagsRouter } from "@/server/api/routers/tags";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 
 /**
@@ -8,6 +10,8 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   sessions: sessionsRouter,
+  locations: locationsRouter,
+  tags: tagsRouter,
 });
 
 // export type definition of API

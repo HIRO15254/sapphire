@@ -6,9 +6,9 @@ import {
   numeric,
   pgTableCreator,
   primaryKey,
-  serial,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -43,6 +43,8 @@ export const users = createTable("user", (d) => ({
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
   pokerSessions: many(pokerSessions),
+  locations: many(locations),
+  tags: many(tags),
 }));
 
 export const accounts = createTable(
@@ -100,21 +102,124 @@ export const verificationTokens = createTable(
   (t) => [primaryKey({ columns: [t.identifier, t.token] })]
 );
 
+// Location table (for poker session locations)
+export const locations = createTable(
+  "location",
+  (d) => ({
+    id: d.integer().primaryKey().generatedAlwaysAsIdentity(),
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: d.varchar({ length: 255 }).notNull(),
+    createdAt: d.timestamp({ mode: "date", withTimezone: true }).notNull().defaultNow(),
+    updatedAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("location_user_id_idx").on(t.userId),
+    // Case-insensitive unique index: userId + lowercase name
+    uniqueIndex("location_user_name_unique").on(t.userId, sql`LOWER(${t.name})`),
+  ]
+);
+
+export const locationsRelations = relations(locations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [locations.userId],
+    references: [users.id],
+  }),
+  pokerSessions: many(pokerSessions),
+}));
+
+export type Location = typeof locations.$inferSelect;
+export type NewLocation = typeof locations.$inferInsert;
+
+// Tag table (for poker session tags)
+export const tags = createTable(
+  "tag",
+  (d) => ({
+    id: d.integer().primaryKey().generatedAlwaysAsIdentity(),
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: d.varchar({ length: 50 }).notNull(),
+    createdAt: d.timestamp({ mode: "date", withTimezone: true }).notNull().defaultNow(),
+    updatedAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("tag_user_id_idx").on(t.userId),
+    // Case-insensitive unique index: userId + lowercase name
+    uniqueIndex("tag_user_name_unique").on(t.userId, sql`LOWER(${t.name})`),
+  ]
+);
+
+export const tagsRelations = relations(tags, ({ one, many }) => ({
+  user: one(users, {
+    fields: [tags.userId],
+    references: [users.id],
+  }),
+  sessionTags: many(sessionTags),
+}));
+
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
+// Session-Tag junction table (many-to-many)
+export const sessionTags = createTable(
+  "session_tag",
+  (d) => ({
+    sessionId: d
+      .integer()
+      .notNull()
+      .references(() => pokerSessions.id, { onDelete: "cascade" }),
+    tagId: d
+      .integer()
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  }),
+  (t) => [
+    primaryKey({ columns: [t.sessionId, t.tagId] }),
+    index("session_tag_tag_id_idx").on(t.tagId),
+  ]
+);
+
+export const sessionTagsRelations = relations(sessionTags, ({ one }) => ({
+  session: one(pokerSessions, {
+    fields: [sessionTags.sessionId],
+    references: [pokerSessions.id],
+  }),
+  tag: one(tags, {
+    fields: [sessionTags.tagId],
+    references: [tags.id],
+  }),
+}));
+
 // Poker Session table
 export const pokerSessions = createTable(
   "poker_session",
   (d) => ({
-    id: d.serial().primaryKey(),
+    id: d.integer().primaryKey().generatedAlwaysAsIdentity(),
     userId: d
       .varchar({ length: 255 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     date: d.timestamp({ mode: "date", withTimezone: true }).notNull(),
-    location: d.varchar({ length: 255 }).notNull(),
+    locationId: d
+      .integer()
+      .notNull()
+      .references(() => locations.id),
     buyIn: d.numeric({ precision: 10, scale: 2 }).notNull(),
     cashOut: d.numeric({ precision: 10, scale: 2 }).notNull(),
     durationMinutes: d.integer().notNull(),
-    notes: d.text(),
+    notes: d.text(), // HTML string
     createdAt: d.timestamp({ mode: "date", withTimezone: true }).notNull().defaultNow(),
     updatedAt: d
       .timestamp({ mode: "date", withTimezone: true })
@@ -124,16 +229,21 @@ export const pokerSessions = createTable(
   }),
   (t) => [
     index("session_user_date_idx").on(t.userId, t.date.desc()),
-    index("session_user_location_idx").on(t.userId, t.location),
-    index("session_user_date_location_idx").on(t.userId, t.date, t.location),
+    index("session_user_location_idx").on(t.userId, t.locationId),
+    index("session_user_date_location_idx").on(t.userId, t.date, t.locationId),
   ]
 );
 
-export const pokerSessionsRelations = relations(pokerSessions, ({ one }) => ({
+export const pokerSessionsRelations = relations(pokerSessions, ({ one, many }) => ({
   user: one(users, {
     fields: [pokerSessions.userId],
     references: [users.id],
   }),
+  location: one(locations, {
+    fields: [pokerSessions.locationId],
+    references: [locations.id],
+  }),
+  sessionTags: many(sessionTags),
 }));
 
 export type PokerSession = typeof pokerSessions.$inferSelect;

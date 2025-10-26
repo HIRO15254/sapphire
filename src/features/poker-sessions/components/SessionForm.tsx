@@ -1,31 +1,20 @@
 "use client";
 
-import { Button, NumberInput, Stack, TextInput, Textarea } from "@mantine/core";
+import { Button, Group, NumberInput, Stack, TextInput, Textarea } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
-import { IconDeviceFloppy } from "@tabler/icons-react";
-import { zod4Resolver } from "mantine-form-zod-resolver";
-import { z } from "zod/v4";
+import { IconDeviceFloppy, IconX } from "@tabler/icons-react";
+import { zodResolver } from "mantine-form-zod-resolver";
+import { z } from "zod";
 
 // Zodスキーマ定義（バリデーションルール）
 const sessionFormSchema = z.object({
-  date: z.coerce.date({ error: "有効な日時を選択してください" }),
-  location: z
-    .string({ error: "場所を入力してください" })
-    .min(1, { error: "場所を入力してください" })
-    .max(255, { error: "場所は255文字以内で入力してください" })
-    .trim(),
-  buyIn: z
-    .number({ error: "有効な金額を入力してください" })
-    .nonnegative({ error: "バイインは0以上の値を入力してください" }),
-  cashOut: z
-    .number({ error: "有効な金額を入力してください" })
-    .nonnegative({ error: "キャッシュアウトは0以上の値を入力してください" }),
-  durationMinutes: z
-    .number({ error: "有効な数値を入力してください" })
-    .int({ error: "プレイ時間は整数で入力してください" })
-    .positive({ error: "プレイ時間は1分以上を入力してください" }),
-  notes: z.string().max(10000, { error: "メモは10,000文字以内で入力してください" }).optional(),
+  date: z.coerce.date(),
+  location: z.string().min(1, "場所を入力してください").max(255).trim(),
+  buyIn: z.number().nonnegative("バイインは0以上の値を入力してください"),
+  cashOut: z.number().nonnegative("キャッシュアウトは0以上の値を入力してください"),
+  durationMinutes: z.number().int().positive("プレイ時間は1分以上を入力してください"),
+  notes: z.string().max(10000, "メモは10,000文字以内で入力してください").optional(),
 });
 
 export type SessionFormValues = z.infer<typeof sessionFormSchema>;
@@ -33,14 +22,16 @@ export type SessionFormValues = z.infer<typeof sessionFormSchema>;
 export interface SessionFormProps {
   initialValues?: Partial<SessionFormValues>;
   onSubmit: (values: SessionFormValues) => void;
-  isSubmitting?: boolean;
+  onCancel?: () => void;
+  isLoading?: boolean;
   submitLabel?: string;
 }
 
 export function SessionForm({
   initialValues,
   onSubmit,
-  isSubmitting = false,
+  onCancel,
+  isLoading = false,
   submitLabel = "保存",
 }: SessionFormProps) {
   const form = useForm<SessionFormValues>({
@@ -52,7 +43,7 @@ export function SessionForm({
       durationMinutes: initialValues?.durationMinutes ?? 0,
       notes: initialValues?.notes ?? "",
     },
-    validate: zod4Resolver(sessionFormSchema),
+    validate: zodResolver(sessionFormSchema),
   });
 
   const handleSubmit = (values: SessionFormValues) => {
@@ -123,14 +114,16 @@ export function SessionForm({
           {...form.getInputProps("notes")}
         />
 
-        <Button
-          type="submit"
-          loading={isSubmitting}
-          leftSection={<IconDeviceFloppy size={20} />}
-          fullWidth
-        >
-          {submitLabel}
-        </Button>
+        <Group justify="flex-end" gap="sm">
+          {onCancel && (
+            <Button variant="default" onClick={onCancel} leftSection={<IconX size={20} />}>
+              キャンセル
+            </Button>
+          )}
+          <Button type="submit" loading={isLoading} leftSection={<IconDeviceFloppy size={20} />}>
+            {submitLabel}
+          </Button>
+        </Group>
       </Stack>
     </form>
   );
