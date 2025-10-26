@@ -59,6 +59,7 @@
     "@mantine/core": "^8.3.5",
     "@mantine/dates": "^8.3.5",
     "@mantine/hooks": "^8.3.5",
+    "@mantine/modals": "^8.3.5",
     "@mantine/notifications": "^8.3.5",
     "@mantine/tiptap": "^8.3.5",
     "@t3-oss/env-nextjs": "^0.12.0",

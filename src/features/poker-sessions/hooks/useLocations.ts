@@ -18,6 +18,7 @@ export function useLocations(options: UseLocationsOptions = {}) {
     return locationsData.map((location) => ({
       value: location.name,
       label: location.name,
+      id: location.id,
     }));
   }, [locationsData]);
 

@@ -18,6 +18,7 @@ export function useTags(options: UseTagsOptions = {}) {
     return tagsData.map((tag) => ({
       value: tag.name,
       label: tag.name,
+      id: tag.id,
     }));
   }, [tagsData]);
 

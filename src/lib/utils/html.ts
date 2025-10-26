@@ -1,6 +1,7 @@
 /**
  * Strip HTML tags from a string to get plain text
  * Used for previews and excerpts where formatting is not needed
+ * Works in both server and client environments
  */
 export function stripHtml(html: string | null | undefined): string {
   if (!html) return "";
@@ -9,10 +10,21 @@ export function stripHtml(html: string | null | undefined): string {
   const withoutTags = html.replace(/<[^>]*>/g, "");
 
   // Decode common HTML entities
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = withoutTags;
+  // Check if we're in a browser environment
+  if (typeof document !== "undefined") {
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = withoutTags;
+    return textarea.value;
+  }
 
-  return textarea.value;
+  // Server-side fallback: decode common HTML entities manually
+  return withoutTags
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&nbsp;/g, " ");
 }
 
 /**

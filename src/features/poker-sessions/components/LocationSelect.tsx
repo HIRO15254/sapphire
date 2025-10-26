@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 export interface LocationOption {
   value: string;
   label: string;
+  id?: number;
 }
 
 export interface LocationSelectProps
@@ -32,7 +33,11 @@ export function LocationSelect({
 
   // Prepare select data with optional create option
   const selectData = useMemo(() => {
-    const locationOptions = locations.map((loc) => ({ value: loc.value, label: loc.label }));
+    const locationOptions = locations.map((loc) => ({
+      value: loc.value,
+      label: loc.label,
+      id: loc.id,
+    }));
 
     // Add create option if search value doesn't match existing locations and onCreateNew is provided
     if (searchValue.trim() && onCreateNew) {
@@ -43,6 +48,7 @@ export function LocationSelect({
         locationOptions.unshift({
           value: `${CREATE_PREFIX}${searchValue.trim()}`,
           label: `+ 新規追加: ${searchValue.trim()}`,
+          id: undefined,
         });
       }
     }

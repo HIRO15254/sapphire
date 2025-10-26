@@ -87,7 +87,7 @@ export const locationsRouter = createTRPCRouter({
     return newLocation;
   }),
 
-  // Delete a location (FR-020: replace with default location)
+  // Delete a location (only if not assigned to any sessions)
   delete: protectedProcedure.input(deleteLocationSchema).mutation(async ({ ctx, input }) => {
     // Verify ownership
     const [location] = await ctx.db
@@ -110,48 +110,25 @@ export const locationsRouter = createTRPCRouter({
       });
     }
 
-    // Get or create default "deleted location"
-    let [defaultLocation] = await ctx.db
-      .select()
-      .from(locations)
-      .where(
-        and(
-          eq(locations.userId, ctx.session.user.id),
-          eq(locations.name, DEFAULT_DELETED_LOCATION)
-        )
-      );
+    // Check if any sessions are using this location
+    const [sessionCount] = await ctx.db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(pokerSessions)
+      .where(eq(pokerSessions.locationId, input.id));
 
-    if (!defaultLocation) {
-      // Create default location if it doesn't exist
-      [defaultLocation] = await ctx.db
-        .insert(locations)
-        .values({
-          userId: ctx.session.user.id,
-          name: DEFAULT_DELETED_LOCATION,
-        })
-        .returning();
-    }
-
-    if (!defaultLocation) {
+    if (sessionCount && sessionCount.count > 0) {
       throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "デフォルト場所の作成に失敗しました",
+        code: "BAD_REQUEST",
+        message: `この場所は${sessionCount.count}件のセッションに使用されているため削除できません`,
       });
     }
-
-    // Update all sessions using this location to use the default location
-    const updatedSessions = await ctx.db
-      .update(pokerSessions)
-      .set({ locationId: defaultLocation.id })
-      .where(eq(pokerSessions.locationId, input.id))
-      .returning();
 
     // Delete the location
     await ctx.db.delete(locations).where(eq(locations.id, input.id));
 
     return {
       success: true,
-      affectedSessions: updatedSessions.length,
+      affectedSessions: 0,
     };
   }),
 });

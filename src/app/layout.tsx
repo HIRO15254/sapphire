@@ -5,6 +5,7 @@ import "@mantine/dates/styles.css";
 import "@mantine/tiptap/styles.css";
 
 import { ColorSchemeScript, MantineProvider, createTheme, mantineHtmlProps } from "@mantine/core";
+import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
@@ -65,8 +66,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={geist.className}>
         <ServiceWorkerRegistration />
         <MantineProvider theme={theme}>
-          <Notifications />
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <ModalsProvider>
+            <Notifications />
+            <TRPCReactProvider>{children}</TRPCReactProvider>
+          </ModalsProvider>
         </MantineProvider>
       </body>
     </html>
