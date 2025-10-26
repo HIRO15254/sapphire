@@ -22,6 +22,7 @@ interface SessionsPageProps {
     cashOut: string;
     durationMinutes: number;
     profit: number;
+    tags?: string[];
     notes: string | null;
   }>;
   initialStats: {
@@ -41,9 +42,13 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
   const router = useRouter();
   const [filters, setFilters] = useState<{
     location?: string;
+    tagIds?: number[];
     startDate?: Date;
     endDate?: Date;
   } | null>(null);
+
+  // Fetch tags for filter dropdown
+  const { data: tags = [] } = api.tags.getAll.useQuery({});
 
   // Use filtered query if filters are active, otherwise use initial data
   const { data: filteredSessions } = api.sessions.getFiltered.useQuery(filters!, {
@@ -80,6 +85,7 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
 
   const handleApplyFilters = (newFilters: {
     location?: string;
+    tagIds?: number[];
     startDate?: Date;
     endDate?: Date;
   }) => {
@@ -127,6 +133,7 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
 
         <SessionFilters
           locations={uniqueLocations}
+          tags={tags}
           onApplyFilters={handleApplyFilters}
           onClearFilters={handleClearFilters}
           isFiltering={filters !== null}

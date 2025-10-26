@@ -1,14 +1,16 @@
 "use client";
 
-import { Button, Collapse, Group, Paper, Select, Stack } from "@mantine/core";
+import { Button, Collapse, Group, MultiSelect, Paper, Select, Stack } from "@mantine/core";
 import { DatePickerInput, type DatesRangeValue } from "@mantine/dates";
 import { IconFilter, IconFilterOff, IconSearch } from "@tabler/icons-react";
 import { useState } from "react";
 
 interface SessionFiltersProps {
   locations: string[];
+  tags?: Array<{ id: number; name: string }>;
   onApplyFilters: (filters: {
     location?: string;
+    tagIds?: number[];
     startDate?: Date;
     endDate?: Date;
   }) => void;
@@ -18,23 +20,29 @@ interface SessionFiltersProps {
 
 export function SessionFilters({
   locations,
+  tags = [],
   onApplyFilters,
   onClearFilters,
   isFiltering,
 }: SessionFiltersProps) {
   const [opened, setOpened] = useState(false);
   const [location, setLocation] = useState<string | null>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DatesRangeValue>([null, null]);
 
   const handleApply = () => {
     const filters: {
       location?: string;
+      tagIds?: number[];
       startDate?: Date;
       endDate?: Date;
     } = {};
 
     if (location) {
       filters.location = location;
+    }
+    if (selectedTagIds.length > 0) {
+      filters.tagIds = selectedTagIds.map((id) => Number.parseInt(id, 10));
     }
     if (dateRange[0]) {
       filters.startDate = dateRange[0] instanceof Date ? dateRange[0] : new Date(dateRange[0]);
@@ -48,11 +56,13 @@ export function SessionFilters({
 
   const handleClear = () => {
     setLocation(null);
+    setSelectedTagIds([]);
     setDateRange([null, null]);
     onClearFilters();
   };
 
-  const hasActiveFilters = location !== null || dateRange[0] !== null || dateRange[1] !== null;
+  const hasActiveFilters =
+    location !== null || selectedTagIds.length > 0 || dateRange[0] !== null || dateRange[1] !== null;
 
   return (
     <Paper withBorder p="md">
@@ -86,6 +96,17 @@ export function SessionFilters({
               data={locations.map((loc) => ({ value: loc, label: loc }))}
               value={location}
               onChange={setLocation}
+              clearable
+              searchable
+            />
+
+            <MultiSelect
+              label="タグ"
+              placeholder="タグで絞り込み"
+              description="複数選択した場合、すべてのタグを持つセッションのみ表示されます"
+              data={tags.map((tag) => ({ value: tag.id.toString(), label: tag.name }))}
+              value={selectedTagIds}
+              onChange={setSelectedTagIds}
               clearable
               searchable
             />
