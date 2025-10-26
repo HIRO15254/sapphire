@@ -11,7 +11,7 @@ export const getAllLocationsSchema = z.object({
 });
 
 export const createLocationSchema = z.object({
-  name: z.string().min(1).max(255).trim(),
+  name: z.string().trim().min(1).max(100),
 });
 
 export const deleteLocationSchema = z.object({
@@ -35,6 +35,7 @@ export const locationsRouter = createTRPCRouter({
     const results = await ctx.db
       .select({
         id: locations.id,
+        userId: locations.userId,
         name: locations.name,
         sessionCount: sql<number>`COUNT(${pokerSessions.id})::int`,
       })
@@ -58,7 +59,7 @@ export const locationsRouter = createTRPCRouter({
       .where(
         and(
           eq(locations.userId, ctx.session.user.id),
-          sql`LOWER(${locations.name}) = LOWER(${normalizedName})`
+          sql`LOWER(${locations.name}) = ${normalizedName.toLowerCase()}`
         )
       );
 

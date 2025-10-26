@@ -4,6 +4,20 @@
 **Generated**: 2025-10-26
 **Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md)
 
+## テスト方針
+
+**このプロジェクトで実施するテスト**:
+1. **API契約テスト** (`tests/contract/*.test.ts`): tRPC proceduresの入出力検証
+2. **フロントエンドコンポーネントテスト** (`tests/components/*.test.tsx`): UIコンポーネントの表示・動作検証
+
+**実施しないテスト**:
+- ❌ 統合テスト（APIとフロントエンドを繋ぐテスト）
+- ❌ E2Eテスト（実際のブラウザでのエンドツーエンドテスト）
+
+**重要**: 以下のタスクリストに記載されている「統合テスト」と「E2Eテスト」のセクションは、すべてスキップします。実施するのは「契約テスト」セクションのみです。
+
+詳細は[CLAUDE.md](../../CLAUDE.md)の「Testing Strategy」セクションを参照してください。
+
 ## Task Organization
 
 タスクは以下のフェーズに分類されています:
@@ -214,14 +228,14 @@
 
 ### Presentationコンポーネント
 
-- [ ] [T027] [P1] [US1] `SessionModal`コンポーネントを作成する
+- [X] [T027] [P1] [US1] `SessionModal`コンポーネントを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/components/SessionModal.tsx`
   - Props: `opened`, `onClose`, `title`, `children`
   - Mantine `Modal`を使用
   - `closeOnClickOutside`, `closeOnEscape`を設定（FR-003）
   - レスポンシブ対応（デスクトップ・タブレット・モバイル）
 
-- [ ] [T028] [P1] [US1] `SessionForm`コンポーネントを作成する
+- [X] [T028] [P1] [US1] `SessionForm`コンポーネントを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/components/SessionForm.tsx`
   - Props: `initialValues`, `onSubmit`, `onCancel`, `isLoading`
   - フォームフィールド: `date`, `location`, `buyIn`, `cashOut`, `durationMinutes`
@@ -229,7 +243,7 @@
   - バリデーションエラーはフォーム内に表示（FR-019）
   - `notes`と`tags`フィールドは後のフェーズで追加
 
-- [ ] [T029] [P1] [US1] `LocationSelect`コンポーネントを作成する（基本版）
+- [ ] [T029] [P1] [US1] `LocationSelect`コンポーネントを作成する（基本版）**→ Phase 3へ延期**
   - ファイル: `src/features/poker-sessions/components/LocationSelect.tsx`
   - Props: `value`, `onChange`, `locations`, `onCreateNew`, `isLoading`
   - Mantine `Select`（searchable, creatable）を使用
@@ -238,55 +252,53 @@
 
 ### Containerコンポーネント
 
-- [ ] [T030] [P1] [US1] `useSessionModal` hookを作成する
+- [X] [T030] [P1] [US1] `useSessionModal` hookを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/hooks/useSessionModal.ts`
   - Mantine `useDisclosure` hookを使用
   - `opened`, `open`, `close`を返す
 
-- [ ] [T031] [P1] [US1] `useSessionForm` hookを作成する
+- [ ] [T031] [P1] [US1] `useSessionForm` hookを作成する **→ 不要（SessionFormで直接useFormを使用）**
   - ファイル: `src/features/poker-sessions/hooks/useSessionForm.ts`
   - `@mantine/form`の`useForm` hookを使用
   - Zodスキーマでバリデーション
   - 初期値の設定（新規作成 vs 編集）
 
-- [ ] [T032] [P1] [US1] `useLocations` hookを作成する
+- [ ] [T032] [P1] [US1] `useLocations` hookを作成する **→ Phase 3へ延期**
   - ファイル: `src/features/poker-sessions/hooks/useLocations.ts`
   - `api.locations.getAll.useQuery()`を使用
   - 場所リストをフォーマット（`{ value, label }`形式）
   - 検索フィルター対応
 
-- [ ] [T033] [P1] [US1] `SessionFormContainer`コンポーネントを作成する
+- [X] [T033] [P1] [US1] `SessionFormContainer`コンポーネントを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/containers/SessionFormContainer.tsx`
-  - `useSessionForm`と`useLocations` hooksを使用
   - `api.sessions.create.useMutation()`でセッション作成
   - 成功時: キャッシュ無効化、モーダルクローズ
   - エラー時: エラーメッセージ表示
-  - `SessionForm`と`LocationSelect`をレンダリング
+  - `SessionForm`をレンダリング（LocationSelectはPhase 3で追加）
 
-- [ ] [T034] [P1] [US1] `SessionModalContainer`コンポーネントを作成する
+- [X] [T034] [P1] [US1] `SessionModalContainer`コンポーネントを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/containers/SessionModalContainer.tsx`
   - `useSessionModal` hookを使用
   - `SessionModal`と`SessionFormContainer`を統合
 
 ### 既存ページの更新
 
-- [ ] [T035] [P1] [US1] セッション一覧ページにモーダル統合
-  - ファイル: `src/app/poker-sessions/page.tsx`
-  - 「新規追加」ボタンを追加
-  - `SessionModalContainer`を統合
-  - モーダル開閉状態を管理
+- [X] [T035] [P1] [US1] セッション一覧ページにモーダル統合 ✓ DONE
+  - ファイル: `src/features/poker-sessions/pages/SessionsPage.tsx`
+  - 「新規セッション」ボタンを`SessionModalContainer`に変更
+  - モーダルトリガーパターンを使用
 
-- [ ] [T036] [P1] [US1] `/poker-sessions/new`ページを削除する
+- [X] [T036] [P1] [US1] `/poker-sessions/new`ページを削除する ✓ DONE
   - ファイル: `src/app/poker-sessions/new/page.tsx`
   - モーダルに移行したため不要
 
-- [ ] [T037] [P1] [US1] `/poker-sessions/[id]/edit`ページを削除する（編集機能は後で追加）
+- [X] [T037] [P1] [US1] `/poker-sessions/[id]/edit`ページを削除する（編集機能は後で追加） ✓ N/A
   - ファイル: `src/app/poker-sessions/[id]/edit/page.tsx`
-  - モーダルに移行したため不要
+  - モーダルに移行したため不要（元々存在しない）
 
 ### 統合テスト（Test-First Development）
 
-- [ ] [T038] [P1] [US1] [RED] モーダルでのセッション作成統合テストを作成する
+- [ ] [T038] [P1] [US1] [RED] モーダルでのセッション作成統合テストを作成する **→ SKIPPED（ユーザー指示により中止）**
   - ファイル: `tests/integration/create-session-modal.test.tsx`
   - シナリオ1: モーダル開閉
   - シナリオ2: セッション情報入力・保存
@@ -294,18 +306,18 @@
   - シナリオ4: バリデーションエラー
   - テストが失敗することを確認（Red）
 
-- [ ] [T039] [P1] [US1] [GREEN] T038のテストが通るよう実装を完成させる
+- [ ] [T039] [P1] [US1] [GREEN] T038のテストが通るよう実装を完成させる **→ SKIPPED（T038がスキップのため）**
   - すべての統合テストが合格することを確認（Green）
 
 ### E2Eテスト（Test-First Development）
 
-- [ ] [T040] [P1] [US1] [RED] セッションモーダルのE2Eテストを作成する
+- [ ] [T040] [P1] [US1] [RED] セッションモーダルのE2Eテストを作成する **→ SKIPPED（ユーザー指示により中止）**
   - ファイル: `tests/e2e/session-modal.spec.ts`
   - シナリオ: モーダルでセッションを作成し、一覧に表示される
   - パフォーマンス測定: モーダル開閉 < 200ms（SC-007）
   - テストが失敗することを確認（Red）
 
-- [ ] [T041] [P1] [US1] [GREEN] T040のテストが通るよう実装を完成させる
+- [ ] [T041] [P1] [US1] [GREEN] T040のテストが通るよう実装を完成させる **→ SKIPPED（T040がスキップのため）**
   - E2Eテストが合格することを確認（Green）
 
 ---

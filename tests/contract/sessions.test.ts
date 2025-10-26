@@ -1,7 +1,7 @@
 import { appRouter } from "@/server/api/root";
 import { createInnerTRPCContext } from "@/server/api/trpc";
 import { db } from "@/server/db";
-import { pokerSessions, users } from "@/server/db/schema";
+import { locations, pokerSessions, sessionTags, tags, users } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import type { Session } from "next-auth";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -38,7 +38,7 @@ function createCaller(session: Session | null) {
 // Test data
 const validSessionData = {
   date: new Date("2025-10-21T18:00:00+09:00"),
-  location: "ポーカースタジアム渋谷",
+  newLocationName: "ポーカースタジアム渋谷",
   buyIn: 10000,
   cashOut: 15000,
   durationMinutes: 180,
@@ -47,8 +47,11 @@ const validSessionData = {
 
 describe("sessions router - Contract Tests", () => {
   beforeEach(async () => {
-    // Clean up test data
+    // Clean up test data in correct order
+    await db.delete(sessionTags);
     await db.delete(pokerSessions);
+    await db.delete(tags);
+    await db.delete(locations);
 
     // Ensure test users exist
     await db
@@ -77,7 +80,10 @@ describe("sessions router - Contract Tests", () => {
       expect(result).toHaveProperty("userId", mockUser1.id);
       expect(result).toHaveProperty("profit");
       expect(result.profit).toBe(5000); // cashOut - buyIn
-      expect(result.location).toBe("ポーカースタジアム渋谷");
+      expect(result).toHaveProperty("location");
+      expect(result.location).toHaveProperty("name", "ポーカースタジアム渋谷");
+      expect(result).toHaveProperty("tags");
+      expect(result.tags).toEqual([]);
       expect(result.durationMinutes).toBe(180);
     });
 
@@ -137,7 +143,7 @@ describe("sessions router - Contract Tests", () => {
       await expect(
         caller.sessions.create({
           ...validSessionData,
-          location: "",
+          newLocationName: "",
         })
       ).rejects.toThrow();
     });
@@ -165,10 +171,10 @@ describe("sessions router - Contract Tests", () => {
 
       const result = await caller.sessions.create({
         ...validSessionData,
-        location: "  渋谷  ",
+        newLocationName: "  渋谷  ",
       });
 
-      expect(result.location).toBe("渋谷");
+      expect(result.location.name).toBe("渋谷");
     });
 
     it("should allow optional notes", async () => {
@@ -272,7 +278,7 @@ describe("sessions router - Contract Tests", () => {
 
       expect(result).not.toBeNull();
       expect(result?.id).toBe(created.id);
-      expect(result?.location).toBe(validSessionData.location);
+      expect(result?.location.name).toBe(validSessionData.newLocationName);
     });
 
     it("should return null for non-existent ID", async () => {
@@ -324,7 +330,7 @@ describe("sessions router - Contract Tests", () => {
       expect(updated.cashOut).toBe("20000.00");
       expect(updated.notes).toBe("更新されたメモ");
       expect(updated.profit).toBe(10000); // Updated profit
-      expect(updated.location).toBe(validSessionData.location); // Unchanged
+      expect(updated.location.name).toBe(validSessionData.newLocationName); // Unchanged
     });
 
     it("should update profit when buy-in or cash-out changes", async () => {
@@ -345,10 +351,10 @@ describe("sessions router - Contract Tests", () => {
 
       const updated = await caller.sessions.update({
         id: created.id,
-        location: "新しい場所",
+        newLocationName: "新しい場所",
       });
 
-      expect(updated.location).toBe("新しい場所");
+      expect(updated.location.name).toBe("新しい場所");
       expect(updated.buyIn).toBe(created.buyIn); // Unchanged
       expect(updated.cashOut).toBe(created.cashOut); // Unchanged
     });
@@ -377,9 +383,9 @@ describe("sessions router - Contract Tests", () => {
       await expect(
         caller2.sessions.update({
           id: session.id,
-          location: "ハッキング試み",
+          newLocationName: "ハッキング試み",
         })
-      ).rejects.toThrow("Session not found");
+      ).rejects.toThrow("セッションが見つかりません");
     });
 
     it("should reject invalid update data", async () => {
@@ -397,7 +403,7 @@ describe("sessions router - Contract Tests", () => {
     it("should require authentication", async () => {
       const caller = createCaller(null);
 
-      await expect(caller.sessions.update({ id: 1, location: "test" })).rejects.toThrow(
+      await expect(caller.sessions.update({ id: 1, newLocationName: "test" })).rejects.toThrow(
         "UNAUTHORIZED"
       );
     });
@@ -510,13 +516,13 @@ describe("sessions router - Contract Tests", () => {
       // Sessions at location A
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
         buyIn: 10000,
         cashOut: 15000, // +5000
       });
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
         buyIn: 5000,
         cashOut: 8000, // +3000
       });
@@ -524,7 +530,7 @@ describe("sessions router - Contract Tests", () => {
       // Sessions at location B
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location B",
+        newLocationName: "Location B",
         buyIn: 20000,
         cashOut: 18000, // -2000
       });
@@ -533,13 +539,13 @@ describe("sessions router - Contract Tests", () => {
 
       expect(stats.byLocation).toHaveLength(2);
 
-      const locationA = stats.byLocation.find((l) => l.location === "Location A");
+      const locationA = stats.byLocation.find((l) => l.location.name === "Location A");
       expect(locationA).toBeDefined();
       expect(locationA?.profit).toBe(8000); // 5000 + 3000
       expect(locationA?.count).toBe(2);
       expect(locationA?.avgProfit).toBe(4000); // 8000 / 2
 
-      const locationB = stats.byLocation.find((l) => l.location === "Location B");
+      const locationB = stats.byLocation.find((l) => l.location.name === "Location B");
       expect(locationB).toBeDefined();
       expect(locationB?.profit).toBe(-2000);
       expect(locationB?.count).toBe(1);
@@ -584,11 +590,11 @@ describe("sessions router - Contract Tests", () => {
 
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
       });
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location B",
+        newLocationName: "Location B",
       });
 
       const filtered = await caller.sessions.getFiltered({});
@@ -599,25 +605,25 @@ describe("sessions router - Contract Tests", () => {
     it("should filter by location", async () => {
       const caller = createCaller(mockSession1);
 
-      await caller.sessions.create({
+      const session1 = await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
       });
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location B",
+        newLocationName: "Location B",
       });
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
       });
 
       const filtered = await caller.sessions.getFiltered({
-        location: "Location A",
+        locationIds: [session1.location.id],
       });
 
       expect(filtered).toHaveLength(2);
-      expect(filtered.every((s) => s.location === "Location A")).toBe(true);
+      expect(filtered.every((s) => s.location.name === "Location A")).toBe(true);
     });
 
     it("should filter by date range", async () => {
@@ -650,28 +656,28 @@ describe("sessions router - Contract Tests", () => {
 
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
         date: new Date("2024-01-15"),
       });
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location B",
+        newLocationName: "Location B",
         date: new Date("2024-02-15"),
       });
-      await caller.sessions.create({
+      const session3 = await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
         date: new Date("2024-02-15"),
       });
 
       const filtered = await caller.sessions.getFiltered({
-        location: "Location A",
+        locationIds: [session3.location.id],
         startDate: new Date("2024-02-01"),
         endDate: new Date("2024-02-28"),
       });
 
       expect(filtered).toHaveLength(1);
-      expect(filtered[0]?.location).toBe("Location A");
+      expect(filtered[0]?.location.name).toBe("Location A");
       expect(filtered[0]?.date.getMonth()).toBe(1);
     });
 
@@ -690,20 +696,20 @@ describe("sessions router - Contract Tests", () => {
       const caller1 = createCaller(mockSession1);
       const caller2 = createCaller(mockSession2);
 
-      await caller1.sessions.create({
+      const session1 = await caller1.sessions.create({
         ...validSessionData,
-        location: "Shared Location",
+        newLocationName: "Shared Location",
       });
-      await caller2.sessions.create({
+      const session2 = await caller2.sessions.create({
         ...validSessionData,
-        location: "Shared Location",
+        newLocationName: "Shared Location",
       });
 
       const filtered1 = await caller1.sessions.getFiltered({
-        location: "Shared Location",
+        locationIds: [session1.location.id],
       });
       const filtered2 = await caller2.sessions.getFiltered({
-        location: "Shared Location",
+        locationIds: [session2.location.id],
       });
 
       expect(filtered1).toHaveLength(1);
@@ -715,33 +721,31 @@ describe("sessions router - Contract Tests", () => {
       const caller = createCaller(null);
 
       await expect(
-        caller.sessions.getFiltered({
-          location: "Test",
-        })
+        caller.sessions.getFiltered({})
       ).rejects.toThrow("UNAUTHORIZED");
     });
 
     it("should order filtered results by date DESC", async () => {
       const caller = createCaller(mockSession1);
 
-      await caller.sessions.create({
+      const session1 = await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
         date: new Date("2024-01-15"),
       });
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
         date: new Date("2024-03-15"),
       });
       await caller.sessions.create({
         ...validSessionData,
-        location: "Location A",
+        newLocationName: "Location A",
         date: new Date("2024-02-15"),
       });
 
       const filtered = await caller.sessions.getFiltered({
-        location: "Location A",
+        locationIds: [session1.location.id],
       });
 
       expect(filtered).toHaveLength(3);

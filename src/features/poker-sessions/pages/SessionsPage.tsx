@@ -3,7 +3,6 @@
 import { Button, Container, Divider, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconPlus } from "@tabler/icons-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -11,6 +10,7 @@ import { LocationStats } from "@/features/poker-sessions/components/LocationStat
 import { SessionFilters } from "@/features/poker-sessions/components/SessionFilters";
 import { SessionList } from "@/features/poker-sessions/components/SessionList";
 import { SessionStats } from "@/features/poker-sessions/components/SessionStats";
+import { SessionModalContainer } from "@/features/poker-sessions/containers/SessionModalContainer";
 import { api } from "@/trpc/react";
 
 interface SessionsPageProps {
@@ -103,9 +103,14 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
       <Stack gap="xl">
         <Group justify="space-between" align="center">
           <Title order={1}>ポーカーセッション</Title>
-          <Button component={Link} href="/poker-sessions/new" leftSection={<IconPlus size={20} />}>
-            新規セッション
-          </Button>
+          <SessionModalContainer
+            trigger={({ onClick }) => (
+              <Button onClick={onClick} leftSection={<IconPlus size={20} />}>
+                新規セッション
+              </Button>
+            )}
+            title="新規セッション"
+          />
         </Group>
 
         <SessionStats

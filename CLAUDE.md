@@ -66,16 +66,14 @@ src/
         └── currency.ts
 
 tests/
-├── contract/
-│   └── sessions.test.ts
-├── integration/
-│   ├── create-session.test.tsx
-│   ├── view-sessions.test.tsx
-│   ├── edit-session.test.tsx
-│   └── filter-sessions.test.tsx
-└── e2e/
-    ├── poker-sessions.spec.ts
-    └── poker-sessions-filters.spec.ts
+├── contract/              # API契約テスト（実施する）
+│   ├── sessions.test.ts
+│   ├── locations.test.ts
+│   └── tags.test.ts
+└── components/            # フロントエンドコンポーネントテスト（実施する）
+    ├── SessionModal.test.tsx
+    ├── SessionForm.test.tsx
+    └── SessionCard.test.tsx
 ```
 
 ## Development Workflow
@@ -101,19 +99,29 @@ bun run check
 bun run check:write
 ```
 
-### Testing Strategy (TDD Required)
+### Testing Strategy
 
-**憲法原則 I: テスト駆動開発の徹底**
+**テスト方針（プロジェクト全体）**:
 
-1. **契約テスト** (Vitest): tRPC API proceduresの入出力検証
-2. **統合テスト** (Vitest + React Testing Library): ユーザーストーリー単位のフロー
-3. **E2Eテスト** (Playwright): 実際のブラウザ動作
+このプロジェクトでは、以下の2種類のテストのみを実施します：
 
-**Red-Green-Refactorサイクル**:
-- テストを先に作成し、ユーザーの承認を得る
-- テストが失敗することを確認(Red)
-- 実装してテストを通す(Green)
-- リファクタリング(Refactor)
+1. **API契約テスト** (Vitest): tRPC proceduresの入出力検証
+   - ファイル: `tests/contract/*.test.ts`
+   - 対象: バックエンドAPI層（`src/server/api/routers/`）
+   - 目的: APIの仕様が正しく実装されているか検証
+
+2. **フロントエンドコンポーネントテスト** (Vitest + React Testing Library)
+   - ファイル: `tests/components/*.test.tsx`
+   - 対象: Presentationコンポーネント（`src/features/*/components/`）
+   - 目的: UIコンポーネントが正しく表示・動作するか検証
+   - Containerコンポーネントはモック化したAPI応答を使用してテスト
+
+**実施しないテスト**:
+
+- ❌ **統合テスト**: APIとフロントエンドを繋ぐテスト（実際のAPIを呼び出すフロントエンドテスト）
+- ❌ **E2Eテスト**: 実際のブラウザでのエンドツーエンドテスト
+
+**理由**: API層とフロントエンド層を分離してテストすることで、テストの保守性を高め、開発速度を向上させます。各層が契約（型定義）に従っていれば、統合は自動的に成功します。
 
 ## Architecture Patterns
 

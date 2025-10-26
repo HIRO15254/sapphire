@@ -11,7 +11,7 @@ export const getAllTagsSchema = z.object({
 });
 
 export const createTagSchema = z.object({
-  name: z.string().min(1).max(50).trim(),
+  name: z.string().trim().min(1).max(50),
 });
 
 export const deleteTagSchema = z.object({
@@ -32,6 +32,7 @@ export const tagsRouter = createTRPCRouter({
     const results = await ctx.db
       .select({
         id: tags.id,
+        userId: tags.userId,
         name: tags.name,
         sessionCount: sql<number>`COUNT(${sessionTags.sessionId})::int`,
       })
@@ -53,7 +54,7 @@ export const tagsRouter = createTRPCRouter({
       .select()
       .from(tags)
       .where(
-        and(eq(tags.userId, ctx.session.user.id), sql`LOWER(${tags.name}) = LOWER(${normalizedName})`)
+        and(eq(tags.userId, ctx.session.user.id), sql`LOWER(${tags.name}) = ${normalizedName.toLowerCase()}`)
       );
 
     // Return existing if found

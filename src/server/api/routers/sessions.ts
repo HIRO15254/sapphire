@@ -477,19 +477,27 @@ export const sessionsRouter = createTRPCRouter({
 
     // Calculate overall stats
     let totalProfit = 0;
-    const locationMap = new Map<string, { profit: number; count: number }>();
+    const locationMap = new Map<
+      number,
+      { locationId: number; locationName: string; profit: number; count: number }
+    >();
 
     for (const session of sessions) {
       const profit = parseNumeric(session.cashOut) - parseNumeric(session.buyIn);
       totalProfit += profit;
 
-      // Aggregate by location name
-      const locationStats = locationMap.get(session.locationName);
+      // Aggregate by location ID
+      const locationStats = locationMap.get(session.locationId);
       if (locationStats) {
         locationStats.profit += profit;
         locationStats.count += 1;
       } else {
-        locationMap.set(session.locationName, { profit, count: 1 });
+        locationMap.set(session.locationId, {
+          locationId: session.locationId,
+          locationName: session.locationName,
+          profit,
+          count: 1,
+        });
       }
     }
 
@@ -497,8 +505,11 @@ export const sessionsRouter = createTRPCRouter({
     const avgProfit = Math.round(totalProfit / sessionCount);
 
     // Build location stats array
-    const byLocation = Array.from(locationMap.entries()).map(([location, stats]) => ({
-      location,
+    const byLocation = Array.from(locationMap.values()).map((stats) => ({
+      location: {
+        id: stats.locationId,
+        name: stats.locationName,
+      },
       profit: stats.profit,
       count: stats.count,
       avgProfit: Math.round(stats.profit / stats.count),
