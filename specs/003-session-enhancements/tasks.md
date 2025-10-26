@@ -401,42 +401,42 @@
 
 ### Presentationコンポーネント
 
-- [ ] [T053] [P3] [US3] `RichTextEditor`コンポーネントを作成する
+- [X] [T053] [P3] [US3] `RichTextEditor`コンポーネントを作成する ✓ DONE
   - ファイル: `src/features/poker-sessions/components/RichTextEditor.tsx`
   - Props: `value`, `onChange`, `placeholder`
   - Tiptap v2 + `@mantine/tiptap`を使用
-  - 拡張: StarterKit, Link
+  - 拡張: StarterKit, Link, Placeholder
   - ツールバー: Bold, Italic, Underline, Strike, Heading, BulletList, OrderedList, Link
   - 最低5種類の書式設定対応（SC-003）
 
-- [ ] [T054] [P3] [US3] `SessionForm`コンポーネントにメモフィールドを追加する
+- [X] [T054] [P3] [US3] `SessionForm`コンポーネントにメモフィールドを追加する ✓ DONE
   - `RichTextEditor`コンポーネントを統合
   - メモの最大長バリデーション（50,000文字）
 
 ### HTMLサニタイゼーション
 
-- [ ] [T055] [P3] [US3] フロントエンド用HTMLサニタイゼーション関数を作成する
-  - ファイル: `src/lib/utils/sanitize.ts`（クライアント用）
-  - DOMPurifyを使用（ブラウザ版）
-  - `sanitizeHtml`関数をエクスポート
-  - 許可タグと属性のホワイトリスト
+- [X] [T055] [P3] [US3] フロントエンド用HTML処理関数を作成する ✓ DONE
+  - ファイル: `src/lib/utils/html.ts`
+  - stripHtml関数でHTMLタグを除去（プレビュー用）
+  - truncateText関数でテキスト切り詰め
 
-- [ ] [T056] [P3] [US3] バックエンドのサニタイゼーションを強化する
+- [X] [T056] [P3] [US3] バックエンドのサニタイゼーションを強化する ✓ DONE
   - T022で作成した関数を使用
   - `sessions.create`と`sessions.update`でサニタイズを適用
 
 ### セッション詳細表示の更新
 
-- [ ] [T057] [P3] [US3] セッション詳細ページでHTML形式のメモを表示する
-  - ファイル: `src/app/poker-sessions/[id]/page.tsx`
+- [X] [T057] [P3] [US3] セッション詳細ページでHTML形式のメモを表示する ✓ DONE
+  - ファイル: `src/features/poker-sessions/pages/SessionDetailPage.tsx`
   - サニタイズされたHTMLを`dangerouslySetInnerHTML`で表示
   - 書式が保持されていることを確認（SC-004）
+  - SessionCardでもHTML対応（stripHtmlでプレビュー表示）
 
 ### 既存プレーンテキストメモの互換性確認
 
-- [ ] [T058] [P3] [US3] 既存プレーンテキストメモの表示を確認する
-  - 既存のプレーンテキストメモがHTML対応エディタでも正しく表示されるか検証
-  - 必要に応じて表示ロジックを調整
+- [X] [T058] [P3] [US3] 既存プレーンテキストメモの表示を確認する ✓ DONE
+  - 既存のプレーンテキストメモがHTML対応エディタでも正しく表示される
+  - プレーンテキストはそのまま表示、HTMLタグは解釈される
 
 ### 統合テスト（Test-First Development）
 

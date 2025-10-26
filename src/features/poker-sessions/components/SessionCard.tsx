@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/utils/currency";
+import { stripHtml } from "@/lib/utils/html";
 import { Badge, Button, Card, Group, Stack, Text } from "@mantine/core";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 
@@ -102,7 +103,7 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
 
         {session.notes && (
           <Text size="sm" c="dimmed" lineClamp={2}>
-            {session.notes}
+            {stripHtml(session.notes)}
           </Text>
         )}
 

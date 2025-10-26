@@ -4,7 +4,7 @@ import { Button, Group, NumberInput, Stack } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { IconDeviceFloppy, IconX } from "@tabler/icons-react";
-import { zodResolver } from "mantine-form-zod-resolver";
+import { zod4Resolver as zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
 import { LocationSelectContainer } from "../containers/LocationSelectContainer";
 import { TagMultiSelectContainer } from "../containers/TagMultiSelectContainer";

@@ -118,7 +118,14 @@ export function SessionDetailPage({ session }: SessionDetailPageProps) {
                     メモ
                   </Text>
                   <Paper p="md" withBorder>
-                    <Text style={{ whiteSpace: "pre-wrap" }}>{session.notes}</Text>
+                    <div
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: session.notes }}
+                      style={{
+                        wordWrap: "break-word",
+                        overflowWrap: "break-word",
+                      }}
+                    />
                   </Paper>
                 </Stack>
               )}
