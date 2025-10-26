@@ -56,15 +56,13 @@ export function SessionFormContainer({
   });
 
   const handleSubmit = (values: SessionFormValues) => {
-    // Phase 2: location文字列をそのまま送信
-    // Phase 3でlocationId/newLocationNameに対応予定
     createSession.mutate({
       date: values.date,
-      // TODO Phase 3: locationId または newLocationName に変更
       newLocationName: values.location,
       buyIn: values.buyIn,
       cashOut: values.cashOut,
       durationMinutes: values.durationMinutes,
+      newTagNames: values.tags,
       notes: values.notes,
     });
   };

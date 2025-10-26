@@ -7,6 +7,7 @@ import { IconDeviceFloppy, IconX } from "@tabler/icons-react";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
 import { LocationSelectContainer } from "../containers/LocationSelectContainer";
+import { TagMultiSelectContainer } from "../containers/TagMultiSelectContainer";
 import { RichTextEditor } from "./RichTextEditor";
 
 // Zodスキーマ定義（バリデーションルール）
@@ -16,6 +17,7 @@ const sessionFormSchema = z.object({
   buyIn: z.number().nonnegative("バイインは0以上の値を入力してください"),
   cashOut: z.number().nonnegative("キャッシュアウトは0以上の値を入力してください"),
   durationMinutes: z.number().int().positive("プレイ時間は1分以上を入力してください"),
+  tags: z.array(z.string()).max(20, "タグは最大20個までです").optional(),
   notes: z.string().max(50000, "メモは50,000文字以内で入力してください").optional(),
 });
 
@@ -43,6 +45,7 @@ export function SessionForm({
       buyIn: initialValues?.buyIn ?? 0,
       cashOut: initialValues?.cashOut ?? 0,
       durationMinutes: initialValues?.durationMinutes ?? 0,
+      tags: initialValues?.tags ?? [],
       notes: initialValues?.notes ?? "",
     },
     validate: zodResolver(sessionFormSchema),
@@ -101,6 +104,12 @@ export function SessionForm({
           step={10}
           hideControls
           {...form.getInputProps("durationMinutes")}
+        />
+
+        <TagMultiSelectContainer
+          value={form.values.tags ?? []}
+          onChange={(value) => form.setFieldValue("tags", value)}
+          error={form.errors.tags}
         />
 
         <RichTextEditor

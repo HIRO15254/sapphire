@@ -11,6 +11,7 @@ export interface SessionCardProps {
     cashOut: string;
     durationMinutes: number;
     profit: number;
+    tags?: string[];
     notes: string | null;
   };
   onEdit?: (id: number) => void;
@@ -82,6 +83,16 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
             <Text fw={500}>{formatDuration(session.durationMinutes)}</Text>
           </Stack>
         </Group>
+
+        {session.tags && session.tags.length > 0 && (
+          <Group gap="xs">
+            {session.tags.map((tag) => (
+              <Badge key={tag} variant="light" size="sm">
+                {tag}
+              </Badge>
+            ))}
+          </Group>
+        )}
 
         {session.notes && (
           <Text size="sm" c="dimmed" lineClamp={2}>
