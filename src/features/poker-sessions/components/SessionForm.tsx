@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Group, NumberInput, Stack } from "@mantine/core";
+import { Button, Grid, Group, NumberInput, Stack } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { IconDeviceFloppy, IconX } from "@tabler/icons-react";
@@ -58,67 +58,88 @@ export function SessionForm({
   return (
     <form onSubmit={form.onSubmit(handleSubmit)}>
       <Stack gap="md">
-        <DateTimePicker
-          label="日時"
-          placeholder="セッション開始日時を選択"
-          withAsterisk
-          locale="ja"
-          valueFormat="YYYY/MM/DD HH:mm"
-          clearable
-          {...form.getInputProps("date")}
-        />
+        <Grid gutter="md">
+          {/* 1段目: 日時(2/3) + プレイ時間(1/3) */}
+          <Grid.Col span={{ base: 12, sm: 8 }}>
+            <DateTimePicker
+              label="日時"
+              placeholder="セッション開始日時を選択"
+              withAsterisk
+              locale="ja"
+              valueFormat="YYYY/MM/DD HH:mm"
+              clearable
+              {...form.getInputProps("date")}
+            />
+          </Grid.Col>
 
-        <LocationSelectContainer
-          value={form.values.location}
-          onChange={(value) => form.setFieldValue("location", value ?? "")}
-          error={form.errors.location}
-        />
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <NumberInput
+              label="プレイ時間 (分)"
+              placeholder="180"
+              withAsterisk
+              min={1}
+              step={10}
+              hideControls
+              {...form.getInputProps("durationMinutes")}
+            />
+          </Grid.Col>
 
-        <NumberInput
-          label="バイイン (円)"
-          placeholder="10000"
-          withAsterisk
-          min={0}
-          step={100}
-          thousandSeparator=","
-          hideControls
-          {...form.getInputProps("buyIn")}
-        />
+          {/* 2段目: 場所(全幅) */}
+          <Grid.Col span={12}>
+            <LocationSelectContainer
+              value={form.values.location}
+              onChange={(value) => form.setFieldValue("location", value ?? "")}
+              error={form.errors.location}
+            />
+          </Grid.Col>
 
-        <NumberInput
-          label="キャッシュアウト (円)"
-          placeholder="15000"
-          withAsterisk
-          min={0}
-          step={100}
-          thousandSeparator=","
-          hideControls
-          {...form.getInputProps("cashOut")}
-        />
+          {/* 3段目: バイイン + キャッシュアウト */}
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <NumberInput
+              label="バイイン (円)"
+              placeholder="10000"
+              withAsterisk
+              min={0}
+              step={100}
+              thousandSeparator=","
+              hideControls
+              {...form.getInputProps("buyIn")}
+            />
+          </Grid.Col>
 
-        <NumberInput
-          label="プレイ時間 (分)"
-          placeholder="180"
-          withAsterisk
-          min={1}
-          step={10}
-          hideControls
-          {...form.getInputProps("durationMinutes")}
-        />
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <NumberInput
+              label="キャッシュアウト (円)"
+              placeholder="15000"
+              withAsterisk
+              min={0}
+              step={100}
+              thousandSeparator=","
+              hideControls
+              {...form.getInputProps("cashOut")}
+            />
+          </Grid.Col>
 
-        <TagMultiSelectContainer
-          value={form.values.tags ?? []}
-          onChange={(value) => form.setFieldValue("tags", value)}
-          error={form.errors.tags}
-        />
+          {/* 4段目: タグ(全幅) */}
+          <Grid.Col span={12}>
+            <TagMultiSelectContainer
+              value={form.values.tags ?? []}
+              onChange={(value) => form.setFieldValue("tags", value)}
+              error={form.errors.tags}
+            />
+          </Grid.Col>
 
-        <RichTextEditor
-          value={form.values.notes ?? ""}
-          onChange={(value) => form.setFieldValue("notes", value)}
-          placeholder="印象的なハンド、テーブルの雰囲気、学んだことなど"
-          error={typeof form.errors.notes === "string" ? form.errors.notes : undefined}
-          label="メモ (任意)"
-        />
+          {/* メモ */}
+          <Grid.Col span={12}>
+            <RichTextEditor
+              value={form.values.notes ?? ""}
+              onChange={(value) => form.setFieldValue("notes", value)}
+              placeholder="印象的なハンド、テーブルの雰囲気、学んだことなど"
+              error={typeof form.errors.notes === "string" ? form.errors.notes : undefined}
+              label="メモ (任意)"
+            />
+          </Grid.Col>
+        </Grid>
 
         <Group justify="flex-end" gap="sm">
           {onCancel && (

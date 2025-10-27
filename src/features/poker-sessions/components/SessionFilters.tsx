@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Collapse, Group, MultiSelect, Paper, Select, Stack } from "@mantine/core";
+import { Button, Collapse, Grid, Group, MultiSelect, Paper, Select, Stack } from "@mantine/core";
 import { DatePickerInput, type DatesRangeValue } from "@mantine/dates";
 import { IconFilter, IconFilterOff, IconSearch } from "@tabler/icons-react";
 import { useState } from "react";
@@ -90,35 +90,42 @@ export function SessionFilters({
 
         <Collapse in={opened}>
           <Stack gap="md">
-            <Select
-              label="場所"
-              placeholder="場所を選択"
-              data={locations.map((loc) => ({ value: loc, label: loc }))}
-              value={location}
-              onChange={setLocation}
-              clearable
-              searchable
-            />
+            <Grid gutter="md">
+              <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+                <Select
+                  label="場所"
+                  placeholder="場所を選択"
+                  data={locations.map((loc) => ({ value: loc, label: loc }))}
+                  value={location}
+                  onChange={setLocation}
+                  clearable
+                  searchable
+                />
+              </Grid.Col>
 
-            <MultiSelect
-              label="タグ"
-              placeholder="タグで絞り込み"
-              description="複数選択した場合、すべてのタグを持つセッションのみ表示されます"
-              data={tags.map((tag) => ({ value: tag.id.toString(), label: tag.name }))}
-              value={selectedTagIds}
-              onChange={setSelectedTagIds}
-              clearable
-              searchable
-            />
+              <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+                <MultiSelect
+                  label="タグ"
+                  placeholder="タグで絞り込み"
+                  data={tags.map((tag) => ({ value: tag.id.toString(), label: tag.name }))}
+                  value={selectedTagIds}
+                  onChange={setSelectedTagIds}
+                  clearable
+                  searchable
+                />
+              </Grid.Col>
 
-            <DatePickerInput
-              type="range"
-              label="期間"
-              placeholder="開始日 〜 終了日"
-              value={dateRange}
-              onChange={setDateRange}
-              clearable
-            />
+              <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+                <DatePickerInput
+                  type="range"
+                  label="期間"
+                  placeholder="開始日 〜 終了日"
+                  value={dateRange}
+                  onChange={setDateRange}
+                  clearable
+                />
+              </Grid.Col>
+            </Grid>
 
             <Group justify="flex-end">
               <Button

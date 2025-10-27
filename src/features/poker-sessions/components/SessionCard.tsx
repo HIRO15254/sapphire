@@ -1,7 +1,7 @@
 import { formatCurrency } from "@/lib/utils/currency";
-import { stripHtml } from "@/lib/utils/html";
-import { Badge, Button, Card, Group, Stack, Text } from "@mantine/core";
-import { IconEdit, IconTrash } from "@tabler/icons-react";
+import { ActionIcon, Badge, Button, Card, Collapse, Group, Stack, Text } from "@mantine/core";
+import { IconChevronDown, IconChevronUp, IconEdit, IconTrash } from "@tabler/icons-react";
+import { useState } from "react";
 
 export interface SessionCardProps {
   session: {
@@ -27,6 +27,7 @@ export interface SessionCardProps {
 }
 
 export function SessionCard({ session, onEdit, onDelete, showActions = true }: SessionCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const profitColor = session.profit > 0 ? "green" : session.profit < 0 ? "red" : "gray";
   const profitSign = session.profit > 0 ? "+" : "";
 
@@ -53,85 +54,101 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
   };
 
   return (
-    <Card shadow="sm" padding="lg" radius="md" withBorder>
-      <Stack gap="md">
-        <Group justify="space-between" align="flex-start">
-          <Stack gap={4}>
-            <Text fw={600} size="lg">
-              {session.location.name}
-            </Text>
-            <Text size="sm" c="dimmed">
-              {formatDate(session.date)}
-            </Text>
-          </Stack>
-          <Badge size="lg" color={profitColor} variant="filled">
-            {profitSign}
-            {formatCurrency(session.profit)}
-          </Badge>
+    <Card shadow="sm" padding="md" radius="md" withBorder>
+      <Stack gap="sm">
+        {/* コンパクト表示: 場所、日時、収支、展開ボタン */}
+        <Group justify="space-between" align="center" wrap="nowrap">
+          <Group gap="sm" style={{ flex: 1, minWidth: 0 }}>
+            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+              <Text fw={600} size="md" truncate>
+                {session.location.name}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {formatDate(session.date)} · {formatDuration(session.durationMinutes)}
+              </Text>
+            </Stack>
+            <Badge size="lg" color={profitColor} variant="filled">
+              {profitSign}
+              {formatCurrency(session.profit)}
+            </Badge>
+          </Group>
+          <ActionIcon
+            variant="subtle"
+            size="md"
+            onClick={() => setExpanded(!expanded)}
+            aria-label={expanded ? "詳細を閉じる" : "詳細を表示"}
+          >
+            {expanded ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
+          </ActionIcon>
         </Group>
 
-        <Group gap="xl">
-          <Stack gap={2}>
-            <Text size="xs" c="dimmed">
-              バイイン
-            </Text>
-            <Text fw={500}>{formatCurrency(Number.parseFloat(session.buyIn))}</Text>
-          </Stack>
-          <Stack gap={2}>
-            <Text size="xs" c="dimmed">
-              キャッシュアウト
-            </Text>
-            <Text fw={500}>{formatCurrency(Number.parseFloat(session.cashOut))}</Text>
-          </Stack>
-          <Stack gap={2}>
-            <Text size="xs" c="dimmed">
-              プレイ時間
-            </Text>
-            <Text fw={500}>{formatDuration(session.durationMinutes)}</Text>
-          </Stack>
-        </Group>
+        {/* 展開時の詳細表示 */}
+        <Collapse in={expanded}>
+          <Stack gap="md" pt="xs">
+            <Group gap="xl" align="flex-start" wrap="wrap">
+              <Stack gap={2}>
+                <Text size="xs" c="dimmed">
+                  バイイン
+                </Text>
+                <Text fw={500} size="sm">{formatCurrency(Number.parseFloat(session.buyIn))}</Text>
+              </Stack>
+              <Stack gap={2}>
+                <Text size="xs" c="dimmed">
+                  キャッシュアウト
+                </Text>
+                <Text fw={500} size="sm">{formatCurrency(Number.parseFloat(session.cashOut))}</Text>
+              </Stack>
+              {session.tags && session.tags.length > 0 && (
+                <Group gap="xs" style={{ flex: 1 }}>
+                  {session.tags.map((tag) => (
+                    <Badge key={tag.id} variant="light" size="sm">
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </Group>
+              )}
+            </Group>
 
-        {session.tags && session.tags.length > 0 && (
-          <Group gap="xs">
-            {session.tags.map((tag) => (
-              <Badge key={tag.id} variant="light" size="sm">
-                {tag.name}
-              </Badge>
-            ))}
-          </Group>
-        )}
-
-        {session.notes && (
-          <Text size="sm" c="dimmed" lineClamp={2}>
-            {stripHtml(session.notes)}
-          </Text>
-        )}
-
-        {showActions && (
-          <Group gap="xs">
-            {onEdit && (
-              <Button
-                variant="light"
-                size="sm"
-                leftSection={<IconEdit size={16} />}
-                onClick={() => onEdit(session.id)}
-              >
-                編集
-              </Button>
+            {session.notes && (
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: session.notes }}
+                style={{
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
+                  fontSize: "0.875rem",
+                  color: "var(--mantine-color-dimmed)",
+                }}
+              />
             )}
-            {onDelete && (
-              <Button
-                variant="light"
-                color="red"
-                size="sm"
-                leftSection={<IconTrash size={16} />}
-                onClick={() => onDelete(session.id)}
-              >
-                削除
-              </Button>
+
+            {showActions && (
+              <Group gap="xs">
+                {onEdit && (
+                  <Button
+                    variant="light"
+                    size="sm"
+                    leftSection={<IconEdit size={16} />}
+                    onClick={() => onEdit(session.id)}
+                  >
+                    編集
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="light"
+                    color="red"
+                    size="sm"
+                    leftSection={<IconTrash size={16} />}
+                    onClick={() => onDelete(session.id)}
+                  >
+                    削除
+                  </Button>
+                )}
+              </Group>
             )}
-          </Group>
-        )}
+          </Stack>
+        </Collapse>
       </Stack>
     </Card>
   );

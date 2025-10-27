@@ -24,7 +24,7 @@ export function SessionModal({ opened, onClose, title, children }: SessionModalP
       opened={opened}
       onClose={onClose}
       title={title}
-      size="lg"
+      size="xl"
       closeOnClickOutside
       closeOnEscape
       centered
