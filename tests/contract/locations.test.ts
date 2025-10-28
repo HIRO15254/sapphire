@@ -302,7 +302,9 @@ describe("locations router - Contract Tests", () => {
 
       const location = await caller1.locations.create({ name: "User1の場所" });
 
-      await expect(caller2.locations.delete({ id: location.id })).rejects.toThrow("場所が見つかりません");
+      await expect(caller2.locations.delete({ id: location.id })).rejects.toThrow(
+        "場所が見つかりません"
+      );
 
       // Verify location still exists
       const locs = await caller1.locations.getAll({});

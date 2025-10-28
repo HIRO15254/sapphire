@@ -100,9 +100,7 @@ export function TagMultiSelect({
       try {
         await onCreateNew(newTagName);
         // Replace the create prefix value with the actual tag name
-        const updatedValues = selectedValues
-          .filter((v) => v !== createValue)
-          .concat(newTagName);
+        const updatedValues = selectedValues.filter((v) => v !== createValue).concat(newTagName);
         onChange(updatedValues);
         setSearchValue("");
       } catch (error) {

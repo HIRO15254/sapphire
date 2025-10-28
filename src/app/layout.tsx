@@ -12,6 +12,8 @@ import { Geist } from "next/font/google";
 
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { TRPCReactProvider } from "@/trpc/react";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // レスポンシブブレークポイントの定義（FR-011）
 const theme = createTheme({
@@ -64,6 +66,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ColorSchemeScript />
       </head>
       <body className={geist.className}>
+        <Analytics />
+        <SpeedInsights />
         <ServiceWorkerRegistration />
         <MantineProvider theme={theme}>
           <ModalsProvider>

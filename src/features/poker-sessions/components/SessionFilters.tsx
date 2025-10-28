@@ -62,7 +62,10 @@ export function SessionFilters({
   };
 
   const hasActiveFilters =
-    location !== null || selectedTagIds.length > 0 || dateRange[0] !== null || dateRange[1] !== null;
+    location !== null ||
+    selectedTagIds.length > 0 ||
+    dateRange[0] !== null ||
+    dateRange[1] !== null;
 
   return (
     <Paper withBorder p="md">

@@ -54,7 +54,10 @@ export const tagsRouter = createTRPCRouter({
       .select()
       .from(tags)
       .where(
-        and(eq(tags.userId, ctx.session.user.id), sql`LOWER(${tags.name}) = ${normalizedName.toLowerCase()}`)
+        and(
+          eq(tags.userId, ctx.session.user.id),
+          sql`LOWER(${tags.name}) = ${normalizedName.toLowerCase()}`
+        )
       );
 
     // Return existing if found

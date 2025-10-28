@@ -720,9 +720,7 @@ describe("sessions router - Contract Tests", () => {
     it("should require authentication", async () => {
       const caller = createCaller(null);
 
-      await expect(
-        caller.sessions.getFiltered({})
-      ).rejects.toThrow("UNAUTHORIZED");
+      await expect(caller.sessions.getFiltered({})).rejects.toThrow("UNAUTHORIZED");
     });
 
     it("should order filtered results by date DESC", async () => {

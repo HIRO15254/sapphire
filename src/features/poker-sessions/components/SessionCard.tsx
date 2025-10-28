@@ -90,13 +90,17 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
                 <Text size="xs" c="dimmed">
                   バイイン
                 </Text>
-                <Text fw={500} size="sm">{formatCurrency(Number.parseFloat(session.buyIn))}</Text>
+                <Text fw={500} size="sm">
+                  {formatCurrency(Number.parseFloat(session.buyIn))}
+                </Text>
               </Stack>
               <Stack gap={2}>
                 <Text size="xs" c="dimmed">
                   キャッシュアウト
                 </Text>
-                <Text fw={500} size="sm">{formatCurrency(Number.parseFloat(session.cashOut))}</Text>
+                <Text fw={500} size="sm">
+                  {formatCurrency(Number.parseFloat(session.cashOut))}
+                </Text>
               </Stack>
               {session.tags && session.tags.length > 0 && (
                 <Group gap="xs" style={{ flex: 1 }}>
@@ -112,6 +116,7 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
             {session.notes && (
               <div
                 className="prose prose-sm max-w-none"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
                 dangerouslySetInnerHTML={{ __html: session.notes }}
                 style={{
                   wordWrap: "break-word",

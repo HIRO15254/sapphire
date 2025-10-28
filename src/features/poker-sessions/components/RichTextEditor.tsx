@@ -1,8 +1,8 @@
 "use client";
 
 import { RichTextEditor as MantineRTE, Link as TiptapLink } from "@mantine/tiptap";
-import { useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
+import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect } from "react";
 
@@ -69,6 +69,7 @@ export function RichTextEditor({
   return (
     <div>
       {label && (
+        // biome-ignore lint/a11y/noLabelWithoutControl: <explanation>
         <label
           style={{
             display: "block",
@@ -82,43 +83,53 @@ export function RichTextEditor({
         </label>
       )}
       {!editor ? (
-        <div style={{ minHeight: "200px", padding: "12px", border: "1px solid #dee2e6", borderRadius: "4px" }}>
+        <div
+          style={{
+            minHeight: "200px",
+            padding: "12px",
+            border: "1px solid #dee2e6",
+            borderRadius: "4px",
+          }}
+        >
           読み込み中...
         </div>
       ) : (
-        <MantineRTE editor={editor} style={{ ...(error && { borderColor: "var(--mantine-color-error)" }) }}>
-        <MantineRTE.Toolbar sticky stickyOffset={60}>
-          <MantineRTE.ControlsGroup>
-            <MantineRTE.Bold />
-            <MantineRTE.Italic />
-            <MantineRTE.Underline />
-            <MantineRTE.Strikethrough />
-          </MantineRTE.ControlsGroup>
+        <MantineRTE
+          editor={editor}
+          style={{ ...(error && { borderColor: "var(--mantine-color-error)" }) }}
+        >
+          <MantineRTE.Toolbar sticky stickyOffset={60}>
+            <MantineRTE.ControlsGroup>
+              <MantineRTE.Bold />
+              <MantineRTE.Italic />
+              <MantineRTE.Underline />
+              <MantineRTE.Strikethrough />
+            </MantineRTE.ControlsGroup>
 
-          <MantineRTE.ControlsGroup>
-            <MantineRTE.H1 />
-            <MantineRTE.H2 />
-            <MantineRTE.H3 />
-          </MantineRTE.ControlsGroup>
+            <MantineRTE.ControlsGroup>
+              <MantineRTE.H1 />
+              <MantineRTE.H2 />
+              <MantineRTE.H3 />
+            </MantineRTE.ControlsGroup>
 
-          <MantineRTE.ControlsGroup>
-            <MantineRTE.BulletList />
-            <MantineRTE.OrderedList />
-          </MantineRTE.ControlsGroup>
+            <MantineRTE.ControlsGroup>
+              <MantineRTE.BulletList />
+              <MantineRTE.OrderedList />
+            </MantineRTE.ControlsGroup>
 
-          <MantineRTE.ControlsGroup>
-            <MantineRTE.Link />
-            <MantineRTE.Unlink />
-          </MantineRTE.ControlsGroup>
+            <MantineRTE.ControlsGroup>
+              <MantineRTE.Link />
+              <MantineRTE.Unlink />
+            </MantineRTE.ControlsGroup>
 
-          <MantineRTE.ControlsGroup>
-            <MantineRTE.Undo />
-            <MantineRTE.Redo />
-          </MantineRTE.ControlsGroup>
-        </MantineRTE.Toolbar>
+            <MantineRTE.ControlsGroup>
+              <MantineRTE.Undo />
+              <MantineRTE.Redo />
+            </MantineRTE.ControlsGroup>
+          </MantineRTE.Toolbar>
 
-        <MantineRTE.Content />
-      </MantineRTE>
+          <MantineRTE.Content />
+        </MantineRTE>
       )}
       {error && (
         <div style={{ color: "var(--mantine-color-error)", fontSize: "12px", marginTop: "4px" }}>

@@ -7,7 +7,11 @@ import { useLocations } from "../hooks/useLocations";
 
 type LocationSelectContainerProps = Omit<LocationSelectProps, "locations" | "onCreateNew">;
 
-export function LocationSelectContainer({ value, onChange, ...props }: LocationSelectContainerProps) {
+export function LocationSelectContainer({
+  value,
+  onChange,
+  ...props
+}: LocationSelectContainerProps) {
   const { locations, isLoading: isLoadingLocations } = useLocations();
   const utils = api.useUtils();
 

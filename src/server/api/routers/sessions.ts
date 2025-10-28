@@ -231,7 +231,10 @@ export const sessionsRouter = createTRPCRouter({
     // Fetch locations and tags for all sessions
     const results = await Promise.all(
       sessions.map(async (session) => {
-        const [location] = await ctx.db.select().from(locations).where(eq(locations.id, session.locationId));
+        const [location] = await ctx.db
+          .select()
+          .from(locations)
+          .where(eq(locations.id, session.locationId));
 
         const sessionTagsData = await ctx.db
           .select({
@@ -265,7 +268,10 @@ export const sessionsRouter = createTRPCRouter({
     }
 
     // Fetch location and tags
-    const [location] = await ctx.db.select().from(locations).where(eq(locations.id, session.locationId));
+    const [location] = await ctx.db
+      .select()
+      .from(locations)
+      .where(eq(locations.id, session.locationId));
 
     const sessionTagsData = await ctx.db
       .select({
@@ -421,7 +427,10 @@ export const sessionsRouter = createTRPCRouter({
       }
 
       // Fetch location and tags for response
-      const [location] = await tx.select().from(locations).where(eq(locations.id, updated.locationId));
+      const [location] = await tx
+        .select()
+        .from(locations)
+        .where(eq(locations.id, updated.locationId));
 
       const sessionTagsData = await tx
         .select({
@@ -564,7 +573,10 @@ export const sessionsRouter = createTRPCRouter({
     // Fetch locations and tags for all sessions
     const results = await Promise.all(
       sessions.map(async (session) => {
-        const [location] = await ctx.db.select().from(locations).where(eq(locations.id, session.locationId));
+        const [location] = await ctx.db
+          .select()
+          .from(locations)
+          .where(eq(locations.id, session.locationId));
 
         const sessionTagsData = await ctx.db
           .select({

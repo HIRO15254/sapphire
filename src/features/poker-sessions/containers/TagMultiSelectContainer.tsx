@@ -1,14 +1,18 @@
 "use client";
 
-import { notifications } from "@mantine/notifications";
 import { api } from "@/trpc/react";
+import { notifications } from "@mantine/notifications";
 import { useCallback } from "react";
 import { TagMultiSelect, type TagMultiSelectProps } from "../components/TagMultiSelect";
 import { useTags } from "../hooks/useTags";
 
 type TagMultiSelectContainerProps = Omit<TagMultiSelectProps, "tags" | "onCreateNew" | "onDelete">;
 
-export function TagMultiSelectContainer({ value, onChange, ...props }: TagMultiSelectContainerProps) {
+export function TagMultiSelectContainer({
+  value,
+  onChange,
+  ...props
+}: TagMultiSelectContainerProps) {
   const { tags, isLoading: isLoadingTags } = useTags();
   const utils = api.useUtils();
 

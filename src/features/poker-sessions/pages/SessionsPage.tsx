@@ -59,7 +59,9 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
     startDate?: Date;
     endDate?: Date;
   } | null>(null);
-  const [editingSession, setEditingSession] = useState<SessionsPageProps["initialSessions"][0] | null>(null);
+  const [editingSession, setEditingSession] = useState<
+    SessionsPageProps["initialSessions"][0] | null
+  >(null);
 
   // Fetch tags for filter dropdown
   const { data: tags = [] } = api.tags.getAll.useQuery({});
@@ -174,7 +176,14 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
         <SessionList sessions={displaySessions} onEdit={handleEdit} onDelete={handleDelete} />
 
         {editingSession && (
-          <SessionModal opened={editModalOpened} onClose={() => { closeEditModal(); setEditingSession(null); }} title="セッション編集">
+          <SessionModal
+            opened={editModalOpened}
+            onClose={() => {
+              closeEditModal();
+              setEditingSession(null);
+            }}
+            title="セッション編集"
+          >
             <SessionFormContainer
               sessionId={editingSession.id}
               initialValues={{
@@ -186,8 +195,14 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
                 tags: editingSession.tags.map((tag) => tag.name),
                 notes: editingSession.notes ?? undefined,
               }}
-              onSuccess={() => { closeEditModal(); setEditingSession(null); }}
-              onCancel={() => { closeEditModal(); setEditingSession(null); }}
+              onSuccess={() => {
+                closeEditModal();
+                setEditingSession(null);
+              }}
+              onCancel={() => {
+                closeEditModal();
+                setEditingSession(null);
+              }}
               submitLabel="更新"
             />
           </SessionModal>

@@ -120,6 +120,7 @@ export function SessionDetailPage({ session }: SessionDetailPageProps) {
                   <Paper p="md" withBorder>
                     <div
                       className="prose prose-sm max-w-none"
+                      // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
                       dangerouslySetInnerHTML={{ __html: session.notes }}
                       style={{
                         wordWrap: "break-word",
