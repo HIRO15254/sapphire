@@ -1,6 +1,6 @@
 import { formatCurrency } from "@/lib/utils/currency";
 import { ActionIcon, Badge, Button, Card, Collapse, Group, Stack, Text } from "@mantine/core";
-import { IconChevronDown, IconChevronUp, IconEdit, IconTrash } from "@tabler/icons-react";
+import { IconChevronDown, IconChevronUp, IconEdit, IconFileText, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 
 export interface SessionCardProps {
@@ -28,6 +28,7 @@ export interface SessionCardProps {
 
 export function SessionCard({ session, onEdit, onDelete, showActions = true }: SessionCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [notesExpanded, setNotesExpanded] = useState(false);
   const profitColor = session.profit > 0 ? "green" : session.profit < 0 ? "red" : "gray";
   const profitSign = session.profit > 0 ? "+" : "";
 
@@ -75,7 +76,10 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
           <ActionIcon
             variant="subtle"
             size="md"
-            onClick={() => setExpanded(!expanded)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
             aria-label={expanded ? "詳細を閉じる" : "詳細を表示"}
           >
             {expanded ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
@@ -113,22 +117,18 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
               )}
             </Group>
 
-            {session.notes && (
-              <div
-                className="prose prose-sm max-w-none"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
-                dangerouslySetInnerHTML={{ __html: session.notes }}
-                style={{
-                  wordWrap: "break-word",
-                  overflowWrap: "break-word",
-                  fontSize: "0.875rem",
-                  color: "var(--mantine-color-dimmed)",
-                }}
-              />
-            )}
-
             {showActions && (
               <Group gap="xs">
+                {session.notes && (
+                  <Button
+                    variant="light"
+                    size="sm"
+                    leftSection={<IconFileText size={16} />}
+                    onClick={() => setNotesExpanded(!notesExpanded)}
+                  >
+                    {notesExpanded ? "メモを閉じる" : "メモを表示"}
+                  </Button>
+                )}
                 {onEdit && (
                   <Button
                     variant="light"
@@ -151,6 +151,22 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
                   </Button>
                 )}
               </Group>
+            )}
+
+            {session.notes && (
+              <Collapse in={notesExpanded}>
+                <div
+                  className="prose prose-sm max-w-none"
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+                  dangerouslySetInnerHTML={{ __html: session.notes }}
+                  style={{
+                    wordWrap: "break-word",
+                    overflowWrap: "break-word",
+                    fontSize: "0.875rem",
+                    color: "var(--mantine-color-dimmed)",
+                  }}
+                />
+              </Collapse>
             )}
           </Stack>
         </Collapse>
