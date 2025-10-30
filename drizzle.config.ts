@@ -8,5 +8,5 @@ export default {
   dbCredentials: {
     url: env.DATABASE_URL,
   },
-  tablesFilter: ["mantttine_vibe_template_*"],
+  tablesFilter: ["sapphire_*"],
 } satisfies Config;

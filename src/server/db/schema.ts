@@ -121,8 +121,8 @@ export const locations = createTable(
   }),
   (t) => [
     index("location_user_id_idx").on(t.userId),
-    // Case-insensitive unique index: userId + lowercase name
-    uniqueIndex("location_user_name_unique").on(t.userId, sql`LOWER(${t.name})`),
+    // Unique constraint on userId + name (case-sensitivity handled in application layer)
+    uniqueIndex("location_user_name_unique").on(t.userId, t.name),
   ]
 );
 
@@ -156,8 +156,8 @@ export const tags = createTable(
   }),
   (t) => [
     index("tag_user_id_idx").on(t.userId),
-    // Case-insensitive unique index: userId + lowercase name
-    uniqueIndex("tag_user_name_unique").on(t.userId, sql`LOWER(${t.name})`),
+    // Unique constraint on userId + name (case-sensitivity handled in application layer)
+    uniqueIndex("tag_user_name_unique").on(t.userId, t.name),
   ]
 );
 
