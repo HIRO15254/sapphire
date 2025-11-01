@@ -14,7 +14,7 @@ Templates requiring updates:
 Follow-up TODOs: None
 -->
 
-# Mantine Vibe Template プロジェクト憲法
+# Sapphireプロジェクト憲法
 
 ## Core Principles
 

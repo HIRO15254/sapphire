@@ -1,13 +1,11 @@
 {
-  "name": "mantttine_vibe_template",
+  "name": "sapphire",
   "version": "1.0.0",
-  "description": "Spec-driven development template optimized for GitHub Spec Kit and Claude Code. Modern full-stack starter with Next.js 15, tRPC, Drizzle ORM, and Mantine v8",
+  "description": "Sapphire - ポーカーセッションを記録・分析するアプリケーション",
   "keywords": [
-    "spec-driven-development",
-    "spec-kit",
-    "claude-code",
-    "llm-development",
-    "ai-assisted-coding",
+    "poker",
+    "session-tracker",
+    "sapphire",
     "nextjs",
     "react",
     "typescript",
@@ -15,21 +13,19 @@
     "drizzle-orm",
     "mantine",
     "postgresql",
-    "template",
-    "starter",
-    "fullstack",
-    "pwa"
+    "pwa",
+    "fullstack"
   ],
-  "author": "Mantine Vibe Template Contributors",
+  "author": "Sapphire Contributors",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/mantttine_vibe_template"
+    "url": "https://github.com/HIRO15254/sapphire"
   },
   "bugs": {
-    "url": "https://github.com/your-username/mantttine_vibe_template/issues"
+    "url": "https://github.com/HIRO15254/sapphire/issues"
   },
-  "homepage": "https://github.com/your-username/mantttine_vibe_template#readme",
+  "homepage": "https://github.com/HIRO15254/sapphire#readme",
   "private": false,
   "type": "module",
   "scripts": {
@@ -75,7 +71,6 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "dayjs": "^1.11.18",
-    "dompurify": "^3.2.5",
     "drizzle-orm": "^0.41.0",
     "mantine-form-zod-resolver": "^1.3.0",
     "next": "^15.5.6",
@@ -93,8 +88,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "@types/dompurify": "^3.2.0",
-    "@types/jsdom": "^27.0.0",
     "@types/node": "^22.18.11",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",

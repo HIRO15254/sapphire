@@ -3,7 +3,6 @@ import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { parseNumeric } from "@/lib/utils/currency";
-import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { locations, pokerSessions, sessionTags, tags } from "@/server/db/schema";
 
@@ -166,10 +165,7 @@ export const sessionsRouter = createTRPCRouter({
         });
       }
 
-      // 3. Sanitize notes
-      const sanitizedNotes = input.notes ? sanitizeHtml(input.notes) : null;
-
-      // 4. Create session
+      // 3. Create session
       const [session] = await tx
         .insert(pokerSessions)
         .values({
@@ -179,7 +175,7 @@ export const sessionsRouter = createTRPCRouter({
           buyIn: input.buyIn.toFixed(2),
           cashOut: input.cashOut.toFixed(2),
           durationMinutes: input.durationMinutes,
-          notes: sanitizedNotes,
+          notes: input.notes || null,
         })
         .returning();
 
@@ -409,7 +405,7 @@ export const sessionsRouter = createTRPCRouter({
       if (updates.cashOut !== undefined) values.cashOut = updates.cashOut.toFixed(2);
       if (updates.durationMinutes !== undefined) values.durationMinutes = updates.durationMinutes;
       if (updates.notes !== undefined) {
-        values.notes = updates.notes ? sanitizeHtml(updates.notes) : null;
+        values.notes = updates.notes || null;
       }
 
       // Update session
