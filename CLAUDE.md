@@ -1,6 +1,6 @@
-# Claude Code Context: Poker Session Tracker
+﻿# Claude Code Context: Poker Session Tracker
 
-**Last Updated**: 2025-10-26 (auto-generated via /speckit.plan)
+**Last Updated**: 2025-10-31 (auto-generated via /speckit.plan)
 **Feature**: 002-poker-session-tracker
 
 ## Technology Stack
