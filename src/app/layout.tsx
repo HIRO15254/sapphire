@@ -30,7 +30,7 @@ const theme = createTheme({
 });
 
 export const metadata: Metadata = {
-  title: "ポーカーセッショントラッカー",
+  title: "Sapphire - ポーカーセッショントラッカー",
   description: "ポーカーセッションを記録・分析して、パフォーマンスを向上させる",
   icons: {
     icon: "/favicon.ico",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "ポーカーセッショントラッカー",
+    title: "Sapphire",
   },
   formatDetection: {
     telephone: false,

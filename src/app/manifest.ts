@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Todoアプリ",
-    short_name: "Todo",
-    description: "シンプルで使いやすいTodoアプリ",
+    name: "Sapphire",
+    short_name: "Sapphire",
+    description: "ポーカーセッションを記録・分析するアプリケーション",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
