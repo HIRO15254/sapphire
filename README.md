@@ -1,132 +1,148 @@
-# Mantine Vibe Template
+# Sapphire - ポーカーセッショントラッカー
 
-[![CI](https://img.shields.io/badge/CI-passing-brightgreen)](https://github.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
 [![Mantine](https://img.shields.io/badge/Mantine-8-339af0)](https://mantine.dev/)
-[![Spec Kit](https://img.shields.io/badge/Spec_Kit-compatible-purple)](https://github.com/github/spec-kit)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-optimized-orange)](https://www.anthropic.com/claude-code)
 
-## 🤖 仕様駆動のLLM開発テンプレート
+## 📖 プロジェクト概要
 
-このテンプレートは、**[GitHub Spec Kit](https://github.com/github/spec-kit)** と **[Anthropic Claude Code](https://www.anthropic.com/claude-code)** を使った**仕様駆動開発（Spec-Driven Development）** のために最適化されています。
+**Sapphire**は、ポーカープレイヤーのためのセッション記録・分析アプリケーションです。プレイしたセッションを記録し、統計を分析することで、パフォーマンスの向上をサポートします。
 
-### Spec-Driven Development（SDD）とは？
+モダンなフルスタック技術で構築されたWebアプリケーションで、PWA（Progressive Web App）としてインストール可能です。
 
-従来の「コードを書いてからドキュメントを書く」アプローチではなく、**仕様から始める**開発手法です。仕様は、コードがどのように動作すべきかの契約となり、AIエージェントがコードを生成、テスト、検証する際の真実の源（Source of Truth）となります。
+## 🚀 技術スタック
 
-**なぜ仕様駆動か？**
-- 🎯 **明確な意図**: AIに「何を作りたいか」を正確に伝えられる
-- 🏗️ **一貫したアーキテクチャ**: 仕様に基づいて統一された設計が実現
-- ✅ **品質保証**: 仕様がテストと検証の基準となる
-- 🚀 **効率的な開発**: 特にゼロから始めるプロジェクトで威力を発揮
+### コア
 
-### このテンプレートの特徴
+- **フロントエンド**: Next.js 15 (App Router) + React 19
+- **UIライブラリ**: Mantine v8
+- **バックエンド**: tRPC v11
+- **データベース**: PostgreSQL 16 + Drizzle ORM v0.41
+- **認証**: NextAuth.js v5
 
-- **[`.specify/`](./.specify/)**: Spec Kitの設定とテンプレートを含む
-- **実装済みのTodoアプリ**: 仕様駆動開発の参考実装
-- **包括的なテスト**: 仕様を検証するテストスイート
-- **Claude Code最適化**: エージェント型コーディングに最適化された構造
+### ツール
 
-詳細は以下を参照してください：
-- 📚 [GitHub Spec Kit Documentation](https://github.com/github/spec-kit)
-- 🤖 [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code/overview)
-- 📝 [Spec-Driven Development Guide](https://github.com/github/spec-kit/blob/main/spec-driven.md)
-
----
-
-## 💻 技術スタック
-
-モダンなフルスタックWebアプリケーションのための完全なスターターテンプレート。Next.js 15、tRPC、Drizzle ORM、Mantine v8で構築されています。
-
-このテンプレートには、実例として**レスポンシブTodoアプリ**が実装されており、ベストプラクティスとアーキテクチャパターンを学ぶことができます。
+- **ランタイム**: Bun
+- **言語**: TypeScript 5.9
+- **テスト**: Vitest
+- **リント/フォーマット**: Biome
+- **状態管理**: TanStack Query v5
 
 ## ✨ 主な機能
 
-### フロントエンド
-- ✅ **タスク管理**: タスクの作成、完了管理、削除（実装済み）
-- 📱 **レスポンシブデザイン**: モバイル、タブレット、デスクトップで最適化
-- ♿ **アクセシビリティ**: WCAG 2.1 AA準拠
-- 🎨 **モダンUI**: Mantine v8によるクリーンで直感的なUI
-- 📲 **PWA対応**: オフライン動作とインストール可能
+### 実装予定
 
-### バックエンド
-- 🔒 **型安全性**: TypeScript + tRPCによる完全なエンドツーエンド型安全性
-- 💾 **データベース**: PostgreSQL + Drizzle ORMによる型安全なデータベース操作
-- 🔐 **認証**: NextAuth.js v5 (準備済み)
-- 🚀 **高速**: Bunランタイムによる超高速ビルド・実行
+- **ポーカーセッショントラッカー** - セッション記録・分析機能
+  - セッション記録機能（実装予定）
+  - セッション履歴表示（実装予定）
+  - 統計・分析機能（実装予定）
 
-### 開発体験
-- 🧪 **包括的なテスト**: Vitest（単体・契約）+ Playwright（E2E）
-- 📝 **リント/フォーマット**: Biome（ESLint + Prettier代替）
-- 🔄 **CI/CD**: GitHub Actions設定済み
-- 🐳 **コンテナ化**: Docker Compose設定済み
+詳細は `specs/002-poker-session-tracker/spec.md` を参照してください。
 
-## 🛠️ 技術スタック
-
-### コア
-- **フロントエンド**: [Next.js 15](https://nextjs.org/) (App Router) + [React 19](https://react.dev/)
-- **UIライブラリ**: [Mantine v8](https://mantine.dev/)
-- **バックエンド**: [tRPC](https://trpc.io/) v11
-- **データベース**: [PostgreSQL 16](https://www.postgresql.org/) + [Drizzle ORM](https://orm.drizzle.team/)
-- **認証**: [NextAuth.js v5](https://authjs.dev/)
-
-### ツール
-- **ランタイム**: [Bun](https://bun.sh/)
-- **言語**: [TypeScript](https://www.typescriptlang.org/) 5.9
-- **テスト**: [Vitest](https://vitest.dev/) + [Playwright](https://playwright.dev/)
-- **リント/フォーマット**: [Biome](https://biomejs.dev/)
-- **状態管理**: [TanStack Query](https://tanstack.com/query)
-
-## 🚀 クイックスタート
+## 🎯 クイックスタート
 
 ### 前提条件
 
-- [Bun](https://bun.sh) v1.0以上
-- [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- Git
+以下のツールがインストールされている必要があります：
 
-### インストール手順
+- **Bun** v1.0以上 ([インストール方法](https://bun.sh))
+- **Docker Desktop** ([インストール方法](https://www.docker.com/products/docker-desktop))
+- **Git**
 
-1. **リポジトリのクローン**
+### 認証情報の準備
+
+**重要**: 開発を開始する前に、以下のOAuth認証情報を取得する必要があります（NextAuth.js v5で使用）：
+
+#### 1. Google OAuth 2.0 クライアントID
+
+1. [Google Cloud Console](https://console.cloud.google.com/)にアクセス
+2. 新しいプロジェクトを作成（または既存のプロジェクトを選択）
+3. 「APIとサービス」→「認証情報」に移動
+4. 「認証情報を作成」→「OAuth クライアント ID」を選択
+5. アプリケーションの種類: **ウェブアプリケーション**
+6. 承認済みのリダイレクトURIに追加:
+   - `http://localhost:3000/api/auth/callback/google`
+7. クライアントIDとクライアントシークレットを控える
+
+#### 2. GitHub OAuth App
+
+1. [GitHub Developer Settings](https://github.com/settings/developers)にアクセス
+2. 「New OAuth App」をクリック
+3. 以下を入力:
+   - **Application name**: Sapphire (ローカル開発)
+   - **Homepage URL**: `http://localhost:3000`
+   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
+4. 「Register application」をクリック
+5. Client IDとGenerate a new client secretでClient Secretを取得
+
+### セットアップ手順
+
+#### 1. リポジトリのクローン
 
 ```bash
 git clone <repository-url>
-cd mantttine_vibe_template
+cd sapphire
 ```
 
-2. **依存関係のインストール**
+#### 2. 依存関係のインストール
 
 ```bash
 bun install
 ```
 
-3. **環境変数の設定**
+#### 3. 環境変数の設定
 
-`.env.example`を`.env`にコピー:
+`.env.example`を`.env`にコピー：
 
 ```bash
 cp .env.example .env
 ```
 
-必要に応じて`.env`ファイルを編集してください。デフォルト設定でローカル開発は可能です。
+`.env`ファイルを編集し、取得したOAuth認証情報を設定：
 
-4. **PostgreSQLの起動**
+```env
+# Database
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sapphire"
+
+# NextAuth.js
+NEXTAUTH_SECRET="your-secret-key-here"  # openssl rand -base64 32 で生成
+NEXTAUTH_URL="http://localhost:3000"
+
+# Google OAuth
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# GitHub OAuth
+GITHUB_CLIENT_ID="your-github-client-id"
+GITHUB_CLIENT_SECRET="your-github-client-secret"
+```
+
+**Note**: `NEXTAUTH_SECRET`は以下のコマンドで生成できます：
+
+```bash
+openssl rand -base64 32
+```
+
+#### 4. PostgreSQLの起動
+
+Docker Composeを使用してPostgreSQLデータベースを起動します：
 
 ```bash
 docker compose up -d
 ```
 
-5. **データベーススキーマの適用**
+**Note**: データベース名は`sapphire`（本番用）と`sapphire_test`（テスト用）です。
 
-本番DBとテスト用DBの両方にスキーマを適用します:
+#### 5. データベーススキーマの適用
+
+本番DBとテスト用DBの両方にスキーマを適用します：
 
 ```bash
 bun run db:push:all
 ```
 
-個別に適用する場合:
+個別に適用する場合：
 
 ```bash
 # 本番DBのみ
@@ -136,35 +152,20 @@ bun run db:push
 bun run db:push:test
 ```
 
-6. **開発サーバーの起動**
+#### 6. 開発サーバーの起動
 
 ```bash
 bun run dev
 ```
 
-ブラウザで http://localhost:3000 を開く
+ブラウザで http://localhost:3000 を開くと、Sapphireアプリケーションが表示されます。
 
-## 使い方
+## 💻 開発コマンド
 
-### タスクの作成
-
-1. 入力欄に新しいタスクの内容を入力
-2. 「追加」ボタンをクリック（またはEnterキーを押す）
-
-### タスクの完了管理
-
-- タスクの左側のチェックボックスをクリックして完了/未完了を切り替え
-- 完了したタスクは取り消し線で表示される
-
-### タスクの削除
-
-1. 削除したいタスクの右側のゴミ箱アイコンをクリック
-2. 確認ダイアログで「削除する」をクリック
-
-## 開発コマンド
+### 開発・ビルド
 
 ```bash
-# 開発サーバーの起動
+# 開発サーバーの起動（ホットリロード有効）
 bun run dev
 
 # プロダクションビルド
@@ -172,128 +173,113 @@ bun run build
 
 # プロダクションサーバーの起動（PWA有効）
 bun run preview
+```
 
-# テストの実行
+### テスト
+
+```bash
+# 単体・契約テストの実行
 bun run test
 
 # テスト（watch mode）
 bun run test:watch
 
-# E2Eテスト（Playwright）
-bun run test:e2e
+# UIでテストを表示
+bun run test:ui
+```
 
-# リントチェック
-bun run lint
+### データベース
 
-# フォーマット
-bun run format
+```bash
+# スキーマ適用（両方）
+bun run db:push:all
 
-# データベーススキーマ適用
-bun run db:push:all     # 本番・テスト両方
-bun run db:push         # 本番DBのみ
-bun run db:push:test    # テスト用DBのみ
+# スキーマ適用（本番DBのみ）
+bun run db:push
+
+# スキーマ適用（テスト用DBのみ）
+bun run db:push:test
 
 # データベース管理（Drizzle Studio）
 bun run db:studio
 ```
 
-## プロジェクト構成
+### コード品質
+
+```bash
+# リント・フォーマットチェック
+bun run check
+
+# リント・フォーマット自動修正
+bun run check:write
+
+# 型チェック
+bun run typecheck
+```
+
+## 📁 プロジェクト構造
 
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # ルートレイアウト（Mantineテーマ設定）
-│   ├── page.tsx           # トップページ
-│   └── api/trpc/          # tRPC APIハンドラー
+sapphire/
+├── src/
+│   ├── app/                        # Next.js App Router
+│   │   ├── layout.tsx             # ルートレイアウト（Mantineテーマ設定）
+│   │   ├── page.tsx               # トップページ
+│   │   ├── manifest.ts            # PWA manifest
+│   │   └── api/trpc/              # tRPC APIハンドラー
+│   │
+│   ├── server/                     # バックエンド（API層）
+│   │   ├── api/
+│   │   │   ├── routers/           # tRPCルーター
+│   │   │   ├── root.ts            # ルートルーター
+│   │   │   └── trpc.ts            # tRPC設定
+│   │   └── db/
+│   │       ├── schema.ts          # Drizzleスキーマ定義
+│   │       └── index.ts           # PostgreSQLクライアント
+│   │
+│   ├── features/                   # フロントエンド機能
+│   │   └── poker-sessions/        # ポーカーセッション機能（実装予定）
+│   │       ├── components/        # Presentationコンポーネント
+│   │       ├── containers/        # Containerコンポーネント
+│   │       └── hooks/             # カスタムフック
+│   │
+│   └── lib/
+│       └── utils/                 # ユーティリティ関数
 │
-├── server/                 # バックエンド（API層）
-│   ├── api/
-│   │   ├── routers/       # tRPCルーター
-│   │   │   └── tasks.ts   # タスク関連API
-│   │   ├── root.ts        # ルートルーター
-│   │   └── trpc.ts        # tRPC設定
-│   └── db/
-│       ├── schema.ts      # Drizzleスキーマ定義
-│       └── index.ts       # PostgreSQLクライアント
+├── tests/
+│   ├── contract/                  # API契約テスト（tRPC）
+│   └── components/                # コンポーネントテスト
 │
-├── features/               # フロントエンド機能
-│   └── tasks/
-│       ├── components/    # Presentationコンポーネント
-│       ├── containers/    # Containerコンポーネント
-│       └── hooks/         # カスタムフック
+├── specs/                         # 機能仕様書
+│   ├── 002-poker-session-tracker/ # ポーカーセッショントラッカー仕様
+│   └── 004-rebrand-to-sapphire/   # リブランディング仕様
 │
-└── styles/
-    └── globals.css        # グローバルCSS
-
-tests/
-├── contract/              # 契約テスト（tRPC API）
-├── integration/           # 統合テスト（E2Eフロー）
-└── unit/                  # 単体テスト（コンポーネント）
+└── public/                        # 静的ファイル
+    └── [PWAアイコン]
 ```
 
-## テスト
+## 📊 実装状況
 
-### テスト用データベースのセットアップ
+### 計画中の機能
 
-テストは本番データベースとは別の`todoapp_test`データベースを使用します。
+- **ポーカーセッショントラッカー** (`specs/002-poker-session-tracker/`)
+  - セッション記録機能（計画中）
+  - セッション履歴表示（計画中）
+  - 統計・分析機能（計画中）
 
-#### 新規セットアップの場合
+詳細は `specs/002-poker-session-tracker/spec.md` を参照してください。
 
-Docker Composeを使用している場合、初回起動時に自動的に`todoapp_test`データベースが作成されます。
+## 🏗️ アーキテクチャパターン
 
-```bash
-docker compose up -d
+このプロジェクトは**Presentation/Container分離パターン**を採用しています：
 
-# 本番DBとテスト用DBの両方にスキーマを適用
-bun run db:push:all
-```
+- **API層** (`src/server/`): ビジネスロジック、データアクセス、バリデーション
+- **Container層** (`src/features/*/containers/`): 状態管理、API呼び出し、ロジック調整
+- **Presentation層** (`src/features/*/components/`): UIコンポーネント、表示のみ
 
-#### 既存のDockerコンテナを使用している場合
+詳細は `CLAUDE.md` を参照してください。
 
-以下のコマンドで手動でテスト用データベースを作成します:
-
-```bash
-# テスト用データベースの作成
-docker exec todoapp-postgres psql -U postgres -c "CREATE DATABASE todoapp_test;"
-
-# テスト用DBにスキーマを適用
-bun run db:push:test
-```
-
-#### スキーマ変更時の注意
-
-スキーマを変更した際は、必ず両方のデータベースに適用してください:
-
-```bash
-bun run db:push:all
-```
-
-### テストの実行
-
-```bash
-# すべてのテストを実行
-bun run test
-
-# テスト（watch mode）
-bun run test:watch
-
-# E2Eテスト（Playwright）
-bun run test:e2e
-
-# 特定のテストスイートのみ
-bun run test tests/contract
-bun run test tests/unit
-```
-
-### テストカバレッジ
-
-プロジェクトは以下のテストでカバーされています:
-
-- **契約テスト**: tRPC APIの入出力を検証
-- **E2Eテスト**: ブラウザ上でのユーザーフローを検証（Playwright）
-- **単体テスト**: 個別コンポーネントと関数を検証
-
-## トラブルシューティング
+## 🔧 トラブルシューティング
 
 ### PostgreSQLに接続できない
 
@@ -310,17 +296,17 @@ docker compose logs postgres
 
 ### ポート5432が既に使用されている
 
-`docker-compose.yml`のポートを変更:
+`docker-compose.yml`のポートを変更：
 
 ```yaml
 ports:
   - "5433:5432"  # ホスト側のポートを変更
 ```
 
-`.env.local`も更新:
+`.env`も更新：
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5433/todoapp"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/sapphire"
 ```
 
 ### スキーマ適用が失敗する
@@ -330,51 +316,66 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5433/todoapp"
 docker compose down -v
 docker compose up -d
 
-# スキーマを再適用（両方のDB）
+# スキーマを再適用
 bun run db:push:all
 ```
 
-### テストDBと本番DBのスキーマがずれている
+### OAuth認証がローカルで動作しない
+
+以下を確認してください：
+
+1. `.env`ファイルに正しいクライアントIDとシークレットが設定されているか
+2. Google/GitHubのOAuth設定で、リダイレクトURIが`http://localhost:3000/api/auth/callback/{provider}`になっているか
+3. `NEXTAUTH_SECRET`が設定されているか（空欄の場合はエラーになります）
+
+### NextAuth.jsのエラー: "Invalid callback URL"
+
+OAuth設定のリダイレクトURIを確認してください：
+- Google: `http://localhost:3000/api/auth/callback/google`
+- GitHub: `http://localhost:3000/api/auth/callback/github`
+
+**Note**: `https`ではなく`http`であることに注意（ローカル開発の場合）
+
+### データベース名が`todoapp`から`sapphire`に変更されましたが、古い環境はどうすればいいですか？
+
+既存の環境で`todoapp`データベースが残っている場合：
 
 ```bash
-# テスト用DBのみスキーマを適用
-bun run db:push:test
+# 古いデータベースを削除（データは失われます）
+docker exec sapphire-postgres psql -U postgres -c "DROP DATABASE todoapp;"
+docker exec sapphire-postgres psql -U postgres -c "DROP DATABASE todoapp_test;"
 
-# または両方に適用
+# 新しいデータベースは自動的に作成されます
+docker compose up -d
 bun run db:push:all
 ```
 
-## 📚 アーキテクチャとパターン
+### テストを実行すると`sapphire_test`データベースが見つからないエラーが出ます
 
-このテンプレートは、スケーラブルで保守性の高いアプリケーションを構築するためのベストプラクティスを採用しています：
+テスト用データベースにスキーマが適用されていません：
 
-### ディレクトリ構造
-- **Presentation/Container パターン**: UI層とロジック層を分離
-- **Feature-based 構造**: 機能ごとにコードを整理
-- **Type-safe API**: tRPCによるエンドツーエンド型安全性
+```bash
+bun run db:push:test
+```
 
-### テスト戦略
-- **単体テスト**: コンポーネントと関数の独立したテスト
-- **契約テスト**: API層の入出力検証
-- **E2Eテスト**: 実際のユーザーフローのテスト
+または、両方のデータベースにスキーマを適用：
+
+```bash
+bun run db:push:all
+```
+
+## 📚 ドキュメント
+
+- **CLAUDE.md**: プロジェクト全体のコンテキストとアーキテクチャ
+- **specs/*/spec.md**: 各機能の詳細仕様
+- **specs/*/plan.md**: 実装計画
+- **specs/*/quickstart.md**: クイックスタートガイド
+- **.specify/memory/constitution.md**: プロジェクト憲法（開発原則）
 
 ## 📄 ライセンス
 
-このプロジェクトは[MIT License](./LICENSE)の下でライセンスされています。
-
-## 🙏 謝辞
-
-このテンプレートは以下のプロジェクトに基づいています：
-- [T3 Stack](https://create.t3.gg/)
-- [Mantine](https://mantine.dev/)
-- そして素晴らしいオープンソースコミュニティ
-
-## 📞 フィードバック
-
-このテンプレートを使用して何か構築した場合や、改善の提案がある場合は、お気軽にフィードバックをお寄せください。
+MIT License - 詳細は [LICENSE](./LICENSE) を参照してください。
 
 ---
 
-**このテンプレートで何か構築しましたか？** ぜひ教えてください！
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+**Happy Coding with Sapphire! 💎**

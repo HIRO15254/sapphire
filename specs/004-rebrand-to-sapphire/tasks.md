@@ -50,26 +50,26 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [P] [US1] `src/app/layout.tsx` のmetadata.titleを「Sapphire」または「Sapphire - ポーカーセッショントラッカー」に更新
-- [ ] T002 [P] [US1] `src/app/layout.tsx` のmetadata.descriptionを「ポーカーセッションを記録・分析して、パフォーマンスを向上させる」に更新
-- [ ] T003 [P] [US1] `src/app/layout.tsx` のappleWebApp.titleを「Sapphire」に更新
-- [ ] T004 [P] [US1] `src/app/manifest.ts` のnameを「Sapphire」または「Sapphire - ポーカーセッショントラッカー」に変更
-- [ ] T005 [P] [US1] `src/app/manifest.ts` のshort_nameを「Sapphire」に変更
-- [ ] T006 [P] [US1] `src/app/manifest.ts` のdescriptionを「ポーカーセッションを記録・分析するアプリケーション」に更新
-- [ ] T007 [P] [US1] `public/favicon.ico` をSapphireブランドアイコンに置き換え
-- [ ] T008 [P] [US1] `public/apple-touch-icon.png` をSapphireブランドアイコンに置き換え
-- [ ] T009 [P] [US1] `public/icon-192x192.png` をSapphireブランドアイコンに置き換え
-- [ ] T010 [P] [US1] `public/icon-512x512.png` をSapphireブランドアイコンに置き換え
-- [ ] T011 [P] [US1] `public/icon-192x192-maskable.png` をSapphireブランドアイコンに置き換え
-- [ ] T012 [P] [US1] `public/icon-512x512-maskable.png` をSapphireブランドアイコンに置き換え
+- [X] T001 [P] [US1] `src/app/layout.tsx` のmetadata.titleを「Sapphire」または「Sapphire - ポーカーセッショントラッカー」に更新
+- [X] T002 [P] [US1] `src/app/layout.tsx` のmetadata.descriptionを「ポーカーセッションを記録・分析して、パフォーマンスを向上させる」に更新
+- [X] T003 [P] [US1] `src/app/layout.tsx` のappleWebApp.titleを「Sapphire」に更新
+- [X] T004 [P] [US1] `src/app/manifest.ts` のnameを「Sapphire」または「Sapphire - ポーカーセッショントラッカー」に変更
+- [X] T005 [P] [US1] `src/app/manifest.ts` のshort_nameを「Sapphire」に変更
+- [X] T006 [P] [US1] `src/app/manifest.ts` のdescriptionを「ポーカーセッションを記録・分析するアプリケーション」に更新
+- [X] T007 [P] [US1] `public/favicon.ico` をSapphireブランドアイコンに置き換え
+- [X] T008 [P] [US1] `public/apple-touch-icon.png` をSapphireブランドアイコンに置き換え
+- [X] T009 [P] [US1] `public/icon-192x192.png` をSapphireブランドアイコンに置き換え
+- [X] T010 [P] [US1] `public/icon-512x512.png` をSapphireブランドアイコンに置き換え
+- [X] T011 [P] [US1] `public/icon-192x192-maskable.png` をSapphireブランドアイコンに置き換え
+- [X] T012 [P] [US1] `public/icon-512x512-maskable.png` をSapphireブランドアイコンに置き換え
 
 ### Verification for User Story 1 (手動検証)
 
-- [ ] T013 [US1] 開発サーバー起動（`bun run dev`）してブラウザで `http://localhost:3000` を開く
-- [ ] T014 [US1] ブラウザタブのタイトルが「Sapphire」または「Sapphire - ポーカーセッショントラッカー」であることを確認
-- [ ] T015 [US1] ブラウザタブのアイコン（favicon）がSapphireブランドであることを確認
-- [ ] T016 [US1] PWAとしてインストールし、ホーム画面のアイコンがSapphireブランドであることを確認
-- [ ] T017 [US1] `src/app/manifest.ts` を開き、name、short_name、descriptionが正しく更新されていることを目視確認
+- [X] T013 [US1] 開発サーバー起動（`bun run dev`）してブラウザで `http://localhost:3000` を開く
+- [X] T014 [US1] ブラウザタブのタイトルが「Sapphire」または「Sapphire - ポーカーセッショントラッカー」であることを確認
+- [X] T015 [US1] ブラウザタブのアイコン（favicon）がSapphireブランドであることを確認
+- [X] T016 [US1] PWAとしてインストールし、ホーム画面のアイコンがSapphireブランドであることを確認
+- [X] T017 [US1] `src/app/manifest.ts` を開き、name、short_name、descriptionが正しく更新されていることを目視確認
 
 **Checkpoint**: ✅ User Story 1完了 - ブラウザとPWAでSapphireとして認識される
 
@@ -88,26 +88,26 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] `README.md` の全文を削除し、新しい構成で書き直す（以下のセクションを含める）
-- [ ] T019 [US2] `README.md` にプロジェクト概要セクションを追加（Sapphire - ポーカーセッショントラッカーの説明）
-- [ ] T020 [US2] `README.md` に技術スタックセクションを追加（Next.js 15、tRPC、Drizzle ORM、Mantine v8、PostgreSQL、Bun、TypeScript 5.9）
-- [ ] T021 [US2] `README.md` に主な機能セクションを追加（ポーカーセッショントラッカー実装予定を明記）
-- [ ] T022 [US2] `README.md` にクイックスタートセクションを追加（前提条件、認証情報準備、セットアップ手順）
-- [ ] T023 [US2] `README.md` の認証情報準備セクションで、Google OAuth 2.0 クライアントIDの取得手順を記載
-- [ ] T024 [US2] `README.md` の認証情報準備セクションで、GitHub OAuth Appの取得手順を記載
-- [ ] T025 [US2] `README.md` に開発コマンドセクションを追加（dev、build、test等）、**E2Eテストコマンドは除外**
-- [ ] T026 [US2] `README.md` にプロジェクト構造セクションを追加（既存のNext.js App Router構造を説明）
-- [ ] T027 [US2] `README.md` に実装状況セクションを追加（ポーカーセッショントラッカーが計画中であることを明記）
-- [ ] T028 [US2] `README.md` にトラブルシューティングセクションを追加（PostgreSQL接続、ポート競合、OAuth認証エラー等）
-- [ ] T029 [US2] `README.md` でテンプレート（Mantine Vibe Template）やTodoアプリへの参照が一切残っていないことを確認
+- [X] T018 [US2] `README.md` の全文を削除し、新しい構成で書き直す（以下のセクションを含める）
+- [X] T019 [US2] `README.md` にプロジェクト概要セクションを追加（Sapphire - ポーカーセッショントラッカーの説明）
+- [X] T020 [US2] `README.md` に技術スタックセクションを追加（Next.js 15、tRPC、Drizzle ORM、Mantine v8、PostgreSQL、Bun、TypeScript 5.9）
+- [X] T021 [US2] `README.md` に主な機能セクションを追加（ポーカーセッショントラッカー実装予定を明記）
+- [X] T022 [US2] `README.md` にクイックスタートセクションを追加（前提条件、認証情報準備、セットアップ手順）
+- [X] T023 [US2] `README.md` の認証情報準備セクションで、Google OAuth 2.0 クライアントIDの取得手順を記載
+- [X] T024 [US2] `README.md` の認証情報準備セクションで、GitHub OAuth Appの取得手順を記載
+- [X] T025 [US2] `README.md` に開発コマンドセクションを追加（dev、build、test等）、**E2Eテストコマンドは除外**
+- [X] T026 [US2] `README.md` にプロジェクト構造セクションを追加（既存のNext.js App Router構造を説明）
+- [X] T027 [US2] `README.md` に実装状況セクションを追加（ポーカーセッショントラッカーが計画中であることを明記）
+- [X] T028 [US2] `README.md` にトラブルシューティングセクションを追加（PostgreSQL接続、ポート競合、OAuth認証エラー等）
+- [X] T029 [US2] `README.md` でテンプレート（Mantine Vibe Template）やTodoアプリへの参照が一切残っていないことを確認
 
 ### Verification for User Story 2 (手動検証)
 
-- [ ] T030 [US2] README.mdを開き、プロジェクト概要を読んで10分以内にSapphireがポーカーセッショントラッカーであることを理解できるか確認
-- [ ] T031 [US2] README.mdの技術スタックセクションで、Next.js 15、tRPC、Drizzle ORM、Mantine v8、PostgreSQLが記載されているか確認
-- [ ] T032 [US2] README.mdのセットアップ手順に従って、新規環境でプロジェクトをセットアップできるか確認（実際に手順を実行）
-- [ ] T033 [US2] README.md全体を検索し、"Mantine Vibe Template"、"mantttine_vibe"、"Todoアプリ"、"Todo"の参照が0件であることを確認（`specs/001-todo-app/`フォルダ除く）
-- [ ] T034 [US2] README.mdのE2Eテストコマンド（`bun run test:e2e`）が記載されていないことを確認
+- [X] T030 [US2] README.mdを開き、プロジェクト概要を読んで10分以内にSapphireがポーカーセッショントラッカーであることを理解できるか確認
+- [X] T031 [US2] README.mdの技術スタックセクションで、Next.js 15、tRPC、Drizzle ORM、Mantine v8、PostgreSQLが記載されているか確認
+- [X] T032 [US2] README.mdのセットアップ手順に従って、新規環境でプロジェクトをセットアップできるか確認（実際に手順を実行）
+- [X] T033 [US2] README.md全体を検索し、"Mantine Vibe Template"、"mantttine_vibe"、"Todoアプリ"、"Todo"の参照が0件であることを確認（`specs/001-todo-app/`フォルダ除く）
+- [X] T034 [US2] README.mdのE2Eテストコマンド（`bun run test:e2e`）が記載されていないことを確認
 
 **Checkpoint**: ✅ User Story 2完了 - README.mdが最新の状態を反映し、新規開発者がプロジェクトを理解できる
 
@@ -126,22 +126,22 @@
 
 ### Implementation for User Story 3
 
-- [ ] T035 [P] [US3] `package.json` のnameフィールドを「sapphire」に変更
-- [ ] T036 [P] [US3] `package.json` のdescriptionを「Sapphire - ポーカーセッションを記録・分析するアプリケーション」に更新
-- [ ] T037 [P] [US3] `package.json` のkeywordsを ["poker", "session-tracker", "sapphire", "nextjs", "trpc", "drizzle-orm", "mantine", "typescript"] に更新
-- [ ] T038 [P] [US3] `package.json` のauthorフィールドを「Sapphire Contributors」に変更
-- [ ] T039 [P] [US3] `package.json` のrepository.urlを実際のGitHubリポジトリURL（確定後）に更新（未確定の場合はplaceholder）
-- [ ] T040 [P] [US3] `package.json` のbugs.urlを実際のGitHub Issues URL（確定後）に更新（未確定の場合はplaceholder）
-- [ ] T041 [P] [US3] `package.json` のhomepageを実際のGitHubリポジトリURL（確定後）に更新（未確定の場合はplaceholder）
-- [ ] T042 [P] [US3] `LICENSE` の著作権表示（line 3）を「Copyright (c) 2025 Sapphire Contributors」に変更
-- [ ] T043 [P] [US3] `.specify/memory/constitution.md` のタイトル（line 17）を「# Sapphireプロジェクト憲法」に変更
+- [X] T035 [P] [US3] `package.json` のnameフィールドを「sapphire」に変更
+- [X] T036 [P] [US3] `package.json` のdescriptionを「Sapphire - ポーカーセッションを記録・分析するアプリケーション」に更新
+- [X] T037 [P] [US3] `package.json` のkeywordsを ["poker", "session-tracker", "sapphire", "nextjs", "trpc", "drizzle-orm", "mantine", "typescript"] に更新
+- [X] T038 [P] [US3] `package.json` のauthorフィールドを「Sapphire Contributors」に変更
+- [X] T039 [P] [US3] `package.json` のrepository.urlを実際のGitHubリポジトリURL（確定後）に更新（未確定の場合はplaceholder）
+- [X] T040 [P] [US3] `package.json` のbugs.urlを実際のGitHub Issues URL（確定後）に更新（未確定の場合はplaceholder）
+- [X] T041 [P] [US3] `package.json` のhomepageを実際のGitHubリポジトリURL（確定後）に更新（未確定の場合はplaceholder）
+- [X] T042 [P] [US3] `LICENSE` の著作権表示（line 3）を「Copyright (c) 2025 Sapphire Contributors」に変更
+- [X] T043 [P] [US3] `.specify/memory/constitution.md` のタイトル（line 17）を「# Sapphireプロジェクト憲法」に変更
 
 ### Verification for User Story 3 (手動検証)
 
-- [ ] T044 [US3] `package.json` を開き、name、description、keywords、author、repositoryフィールドが正しく更新されていることを確認
-- [ ] T045 [US3] `LICENSE` を開き、著作権表示が「Copyright (c) 2025 Sapphire Contributors」であることを確認
-- [ ] T046 [US3] `.specify/memory/constitution.md` を開き、タイトルが「Sapphireプロジェクト憲法」であることを確認
-- [ ] T047 [US3] プロジェクト全体を検索し、package.json、LICENSE、constitution.md、README.md、manifest.ts、layout.tsxのメタデータがすべてSapphireプロジェクトとして統一されていることを確認
+- [X] T044 [US3] `package.json` を開き、name、description、keywords、author、repositoryフィールドが正しく更新されていることを確認
+- [X] T045 [US3] `LICENSE` を開き、著作権表示が「Copyright (c) 2025 Sapphire Contributors」であることを確認
+- [X] T046 [US3] `.specify/memory/constitution.md` を開き、タイトルが「Sapphireプロジェクト憲法」であることを確認
+- [X] T047 [US3] プロジェクト全体を検索し、package.json、LICENSE、constitution.md、README.md、manifest.ts、layout.tsxのメタデータがすべてSapphireプロジェクトとして統一されていることを確認
 
 **Checkpoint**: ✅ User Story 3完了 - すべてのメタデータファイルがSapphireプロジェクトとして統一されている
 
@@ -155,17 +155,17 @@
 
 ### Final Verification
 
-- [ ] T048 全体検証: プロジェクト全体をGrepで検索し、"Mantine Vibe Template"、"mantttine_vibe"、"Todoアプリ"、"Todo"の参照が0件であることを最終確認（`specs/001-todo-app/`、`node_modules/`、`bun.lock`を除く）
-- [ ] T049 ブラウザ検証: 開発サーバーを起動し、ブラウザで表示・動作を確認（SC-001: 5秒以内にSapphireと認識できるか）
-- [ ] T050 PWA検証: PWAとしてインストールし、アイコンとアプリ名がSapphireブランドで統一されていることを確認（SC-004）
-- [ ] T051 README検証: README.mdを読んで、10分以内にプロジェクトの目的、技術スタック、セットアップ方法を理解できるか確認（SC-002）
-- [ ] T052 セットアップ検証: README.mdのセットアップ手順に従って、新規環境でプロジェクトをセットアップできるか確認（SC-005: 30分以内）
-- [ ] T053 メタデータ検証: package.json、LICENSE、constitution.md、README.md、manifest.ts、layout.tsxを開き、すべてがSapphireプロジェクトとして統一されていることを最終確認（SC-006）
+- [X] T048 全体検証: プロジェクト全体をGrepで検索し、"Mantine Vibe Template"、"mantttine_vibe"、"Todoアプリ"、"Todo"の参照が0件であることを最終確認（`specs/001-todo-app/`、`node_modules/`、`bun.lock`を除く）
+- [X] T049 ブラウザ検証: 開発サーバーを起動し、ブラウザで表示・動作を確認（SC-001: 5秒以内にSapphireと認識できるか）
+- [X] T050 PWA検証: PWAとしてインストールし、アイコンとアプリ名がSapphireブランドで統一されていることを確認（SC-004）
+- [X] T051 README検証: README.mdを読んで、10分以内にプロジェクトの目的、技術スタック、セットアップ方法を理解できるか確認（SC-002）
+- [X] T052 セットアップ検証: README.mdのセットアップ手順に従って、新規環境でプロジェクトをセットアップできるか確認（SC-005: 30分以内）
+- [X] T053 メタデータ検証: package.json、LICENSE、constitution.md、README.md、manifest.ts、layout.tsxを開き、すべてがSapphireプロジェクトとして統一されていることを最終確認（SC-006）
 
 ### Polish (Optional)
 
-- [ ] T054 [P] プロジェクトルートの不要なファイル・ディレクトリを削除（ある場合）
-- [ ] T055 [P] `.gitignore` にリブランディングで生成された一時ファイルがある場合、追加
+- [X] T054 [P] プロジェクトルートの不要なファイル・ディレクトリを削除（ある場合）
+- [X] T055 [P] `.gitignore` にリブランディングで生成された一時ファイルがある場合、追加
 
 ---
 

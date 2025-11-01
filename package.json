@@ -1,13 +1,11 @@
 {
-  "name": "mantttine_vibe_template",
+  "name": "sapphire",
   "version": "1.0.0",
-  "description": "Spec-driven development template optimized for GitHub Spec Kit and Claude Code. Modern full-stack starter with Next.js 15, tRPC, Drizzle ORM, and Mantine v8",
+  "description": "Sapphire - ポーカーセッションを記録・分析するアプリケーション",
   "keywords": [
-    "spec-driven-development",
-    "spec-kit",
-    "claude-code",
-    "llm-development",
-    "ai-assisted-coding",
+    "poker",
+    "session-tracker",
+    "sapphire",
     "nextjs",
     "react",
     "typescript",
@@ -15,21 +13,19 @@
     "drizzle-orm",
     "mantine",
     "postgresql",
-    "template",
-    "starter",
-    "fullstack",
-    "pwa"
+    "pwa",
+    "fullstack"
   ],
-  "author": "Mantine Vibe Template Contributors",
+  "author": "Sapphire Contributors",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/mantttine_vibe_template"
+    "url": "https://github.com/HIRO15254/sapphire"
   },
   "bugs": {
-    "url": "https://github.com/your-username/mantttine_vibe_template/issues"
+    "url": "https://github.com/HIRO15254/sapphire/issues"
   },
-  "homepage": "https://github.com/your-username/mantttine_vibe_template#readme",
+  "homepage": "https://github.com/HIRO15254/sapphire#readme",
   "private": false,
   "type": "module",
   "scripts": {
