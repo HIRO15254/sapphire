@@ -227,11 +227,11 @@ describe("locations router - Contract Tests", () => {
   });
 
   describe("delete procedure (FR-020)", () => {
-    it("should delete location and reassign sessions to default", async () => {
+    it("should prevent deletion of location with sessions", async () => {
       const caller = createCaller(mockSession1);
 
       // Create a location
-      const location = await caller.locations.create({ name: "削除予定の場所" });
+      const location = await caller.locations.create({ name: "使用中の場所" });
 
       // Create 2 sessions with this location
       await db.insert(pokerSessions).values([
@@ -253,29 +253,15 @@ describe("locations router - Contract Tests", () => {
         },
       ]);
 
-      // Delete the location
-      const result = await caller.locations.delete({ id: location.id });
+      // Try to delete the location - should fail
+      await expect(caller.locations.delete({ id: location.id })).rejects.toThrow(
+        "この場所は2件のセッションに使用されているため削除できません"
+      );
 
-      expect(result.success).toBe(true);
-      expect(result.affectedSessions).toBe(2);
-
-      // Verify location was deleted
+      // Verify location still exists
       const locs = await caller.locations.getAll({});
-      const deleted = locs.find((l) => l.id === location.id);
-      expect(deleted).toBeUndefined();
-
-      // Verify default location exists
-      const defaultLocation = locs.find((l) => l.name === "削除された場所");
-      expect(defaultLocation).toBeDefined();
-
-      // Verify sessions were reassigned
-      const sessions = await db
-        .select()
-        .from(pokerSessions)
-        .where(eq(pokerSessions.userId, mockUser1.id));
-
-      expect(sessions).toHaveLength(2);
-      expect(sessions.every((s) => s.locationId === defaultLocation?.id)).toBe(true);
+      const stillExists = locs.find((l) => l.id === location.id);
+      expect(stillExists).toBeDefined();
     });
 
     it("should prevent deletion of default location", async () => {
