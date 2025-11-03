@@ -1,6 +1,12 @@
 import { formatCurrency } from "@/lib/utils/currency";
 import { ActionIcon, Badge, Button, Card, Collapse, Group, Stack, Text } from "@mantine/core";
-import { IconChevronDown, IconChevronUp, IconEdit, IconFileText, IconTrash } from "@tabler/icons-react";
+import {
+  IconChevronDown,
+  IconChevronUp,
+  IconEdit,
+  IconFileText,
+  IconTrash,
+} from "@tabler/icons-react";
 import { useState } from "react";
 
 export interface SessionCardProps {
