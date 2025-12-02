@@ -1,8 +1,12 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { eq } from "drizzle-orm";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
+import { comparePassword } from "@/lib/utils/password";
+import { signinSchema } from "@/lib/validations/auth";
 import { db } from "@/server/db";
 import { accounts, sessions, users, verificationTokens } from "@/server/db/schema";
 
@@ -35,11 +39,56 @@ declare module "next-auth" {
 export const authConfig = {
   trustHost: true,
   providers: [
+    // Credentials認証（メールアドレス/パスワード）
+    Credentials({
+      name: "Credentials",
+      credentials: {
+        email: { label: "メールアドレス", type: "email" },
+        password: { label: "パスワード", type: "password" },
+      },
+      async authorize(credentials) {
+        // バリデーション
+        const parsed = signinSchema.safeParse(credentials);
+        if (!parsed.success) {
+          return null;
+        }
+
+        const { email, password } = parsed.data;
+
+        // ユーザーをデータベースから検索
+        const user = await db.query.users.findFirst({
+          where: eq(users.email, email.toLowerCase()),
+        });
+
+        if (!user || !user.password) {
+          // ユーザーが存在しないか、パスワードが設定されていない（OAuth専用ユーザー）
+          return null;
+        }
+
+        // パスワードを検証
+        const isValid = await comparePassword(password, user.password);
+        if (!isValid) {
+          return null;
+        }
+
+        // 認証成功
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
+      },
+    }),
     // NextAuth.js v5 automatically infers credentials from environment variables
     // AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET
-    Google,
+    Google({
+      allowDangerousEmailAccountLinking: true,
+    }),
     // AUTH_GITHUB_ID and AUTH_GITHUB_SECRET
-    GitHub,
+    GitHub({
+      allowDangerousEmailAccountLinking: true,
+    }),
   ],
   adapter: DrizzleAdapter(db, {
     usersTable: users,
@@ -49,6 +98,10 @@ export const authConfig = {
   }),
   session: {
     strategy: "jwt",
+  },
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/signin",
   },
   callbacks: {
     async jwt({ token }) {
