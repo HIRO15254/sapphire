@@ -12,7 +12,9 @@ test.describe("セッション機能", () => {
       await page.goto("/poker-sessions");
 
       // ページが正しく表示されることを確認
-      await expect(page.getByRole("heading", { name: "ポーカーセッション" })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole("heading", { name: "ポーカーセッション" })).toBeVisible({
+        timeout: 10000,
+      });
     });
 
     test("統計情報が表示される", async ({ page }) => {
@@ -20,7 +22,10 @@ test.describe("セッション機能", () => {
 
       // 統計セクションまたは空の状態メッセージが表示されることを確認
       // セッションがない場合は「セッションがありません」が表示される
-      const hasStats = await page.getByText("総収支").isVisible().catch(() => false);
+      const hasStats = await page
+        .getByText("総収支")
+        .isVisible()
+        .catch(() => false);
       if (hasStats) {
         await expect(page.getByText("総収支")).toBeVisible({ timeout: 10000 });
         await expect(page.getByText("セッション数")).toBeVisible();

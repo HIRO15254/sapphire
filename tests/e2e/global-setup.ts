@@ -29,7 +29,7 @@ async function globalSetup(config: FullConfig) {
     await context.storageState({ path: "playwright/.auth/user.json" });
 
     console.log("✓ テストユーザーを作成し、認証状態を保存しました");
-  } catch (error) {
+  } catch {
     // ユーザーが既に存在する場合はサインインを試みる
     console.log("サインアップに失敗しました。サインインを試みます...");
 
