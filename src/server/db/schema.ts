@@ -38,7 +38,12 @@ export const users = createTable("user", (d) => ({
     })
     .default(sql`CURRENT_TIMESTAMP`),
   image: d.varchar({ length: 255 }),
+  // Credentials認証用パスワードハッシュ (NULL = OAuthのみユーザー)
+  password: d.varchar({ length: 255 }),
 }));
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
