@@ -54,6 +54,4 @@ yarn-error.log*
 # idea files
 .idea
 .claude/settings.local.json
-playwright-report/
-playwright/.cache/
-test-results/
+playwright-report/index.html

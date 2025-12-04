@@ -1,12 +1,11 @@
 import { auth, signIn, signOut } from "@/server/auth";
-import { Anchor, Button, Card, Container, Group, Stack, Text, Title } from "@mantine/core";
+import { Button, Card, Container, Group, Stack, Text, Title } from "@mantine/core";
 import {
   IconBrandGithub,
   IconBrandGoogle,
   IconCards,
   IconChartLine,
   IconLogout,
-  IconMail,
 } from "@tabler/icons-react";
 import Link from "next/link";
 
@@ -102,21 +101,9 @@ export default async function Home() {
                 </Button>
               </form>
             </Group>
-            <Button
-              component={Link}
-              href="/auth/signin"
-              size="lg"
-              variant="light"
-              leftSection={<IconMail size={20} />}
-            >
-              メールアドレスでログイン
-            </Button>
             <Text size="sm" c="dimmed" ta="center">
-              Googleアカウント、GitHubアカウント、またはメールアドレスでサインイン
+              Googleアカウント または GitHubアカウント でサインイン
             </Text>
-            <Anchor href="/auth/signup" size="sm">
-              アカウントを作成
-            </Anchor>
           </Stack>
         )}
       </Stack>
