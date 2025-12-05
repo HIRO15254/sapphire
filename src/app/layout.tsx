@@ -11,6 +11,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { LayoutClientWrapper } from "@/features/layout/containers/LayoutClientWrapper";
+import { auth } from "@/server/auth";
 import { TRPCReactProvider } from "@/trpc/react";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -59,7 +61,9 @@ const geist = Geist({
 
 export const dynamic = "force-dynamic";
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth();
+
   return (
     <html lang="ja" {...mantineHtmlProps} suppressHydrationWarning>
       <head>
@@ -72,7 +76,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <MantineProvider theme={theme}>
           <ModalsProvider>
             <Notifications />
-            <TRPCReactProvider>{children}</TRPCReactProvider>
+            <TRPCReactProvider>
+              <LayoutClientWrapper session={session}>{children}</LayoutClientWrapper>
+            </TRPCReactProvider>
           </ModalsProvider>
         </MantineProvider>
       </body>

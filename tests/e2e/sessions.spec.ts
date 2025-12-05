@@ -36,25 +36,22 @@ test.describe("セッション機能", () => {
   });
 
   test.describe("セッション作成", () => {
-    test("新規セッションモーダルが開ける", async ({ page }) => {
+    test("新規セッションボタンから新規作成ページに遷移できる", async ({ page }) => {
       await page.goto("/poker-sessions");
 
-      // 新規セッションボタンをクリック
-      await page.getByRole("button", { name: "新規セッション" }).click();
+      // 新規セッションボタン（リンク）をクリック
+      await page.getByRole("link", { name: "新規セッション" }).click();
 
-      // モーダルが表示されることを確認
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
+      // 新規作成ページに遷移することを確認
+      await expect(page).toHaveURL("/poker-sessions/new");
 
-      // モーダルのタイトルを確認
+      // フォームが表示されることを確認
       await expect(page.getByRole("heading", { name: "新規セッション" })).toBeVisible();
-
-      // フォーム要素が存在することを確認
       await expect(page.getByLabel(/日時/)).toBeVisible();
-      await expect(page.getByPlaceholder("例: ポーカースタジアム渋谷")).toBeVisible();
+      // 場所フィールドは複数要素があるため、textbox roleで特定
+      await expect(page.getByRole("textbox", { name: /場所/ })).toBeVisible();
       await expect(page.getByLabel(/バイイン/)).toBeVisible();
       await expect(page.getByLabel(/キャッシュアウト/)).toBeVisible();
-      await expect(page.getByLabel(/プレイ時間/)).toBeVisible();
-      await expect(page.getByRole("button", { name: "保存" })).toBeVisible();
     });
   });
 
@@ -68,23 +65,28 @@ test.describe("セッション機能", () => {
   });
 
   test.describe("ナビゲーション", () => {
-    test("ホームページに戻れる", async ({ page }) => {
+    test("ダッシュボードに戻れる", async ({ page }) => {
       await page.goto("/poker-sessions");
 
-      // ホームに戻る（ロゴまたはホームリンク）
-      await page.goto("/");
+      // サイドバーのダッシュボードリンクをクリック
+      await page.getByRole("link", { name: "ダッシュボード" }).click();
 
-      await expect(page.getByText("ポーカーセッショントラッカー")).toBeVisible();
+      // ダッシュボードに遷移
+      await expect(page).toHaveURL("/");
+      // ダッシュボードの要素が表示される
+      await expect(page.getByRole("heading", { name: "ダッシュボード" })).toBeVisible({
+        timeout: 10000,
+      });
     });
 
     test("ログアウトできる", async ({ page }) => {
       await page.goto("/");
 
-      // ログアウトボタンをクリック
+      // サイドバーのログアウトボタンをクリック（NavLinkはhrefがないためbuttonロール）
       await page.getByRole("button", { name: "ログアウト" }).click();
 
-      // ログアウト状態を確認（ログインボタンが表示される）
-      await expect(page.getByText("Googleでログイン")).toBeVisible({ timeout: 10000 });
+      // サインインページにリダイレクトされる
+      await expect(page).toHaveURL("/auth/signin", { timeout: 10000 });
     });
   });
 });

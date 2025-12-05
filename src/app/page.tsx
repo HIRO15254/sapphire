@@ -1,18 +1,18 @@
-import { auth, signIn, signOut } from "@/server/auth";
-import { Anchor, Button, Card, Container, Group, Stack, Text, Title } from "@mantine/core";
-import {
-  IconBrandGithub,
-  IconBrandGoogle,
-  IconCards,
-  IconChartLine,
-  IconLogout,
-  IconMail,
-} from "@tabler/icons-react";
+import { DashboardContainer } from "@/features/dashboard/containers/DashboardContainer";
+import { auth } from "@/server/auth";
+import { Anchor, Button, Card, Container, Stack, Text, Title } from "@mantine/core";
+import { IconCards } from "@tabler/icons-react";
 import Link from "next/link";
 
 export default async function Home() {
   const session = await auth();
 
+  // 認証済みユーザーにはダッシュボードを表示
+  if (session?.user) {
+    return <DashboardContainer />;
+  }
+
+  // 未認証ユーザーにはランディングページを表示
   return (
     <Container size="md" py="xl">
       <Stack gap="xl" align="center">
@@ -23,17 +23,6 @@ export default async function Home() {
             あなたのポーカーセッションを記録・分析して、パフォーマンスを向上させましょう
           </Text>
         </Stack>
-
-        {session?.user && (
-          <Card shadow="sm" padding="lg" radius="md" withBorder w="100%" maw={500}>
-            <Stack gap="md">
-              <Text size="lg" fw={500}>
-                ようこそ、{session.user.name}さん！
-              </Text>
-              <Text c="dimmed">{session.user.email}</Text>
-            </Stack>
-          </Card>
-        )}
 
         <Card shadow="sm" padding="lg" radius="md" withBorder w="100%" maw={500}>
           <Stack gap="md">
@@ -47,78 +36,14 @@ export default async function Home() {
           </Stack>
         </Card>
 
-        {session?.user ? (
-          <Group gap="md">
-            <Button
-              component={Link}
-              href="/poker-sessions"
-              size="lg"
-              leftSection={<IconChartLine size={20} />}
-            >
-              セッション管理
-            </Button>
-            <form
-              action={async () => {
-                "use server";
-                await signOut();
-              }}
-            >
-              <Button
-                type="submit"
-                size="lg"
-                variant="outline"
-                leftSection={<IconLogout size={20} />}
-              >
-                ログアウト
-              </Button>
-            </form>
-          </Group>
-        ) : (
-          <Stack gap="md" align="center">
-            <Group gap="md">
-              <form
-                action={async () => {
-                  "use server";
-                  await signIn("google");
-                }}
-              >
-                <Button type="submit" size="lg" leftSection={<IconBrandGoogle size={20} />}>
-                  Googleでログイン
-                </Button>
-              </form>
-              <form
-                action={async () => {
-                  "use server";
-                  await signIn("github");
-                }}
-              >
-                <Button
-                  type="submit"
-                  size="lg"
-                  variant="outline"
-                  leftSection={<IconBrandGithub size={20} />}
-                >
-                  GitHubでログイン
-                </Button>
-              </form>
-            </Group>
-            <Button
-              component={Link}
-              href="/auth/signin"
-              size="lg"
-              variant="light"
-              leftSection={<IconMail size={20} />}
-            >
-              メールアドレスでログイン
-            </Button>
-            <Text size="sm" c="dimmed" ta="center">
-              Googleアカウント、GitHubアカウント、またはメールアドレスでサインイン
-            </Text>
-            <Anchor href="/auth/signup" size="sm">
-              アカウントを作成
-            </Anchor>
-          </Stack>
-        )}
+        <Stack gap="md" align="center">
+          <Button component={Link} href="/auth/signin" size="lg">
+            ログイン
+          </Button>
+          <Anchor href="/auth/signup" size="sm">
+            新規登録
+          </Anchor>
+        </Stack>
       </Stack>
     </Container>
   );

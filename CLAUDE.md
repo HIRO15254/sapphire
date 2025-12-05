@@ -1,6 +1,6 @@
 ﻿# Claude Code Context: Poker Session Tracker
 
-**Last Updated**: 2025-12-02 (auto-generated via /speckit.plan)
+**Last Updated**: 2025-12-05 (auto-generated via /speckit.plan)
 **Feature**: 005-refactor-auth-testing
 
 ## Technology Stack
