@@ -26,8 +26,10 @@ test.describe("認証機能", () => {
       // サインアップ→自動サインイン→リダイレクトのフローを待機
       await expect(page).toHaveURL("/", { timeout: 30000 });
 
-      // ログイン状態を確認
-      await expect(page.getByText("ようこそ")).toBeVisible({ timeout: 10000 });
+      // ログイン状態を確認（ダッシュボードが表示される）
+      await expect(page.getByRole("heading", { name: "ダッシュボード" })).toBeVisible({
+        timeout: 10000,
+      });
     });
 
     test("短すぎるパスワードでエラーが表示される", async ({ page }) => {
@@ -66,7 +68,10 @@ test.describe("認証機能", () => {
 
       // ホームページにリダイレクトされることを確認
       await expect(page).toHaveURL("/", { timeout: 15000 });
-      await expect(page.getByText("ようこそ")).toBeVisible({ timeout: 10000 });
+      // ダッシュボードが表示されることを確認
+      await expect(page.getByRole("heading", { name: "ダッシュボード" })).toBeVisible({
+        timeout: 10000,
+      });
     });
 
     test("間違ったパスワードでエラーが表示される", async ({ page }) => {
@@ -101,9 +106,47 @@ test.describe("認証機能", () => {
     test("ホームページからサインインページに遷移できる", async ({ page }) => {
       await page.goto("/");
 
-      await page.getByRole("link", { name: "メールアドレスでログイン" }).click();
+      // Button component={Link} は link ロールになる
+      await page.getByRole("link", { name: "ログイン" }).click();
 
       await expect(page).toHaveURL("/auth/signin");
+    });
+  });
+
+  test.describe("レイアウト", () => {
+    test("サインインページにはサイドバーが表示されない", async ({ page }) => {
+      await page.goto("/auth/signin");
+
+      // AppShellのナビゲーションバーが存在しないことを確認
+      const navbar = page.locator("[data-mantine-navbar]");
+      await expect(navbar).not.toBeVisible({ timeout: 5000 });
+    });
+
+    test("サインアップページにはサイドバーが表示されない", async ({ page }) => {
+      await page.goto("/auth/signup");
+
+      // AppShellのナビゲーションバーが存在しないことを確認
+      const navbar = page.locator("[data-mantine-navbar]");
+      await expect(navbar).not.toBeVisible({ timeout: 5000 });
+    });
+  });
+
+  test.describe("認証後リダイレクト", () => {
+    test("ログイン後はダッシュボード（/）にリダイレクトされる", async ({ page }) => {
+      await page.goto("/auth/signin");
+
+      // テストユーザーでログイン
+      await page.getByLabel("メールアドレス").fill("e2e-test@example.com");
+      await page.getByLabel("パスワード").fill("TestPassword123!");
+      await page.getByRole("button", { name: "ログイン", exact: true }).click();
+
+      // ダッシュボード（/）にリダイレクトされることを確認
+      await expect(page).toHaveURL("/", { timeout: 15000 });
+
+      // ダッシュボードが表示されていることを確認
+      await expect(page.getByRole("heading", { name: "ダッシュボード" })).toBeVisible({
+        timeout: 10000,
+      });
     });
   });
 });

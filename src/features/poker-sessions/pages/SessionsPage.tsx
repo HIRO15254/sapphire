@@ -3,17 +3,14 @@
 import { Button, Container, Divider, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconPlus } from "@tabler/icons-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { LocationStats } from "@/features/poker-sessions/components/LocationStats";
 import { SessionFilters } from "@/features/poker-sessions/components/SessionFilters";
 import { SessionList } from "@/features/poker-sessions/components/SessionList";
-import { SessionModal } from "@/features/poker-sessions/components/SessionModal";
 import { SessionStats } from "@/features/poker-sessions/components/SessionStats";
-import { SessionFormContainer } from "@/features/poker-sessions/containers/SessionFormContainer";
-import { SessionModalContainer } from "@/features/poker-sessions/containers/SessionModalContainer";
-import { useSessionModal } from "@/features/poker-sessions/hooks/useSessionModal";
 import { api } from "@/trpc/react";
 
 interface SessionsPageProps {
@@ -52,26 +49,15 @@ interface SessionsPageProps {
 
 export function SessionsPage({ initialSessions, initialStats }: SessionsPageProps) {
   const router = useRouter();
-  const { opened: editModalOpened, open: openEditModal, close: closeEditModal } = useSessionModal();
   const [filters, setFilters] = useState<{
     location?: string;
     tagIds?: number[];
     startDate?: Date;
     endDate?: Date;
   } | null>(null);
-  const [editingSession, setEditingSession] = useState<
-    SessionsPageProps["initialSessions"][0] | null
-  >(null);
 
   // Fetch tags for filter dropdown
   const { data: tags = [] } = api.tags.getAll.useQuery({});
-
-  // Open edit modal when editing session changes
-  useEffect(() => {
-    if (editingSession) {
-      openEditModal();
-    }
-  }, [editingSession, openEditModal]);
 
   // Use filtered query if filters are active, otherwise use initial data
   const { data: filteredSessions } = api.sessions.getFiltered.useQuery(filters!, {
@@ -97,10 +83,8 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
   });
 
   const handleEdit = (id: number) => {
-    const session = displaySessions.find((s) => s.id === id);
-    if (session) {
-      setEditingSession(session);
-    }
+    // 編集ページに遷移
+    router.push(`/poker-sessions/${id}/edit`);
   };
 
   const handleDelete = (id: number) => {
@@ -135,14 +119,9 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
       <Stack gap="xl">
         <Group justify="space-between" align="center">
           <Title order={1}>ポーカーセッション</Title>
-          <SessionModalContainer
-            trigger={({ onClick }) => (
-              <Button onClick={onClick} leftSection={<IconPlus size={20} />}>
-                新規セッション
-              </Button>
-            )}
-            title="新規セッション"
-          />
+          <Button component={Link} href="/poker-sessions/new" leftSection={<IconPlus size={20} />}>
+            新規セッション
+          </Button>
         </Group>
 
         <SessionStats
@@ -174,39 +153,6 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
         )}
 
         <SessionList sessions={displaySessions} onEdit={handleEdit} onDelete={handleDelete} />
-
-        {editingSession && (
-          <SessionModal
-            opened={editModalOpened}
-            onClose={() => {
-              closeEditModal();
-              setEditingSession(null);
-            }}
-            title="セッション編集"
-          >
-            <SessionFormContainer
-              sessionId={editingSession.id}
-              initialValues={{
-                date: editingSession.date,
-                location: editingSession.location.name,
-                buyIn: Number.parseFloat(editingSession.buyIn),
-                cashOut: Number.parseFloat(editingSession.cashOut),
-                durationMinutes: editingSession.durationMinutes,
-                tags: editingSession.tags.map((tag) => tag.name),
-                notes: editingSession.notes ?? undefined,
-              }}
-              onSuccess={() => {
-                closeEditModal();
-                setEditingSession(null);
-              }}
-              onCancel={() => {
-                closeEditModal();
-                setEditingSession(null);
-              }}
-              submitLabel="更新"
-            />
-          </SessionModal>
-        )}
       </Stack>
     </Container>
   );

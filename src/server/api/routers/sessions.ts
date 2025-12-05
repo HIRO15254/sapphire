@@ -463,6 +463,7 @@ export const sessionsRouter = createTRPCRouter({
         id: pokerSessions.id,
         buyIn: pokerSessions.buyIn,
         cashOut: pokerSessions.cashOut,
+        durationMinutes: pokerSessions.durationMinutes,
         locationId: pokerSessions.locationId,
         locationName: locations.name,
       })
@@ -476,12 +477,14 @@ export const sessionsRouter = createTRPCRouter({
         totalProfit: 0,
         sessionCount: 0,
         avgProfit: 0,
+        totalDurationMinutes: 0,
         byLocation: [],
       };
     }
 
     // Calculate overall stats
     let totalProfit = 0;
+    let totalDurationMinutes = 0;
     const locationMap = new Map<
       number,
       { locationId: number; locationName: string; profit: number; count: number }
@@ -490,6 +493,7 @@ export const sessionsRouter = createTRPCRouter({
     for (const session of sessions) {
       const profit = parseNumeric(session.cashOut) - parseNumeric(session.buyIn);
       totalProfit += profit;
+      totalDurationMinutes += session.durationMinutes;
 
       // Aggregate by location ID
       const locationStats = locationMap.get(session.locationId);
@@ -524,6 +528,7 @@ export const sessionsRouter = createTRPCRouter({
       totalProfit,
       sessionCount,
       avgProfit,
+      totalDurationMinutes,
       byLocation,
     };
   }),
