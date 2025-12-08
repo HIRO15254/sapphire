@@ -1,6 +1,7 @@
 "use client";
 
-import { Center, Loader, Stack, Text, Title } from "@mantine/core";
+import { Center, Group, Loader, Stack, Text, Title } from "@mantine/core";
+import { IconLayoutDashboard } from "@tabler/icons-react";
 
 import { DashboardStats } from "@/features/dashboard/components/DashboardStats";
 import { QuickActions } from "@/features/dashboard/components/QuickActions";
@@ -14,6 +15,7 @@ import { api } from "@/trpc/react";
  * - tRPCを使用して統計情報と最近のセッションを取得
  * - ローディング状態とエラー状態の管理
  * - 子コンポーネントにデータを渡す
+ * - コンパクトなレイアウト
  */
 export function DashboardContainer() {
   const {
@@ -32,10 +34,12 @@ export function DashboardContainer() {
 
   if (isLoading) {
     return (
-      <Center h={400}>
-        <Stack align="center" gap="md">
-          <Loader size="lg" />
-          <Text c="dimmed">データを読み込み中...</Text>
+      <Center h={300}>
+        <Stack align="center" gap="sm">
+          <Loader size="md" />
+          <Text c="dimmed" size="sm">
+            データを読み込み中...
+          </Text>
         </Stack>
       </Center>
     );
@@ -43,12 +47,14 @@ export function DashboardContainer() {
 
   if (error) {
     return (
-      <Center h={400}>
-        <Stack align="center" gap="md">
-          <Title order={3} c="red">
+      <Center h={300}>
+        <Stack align="center" gap="sm">
+          <Title order={4} c="red">
             エラーが発生しました
           </Title>
-          <Text c="dimmed">{error.message}</Text>
+          <Text c="dimmed" size="sm">
+            {error.message}
+          </Text>
         </Stack>
       </Center>
     );
@@ -64,14 +70,20 @@ export function DashboardContainer() {
   }));
 
   return (
-    <Stack gap="lg">
-      <Title order={2}>ダッシュボード</Title>
+    <Stack gap="md">
+      <Group gap="xs" align="center">
+        <IconLayoutDashboard size={24} />
+        <Title order={3}>ダッシュボード</Title>
+      </Group>
 
       <DashboardStats
         totalProfit={stats?.totalProfit ?? 0}
         sessionCount={stats?.sessionCount ?? 0}
         avgProfit={stats?.avgProfit ?? 0}
         totalDurationMinutes={stats?.totalDurationMinutes ?? 0}
+        totalProfitBB={stats?.totalProfitBB}
+        avgProfitBB={stats?.avgProfitBB}
+        sessionsWithGameCount={stats?.sessionsWithGameCount ?? 0}
       />
 
       <QuickActions />

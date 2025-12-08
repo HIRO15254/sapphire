@@ -12,7 +12,7 @@ export interface LocationOption {
 export interface LocationSelectProps
   extends Omit<SelectProps, "data" | "searchable" | "value" | "onChange"> {
   value: string | null;
-  onChange: (value: string | null) => void;
+  onChange: (value: string | null, locationId: number | undefined) => void;
   locations?: LocationOption[];
   onCreateNew?: (locationName: string) => Promise<void>;
   isLoading?: boolean;
@@ -63,14 +63,16 @@ export function LocationSelect({
       if (onCreateNew) {
         try {
           await onCreateNew(newLocationName);
-          onChange(newLocationName);
+          onChange(newLocationName, undefined);
           setSearchValue("");
         } catch (error) {
           console.error("Failed to create location:", error);
         }
       }
     } else {
-      onChange(selectedValue);
+      // Find the location ID from the selected value
+      const selectedLocation = locations.find((loc) => loc.value === selectedValue);
+      onChange(selectedValue, selectedLocation?.id);
     }
   };
 

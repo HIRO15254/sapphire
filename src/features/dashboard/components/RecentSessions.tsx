@@ -1,6 +1,5 @@
 "use client";
 
-import { formatCurrency } from "@/lib/utils/currency";
 import { Badge, Card, Group, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 import { IconArrowRight } from "@tabler/icons-react";
 import Link from "next/link";
@@ -12,8 +11,24 @@ interface Session {
     id: number;
     name: string;
   };
+  game?: {
+    id: number;
+    name: string;
+    currencyPrefix: string;
+  } | null;
   profit: number;
   durationMinutes: number;
+}
+
+/**
+ * 通貨プレフィックス付きでフォーマット
+ */
+function formatWithPrefix(value: number, prefix: string): string {
+  const formatted = Math.abs(value).toLocaleString();
+  if (prefix) {
+    return `${formatted} ${prefix}`;
+  }
+  return `¥${formatted}`;
 }
 
 interface RecentSessionsProps {
@@ -71,6 +86,7 @@ interface SessionItemProps {
 function SessionItem({ session }: SessionItemProps) {
   const profitColor = session.profit > 0 ? "green" : session.profit < 0 ? "red" : "gray";
   const profitSign = session.profit > 0 ? "+" : "";
+  const currencyPrefix = session.game?.currencyPrefix ?? "";
 
   return (
     <UnstyledButton
@@ -90,7 +106,7 @@ function SessionItem({ session }: SessionItemProps) {
           </Stack>
           <Badge color={profitColor} variant="filled" data-color={profitColor}>
             {profitSign}
-            {formatCurrency(session.profit)}
+            {formatWithPrefix(session.profit, currencyPrefix)}
           </Badge>
         </Group>
       </Card>

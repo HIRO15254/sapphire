@@ -1,4 +1,6 @@
 import { authRouter } from "@/server/api/routers/auth";
+import { currenciesRouter } from "@/server/api/routers/currencies";
+import { gamesRouter } from "@/server/api/routers/games";
 import { locationsRouter } from "@/server/api/routers/locations";
 import { sessionsRouter } from "@/server/api/routers/sessions";
 import { tagsRouter } from "@/server/api/routers/tags";
@@ -14,6 +16,8 @@ export const appRouter = createTRPCRouter({
   sessions: sessionsRouter,
   locations: locationsRouter,
   tags: tagsRouter,
+  currencies: currenciesRouter,
+  games: gamesRouter,
 });
 
 // export type definition of API

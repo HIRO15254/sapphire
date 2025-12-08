@@ -1,7 +1,7 @@
-﻿# Claude Code Context: Poker Session Tracker
+# Claude Code Context: Poker Session Tracker
 
 **Last Updated**: 2025-12-05 (auto-generated via /speckit.plan)
-**Feature**: 005-refactor-auth-testing
+**Feature**: 007-store-currency-games
 
 ## Technology Stack
 
@@ -44,37 +44,52 @@ src/
 │   │   └── [id]/
 │   │       ├── page.tsx
 │   │       └── edit/page.tsx
+│   ├── settings/
+│   │   └── currencies/         # 通貨管理ページ (新規追加予定)
+│   │       └── page.tsx
 │   └── api/trpc/[trpc]/route.ts
 │
 ├── server/                     # バックエンド(API層)
 │   ├── api/
 │   │   ├── routers/
-│   │   │   └── sessions.ts    # ポーカーセッションAPI
+│   │   │   ├── sessions.ts     # ポーカーセッションAPI
+│   │   │   ├── currencies.ts   # 通貨API (新規追加予定)
+│   │   │   └── games.ts        # ゲームAPI (新規追加予定)
 │   │   ├── root.ts
 │   │   └── trpc.ts
 │   └── db/
-│       ├── schema.ts           # sessions追加
+│       ├── schema.ts           # currencies, games テーブル追加予定
 │       └── index.ts
 │
 ├── features/                   # フロントエンド機能
-│   └── poker-sessions/
-│       ├── components/         # Presentationコンポーネント
-│       ├── containers/         # Containerコンポーネント
+│   ├── poker-sessions/
+│   │   ├── components/         # Presentationコンポーネント
+│   │   ├── containers/         # Containerコンポーネント
+│   │   └── hooks/
+│   ├── currencies/             # 通貨機能 (新規追加予定)
+│   │   ├── components/
+│   │   ├── containers/
+│   │   └── hooks/
+│   └── games/                  # ゲーム機能 (新規追加予定)
+│       ├── components/
+│       ├── containers/
 │       └── hooks/
 │
 └── lib/
     └── utils/
-        └── currency.ts
+        ├── currency.ts
+        └── game.ts             # ゲーム表示ヘルパー (新規追加予定)
 
 tests/
-├── contract/              # API契約テスト（実施する）
+├── contract/              # API契約テスト
 │   ├── sessions.test.ts
 │   ├── locations.test.ts
-│   └── tags.test.ts
-└── components/            # フロントエンドコンポーネントテスト（実施する）
-    ├── SessionModal.test.tsx
-    ├── SessionForm.test.tsx
-    └── SessionCard.test.tsx
+│   ├── tags.test.ts
+│   ├── currencies.test.ts      # (新規追加予定)
+│   └── games.test.ts           # (新規追加予定)
+└── e2e/                   # E2Eテスト
+    ├── currencies.spec.ts      # (新規追加予定)
+    └── games.spec.ts           # (新規追加予定)
 ```
 
 ## Development Workflow
@@ -166,60 +181,111 @@ export function SessionCardContainer({ sessionId }: Props) {
 
 ## Data Model
 
-### poker_sessions Table
+### 既存テーブル
+
+| Table | Description |
+|-------|-------------|
+| users | ユーザー情報 |
+| locations | 店舗情報 |
+| tags | タグ情報 |
+| poker_sessions | セッション情報 |
+| session_tags | セッション-タグ中間テーブル |
+
+### 新規テーブル (007-store-currency-games)
+
+#### currencies テーブル
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | SERIAL PRIMARY KEY | セッションID |
-| date | TIMESTAMP NOT NULL | セッション開始日時 |
-| location | TEXT NOT NULL | プレイ場所 |
-| buy_in | NUMERIC(10,2) NOT NULL | バイイン額 |
-| cash_out | NUMERIC(10,2) NOT NULL | キャッシュアウト額 |
-| duration_minutes | INTEGER NOT NULL | プレイ時間(分) |
-| notes | TEXT | メモ(任意) |
-| created_at | TIMESTAMP NOT NULL | 作成日時 |
-| updated_at | TIMESTAMP NOT NULL | 更新日時 |
+| id | INTEGER | 主キー (自動採番) |
+| userId | VARCHAR(255) | ユーザーID (外部キー → users.id) |
+| name | VARCHAR(100) | 通貨名 |
+| createdAt | TIMESTAMP | 作成日時 |
+| updatedAt | TIMESTAMP | 更新日時 |
 
-**Computed Field**: `profit = cash_out - buy_in`
+**リレーション**: User → Currency (1対多、店舗から独立)
+
+#### games テーブル
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INTEGER | 主キー (自動採番) |
+| locationId | INTEGER | 店舗ID (外部キー → locations.id) |
+| currencyId | INTEGER | 通貨ID (外部キー → currencies.id) |
+| name | VARCHAR(100) | ゲーム名 |
+| smallBlind | INTEGER | スモールブラインド |
+| bigBlind | INTEGER | ビッグブラインド |
+| ante | INTEGER | アンティ (0=なし) |
+| minBuyIn | INTEGER | 最小バイイン (BB単位) |
+| maxBuyIn | INTEGER | 最大バイイン (BB単位) |
+| rules | TEXT | その他のルール (HTML) |
+| isArchived | BOOLEAN | アーカイブ状態 |
+| createdAt | TIMESTAMP | 作成日時 |
+| updatedAt | TIMESTAMP | 更新日時 |
+
+**リレーション**:
+- Location → Game (1対多)
+- Currency → Game (1対多)
+
+#### poker_sessions テーブル変更
+
+| Column | Type | Description |
+|--------|------|-------------|
+| gameId | INTEGER (nullable) | ゲームID (外部キー → games.id) **新規追加** |
 
 ## API Contract (tRPC)
 
-### sessions Router
+### 既存ルーター
+
+- `sessions`: セッション管理
+- `locations`: 店舗管理
+- `tags`: タグ管理
+
+### 新規ルーター (007-store-currency-games)
+
+#### currencies Router
 
 ```typescript
-// src/server/api/routers/sessions.ts
-export const sessionsRouter = createTRPCRouter({
-  create: protectedProcedure.input(createSessionSchema).mutation(...),
+export const currenciesRouter = createTRPCRouter({
+  create: protectedProcedure.input(createCurrencySchema).mutation(...),
   getAll: protectedProcedure.query(...),
-  getFiltered: protectedProcedure.input(filterSessionsSchema).query(...),
-  getStats: protectedProcedure.query(...),
   getById: protectedProcedure.input(getByIdSchema).query(...),
-  update: protectedProcedure.input(updateSessionSchema).mutation(...),
-  delete: protectedProcedure.input(deleteSessionSchema).mutation(...),
+  update: protectedProcedure.input(updateCurrencySchema).mutation(...),
+  delete: protectedProcedure.input(deleteCurrencySchema).mutation(...),
+  checkUsage: protectedProcedure.input(checkUsageSchema).query(...),
 });
 ```
 
-### Client Usage
+#### games Router
 
 ```typescript
-// Query
-const { data: sessions } = api.sessions.getAll.useQuery();
-
-// Mutation with cache invalidation
-const { mutate: createSession } = api.sessions.create.useMutation({
-  onSuccess: () => {
-    void ctx.sessions.getAll.invalidate();
-    void ctx.sessions.getStats.invalidate();
-  },
+export const gamesRouter = createTRPCRouter({
+  create: protectedProcedure.input(createGameSchema).mutation(...),
+  getAll: protectedProcedure.input(getAllGamesSchema).query(...),
+  getByLocation: protectedProcedure.input(getByLocationSchema).query(...),
+  getActiveByLocation: protectedProcedure.input(getActiveByLocationSchema).query(...),
+  getById: protectedProcedure.input(getByIdSchema).query(...),
+  update: protectedProcedure.input(updateGameSchema).mutation(...),
+  archive: protectedProcedure.input(archiveGameSchema).mutation(...),
+  unarchive: protectedProcedure.input(unarchiveGameSchema).mutation(...),
+  delete: protectedProcedure.input(deleteGameSchema).mutation(...),
+  checkUsage: protectedProcedure.input(checkUsageSchema).query(...),
 });
 ```
+
+#### sessions Router 拡張
+
+- `create`: `gameId` パラメータ追加 (nullable)
+- `update`: `gameId` パラメータ追加 (nullable)
+- `getFiltered`: `gameIds`, `currencyIds` フィルター追加
+- `getStats`: ゲーム別・通貨別統計追加
 
 ## UI/UX Guidelines
 
 ### Mantine Components
 
-- **Forms**: `TextInput`, `NumberInput`, `DateTimePicker`, `Textarea`
-- **Display**: `Card`, `Badge`, `Table`, `Stack`
+- **Forms**: `TextInput`, `NumberInput`, `DateTimePicker`, `Textarea`, `Select`
+- **Display**: `Card`, `Badge`, `Table`, `Stack`, `Tabs`
 - **Actions**: `Button`, `Modal` (削除確認)
 - **Layout**: `Grid`, `Container`
 
@@ -245,31 +311,18 @@ const { mutate: createSession } = api.sessions.create.useMutation({
 - コミットメッセージ: 日本語
 - ドキュメント: 日本語
 
-### Currency Format
-
-```typescript
-// src/lib/utils/currency.ts
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("ja-JP", {
-    style: "currency",
-    currency: "JPY",
-  }).format(amount);
-}
-```
-
 ## Performance Requirements
 
 **Success Criteria**:
-- SC-001: セッション記録 < 60秒
-- SC-003: 履歴・統計表示 < 2秒
-- SC-007: 1000セッション対応
-- SC-008: フィルタリング < 1秒
+- SC-001: 通貨登録 < 60秒
+- SC-002: ゲーム登録 < 120秒
+- SC-003: 店舗選択後、ゲーム一覧表示 < 1秒
+- SC-005: 100通貨、100店舗、各店舗50ゲームで性能劣化なし
 
 **Strategies**:
-- Pagination: デフォルト50件表示
-- Debouncing: フィルター入力300ms
-- Memoization: 統計計算結果キャッシュ
-- Indexes: date, location, date+location
+- インデックス: userId, locationId, currencyId
+- キャッシュ: TanStack Query でキャッシュ管理
+- 遅延読み込み: ゲーム一覧は店舗選択時に取得
 
 ## Code Review Process (憲法原則 V)
 
@@ -286,7 +339,7 @@ export function formatCurrency(amount: number): string {
 
 - **quickstart.md**: ユーザー向け操作ガイド(日本語)
 - **data-model.md**: データモデル仕様
-- **sessions-api.md**: API契約定義
+- **contracts/**: API契約定義
 - **research.md**: 技術的判断の根拠
 
 **コンテキストヘルプ**:
@@ -302,6 +355,7 @@ export function formatCurrency(amount: number): string {
 3. **計算フィールドの保存** → `profit`は常に計算
 4. **テスト後に実装** → TDD(テストファースト)必須
 5. **英語UI** → 日本語ファーストを遵守
+6. **通貨を店舗の子エンティティにする** → 通貨は店舗から独立
 
 ### ✅ Best Practices
 
@@ -310,28 +364,28 @@ export function formatCurrency(amount: number): string {
 3. **楽観的更新**でUXを向上
 4. **統計計算**はPostgreSQL集計関数を活用
 5. **TDD**でRed-Green-Refactorサイクルを遵守
+6. **アーカイブ > 削除**: 使用中のゲームは削除ではなくアーカイブ
 
 ## Feature Status
 
-**Current Branch**: `005-refactor-auth-testing`
+**Current Branch**: `007-store-currency-games`
 
 **Implementation Phase**: Planning complete, implementation not started
 
 **Priority Order**:
-1. P1: メールアドレス/パスワード認証
-2. P2: E2Eテスト追加
-3. P3: ドキュメント更新
-4. P4: UIリデザイン
-5. P5: コンポーネントテスト追加
+1. P1: 通貨管理機能 (currencies テーブル、API、UI)
+2. P2: ゲーム管理機能 (games テーブル、API、UI)
+3. P3: セッション記録拡張 (gameId 追加、フォーム変更)
+4. P4: 統計機能拡張 (ゲーム別・通貨別統計)
 
 ## Related Documentation
 
-- **Spec**: `specs/005-refactor-auth-testing/spec.md`
-- **Plan**: `specs/005-refactor-auth-testing/plan.md`
-- **Research**: `specs/005-refactor-auth-testing/research.md`
-- **Data Model**: `specs/005-refactor-auth-testing/data-model.md`
-- **API Contract**: `specs/005-refactor-auth-testing/contracts/auth-api.md`
-- **Quickstart**: `specs/005-refactor-auth-testing/quickstart.md`
+- **Spec**: `specs/007-store-currency-games/spec.md`
+- **Plan**: `specs/007-store-currency-games/plan.md`
+- **Research**: `specs/007-store-currency-games/research.md`
+- **Data Model**: `specs/007-store-currency-games/data-model.md`
+- **API Contracts**: `specs/007-store-currency-games/contracts/`
+- **Quickstart**: `specs/007-store-currency-games/quickstart.md`
 
 ---
 

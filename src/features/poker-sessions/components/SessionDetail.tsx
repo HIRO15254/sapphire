@@ -13,6 +13,12 @@ interface SessionDetailProps {
       id: number;
       name: string;
     };
+    game?: {
+      id: number;
+      name: string;
+      smallBlind: number;
+      bigBlind: number;
+    } | null;
     buyIn: string;
     cashOut: string;
     durationMinutes: number;
@@ -94,6 +100,11 @@ export function SessionDetail({ session, onDelete, isDeleting = false }: Session
               <Text fw={500} size="lg">
                 {session.location.name}
               </Text>
+              {session.game && (
+                <Text size="sm" c="dimmed">
+                  {session.game.name} ({session.game.smallBlind}/{session.game.bigBlind})
+                </Text>
+              )}
             </Stack>
           </Group>
 

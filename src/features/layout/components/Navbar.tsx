@@ -1,7 +1,13 @@
 "use client";
 
 import { Box, Divider, NavLink, Stack, Text } from "@mantine/core";
-import { IconHome, IconList, IconLogout } from "@tabler/icons-react";
+import {
+  IconBuilding,
+  IconCoins,
+  IconHome,
+  IconList,
+  IconLogout,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -19,6 +25,8 @@ interface NavbarProps {
 const navigationLinks = [
   { href: "/", label: "ダッシュボード", icon: IconHome },
   { href: "/poker-sessions", label: "セッション一覧", icon: IconList },
+  { href: "/locations", label: "店舗管理", icon: IconBuilding },
+  { href: "/settings/currencies", label: "通貨管理", icon: IconCoins },
 ];
 
 /**
