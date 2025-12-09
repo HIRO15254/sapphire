@@ -1,4 +1,3 @@
-import { formatCurrency } from "@/lib/utils/currency";
 import { ActionIcon, Badge, Button, Card, Collapse, Group, Stack, Text } from "@mantine/core";
 import {
   IconChevronDown,
@@ -17,6 +16,13 @@ export interface SessionCardProps {
       id: number;
       name: string;
     };
+    game?: {
+      id: number;
+      name: string;
+      smallBlind: number;
+      bigBlind: number;
+      currencyPrefix: string;
+    } | null;
     buyIn: string;
     cashOut: string;
     durationMinutes: number;
@@ -32,11 +38,21 @@ export interface SessionCardProps {
   showActions?: boolean;
 }
 
+// Format currency with prefix
+function formatWithPrefix(value: number, prefix: string): string {
+  const formatted = Math.abs(value).toLocaleString();
+  if (prefix) {
+    return `${formatted} ${prefix}`;
+  }
+  return `¥${formatted}`;
+}
+
 export function SessionCard({ session, onEdit, onDelete, showActions = true }: SessionCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [notesExpanded, setNotesExpanded] = useState(false);
   const profitColor = session.profit > 0 ? "green" : session.profit < 0 ? "red" : "gray";
   const profitSign = session.profit > 0 ? "+" : "";
+  const currencyPrefix = session.game?.currencyPrefix ?? "";
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("ja-JP", {
@@ -70,13 +86,18 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
               <Text fw={600} size="md" truncate>
                 {session.location.name}
               </Text>
+              {session.game && (
+                <Text size="xs" c="dimmed" truncate>
+                  {session.game.name}
+                </Text>
+              )}
               <Text size="xs" c="dimmed">
                 {formatDate(session.date)} · {formatDuration(session.durationMinutes)}
               </Text>
             </Stack>
             <Badge size="lg" color={profitColor} variant="filled">
               {profitSign}
-              {formatCurrency(session.profit)}
+              {formatWithPrefix(session.profit, currencyPrefix)}
             </Badge>
           </Group>
           <ActionIcon
@@ -101,7 +122,7 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
                   バイイン
                 </Text>
                 <Text fw={500} size="sm">
-                  {formatCurrency(Number.parseFloat(session.buyIn))}
+                  {formatWithPrefix(Number.parseFloat(session.buyIn), currencyPrefix)}
                 </Text>
               </Stack>
               <Stack gap={2}>
@@ -109,7 +130,7 @@ export function SessionCard({ session, onEdit, onDelete, showActions = true }: S
                   キャッシュアウト
                 </Text>
                 <Text fw={500} size="sm">
-                  {formatCurrency(Number.parseFloat(session.cashOut))}
+                  {formatWithPrefix(Number.parseFloat(session.cashOut), currencyPrefix)}
                 </Text>
               </Stack>
               {session.tags && session.tags.length > 0 && (

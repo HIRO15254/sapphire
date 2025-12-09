@@ -35,7 +35,11 @@ export function NewSessionPage() {
   const handleSubmit = (values: SessionFormValues) => {
     createMutation.mutate({
       date: values.date,
-      newLocationName: values.location,
+      // locationIdがある場合はそれを使用、なければ新規作成
+      ...(values.locationId
+        ? { locationId: values.locationId }
+        : { newLocationName: values.location }),
+      gameId: values.gameId,
       buyIn: values.buyIn,
       cashOut: values.cashOut,
       durationMinutes: values.durationMinutes,

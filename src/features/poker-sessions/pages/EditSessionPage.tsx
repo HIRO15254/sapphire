@@ -18,6 +18,10 @@ interface EditSessionPageProps {
       id: number;
       name: string;
     };
+    game?: {
+      id: number;
+      name: string;
+    } | null;
     buyIn: string;
     cashOut: string;
     durationMinutes: number;
@@ -51,7 +55,11 @@ export function EditSessionPage({ session }: EditSessionPageProps) {
     updateMutation.mutate({
       id: session.id,
       date: values.date,
-      newLocationName: values.location,
+      // locationIdがある場合はそれを使用、なければ新規作成
+      ...(values.locationId
+        ? { locationId: values.locationId }
+        : { newLocationName: values.location }),
+      gameId: values.gameId,
       buyIn: values.buyIn,
       cashOut: values.cashOut,
       durationMinutes: values.durationMinutes,
@@ -70,6 +78,8 @@ export function EditSessionPage({ session }: EditSessionPageProps) {
           initialValues={{
             date: new Date(session.date),
             location: session.location.name,
+            locationId: session.location.id,
+            gameId: session.game?.id ?? null,
             buyIn: Number.parseFloat(session.buyIn),
             cashOut: Number.parseFloat(session.cashOut),
             durationMinutes: session.durationMinutes,
