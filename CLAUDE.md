@@ -1,7 +1,7 @@
 ﻿# Claude Code Context: Poker Session Tracker
 
-**Last Updated**: 2025-10-31 (auto-generated via /speckit.plan)
-**Feature**: 002-poker-session-tracker
+**Last Updated**: 2025-12-05 (auto-generated via /speckit.plan)
+**Feature**: 005-refactor-auth-testing
 
 ## Technology Stack
 
@@ -20,7 +20,8 @@
 **Backend**:
 - tRPC v11 (型安全なAPI)
 - Drizzle ORM v0.41 (データベースORM)
-- NextAuth.js v5 (認証、将来対応)
+- NextAuth.js v5 (認証: OAuth + Credentials)
+- bcryptjs (パスワードハッシュ化)
 - Zod v3 (バリデーション)
 
 **Testing**:
@@ -103,7 +104,7 @@ bun run check:write
 
 **テスト方針（プロジェクト全体）**:
 
-このプロジェクトでは、以下の2種類のテストのみを実施します：
+このプロジェクトでは、以下の3種類のテストを実施します：
 
 1. **API契約テスト** (Vitest): tRPC proceduresの入出力検証
    - ファイル: `tests/contract/*.test.ts`
@@ -116,12 +117,17 @@ bun run check:write
    - 目的: UIコンポーネントが正しく表示・動作するか検証
    - Containerコンポーネントはモック化したAPI応答を使用してテスト
 
+3. **E2Eテスト** (Playwright)
+   - ファイル: `tests/e2e/*.spec.ts`
+   - 対象: アプリケーション全体のユーザーフロー
+   - 目的: 実際のブラウザで主要機能が正しく動作するか検証
+   - メール/パスワード認証を使用してテストユーザーでログイン
+
 **実施しないテスト**:
 
-- ❌ **統合テスト**: APIとフロントエンドを繋ぐテスト（実際のAPIを呼び出すフロントエンドテスト）
-- ❌ **E2Eテスト**: 実際のブラウザでのエンドツーエンドテスト
+- ❌ **統合テスト**: APIとフロントエンドを繋ぐテスト（E2Eテストでカバー）
 
-**理由**: API層とフロントエンド層を分離してテストすることで、テストの保守性を高め、開発速度を向上させます。各層が契約（型定義）に従っていれば、統合は自動的に成功します。
+**理由**: API層とフロントエンド層を分離してテストしつつ、E2Eテストでエンドツーエンドの動作を保証します。
 
 ## Architecture Patterns
 
@@ -307,24 +313,25 @@ export function formatCurrency(amount: number): string {
 
 ## Feature Status
 
-**Current Branch**: `002-poker-session-tracker`
+**Current Branch**: `005-refactor-auth-testing`
 
 **Implementation Phase**: Planning complete, implementation not started
 
 **Priority Order**:
-1. P1: セッション記録(MVP)
-2. P2: 履歴・統計表示
-3. P3: メモ機能
-4. P4: フィルタリング
+1. P1: メールアドレス/パスワード認証
+2. P2: E2Eテスト追加
+3. P3: ドキュメント更新
+4. P4: UIリデザイン
+5. P5: コンポーネントテスト追加
 
 ## Related Documentation
 
-- **Spec**: `specs/002-poker-session-tracker/spec.md`
-- **Plan**: `specs/002-poker-session-tracker/plan.md`
-- **Research**: `specs/002-poker-session-tracker/research.md`
-- **Data Model**: `specs/002-poker-session-tracker/data-model.md`
-- **API Contract**: `specs/002-poker-session-tracker/contracts/sessions-api.md`
-- **Quickstart**: `specs/002-poker-session-tracker/quickstart.md`
+- **Spec**: `specs/005-refactor-auth-testing/spec.md`
+- **Plan**: `specs/005-refactor-auth-testing/plan.md`
+- **Research**: `specs/005-refactor-auth-testing/research.md`
+- **Data Model**: `specs/005-refactor-auth-testing/data-model.md`
+- **API Contract**: `specs/005-refactor-auth-testing/contracts/auth-api.md`
+- **Quickstart**: `specs/005-refactor-auth-testing/quickstart.md`
 
 ---
 
