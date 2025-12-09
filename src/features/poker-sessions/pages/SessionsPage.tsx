@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Container, Divider, Group, Stack, Title } from "@mantine/core";
+import { Button, Container, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
@@ -10,7 +10,6 @@ import { useState } from "react";
 import { LocationStats } from "@/features/poker-sessions/components/LocationStats";
 import { SessionFilters } from "@/features/poker-sessions/components/SessionFilters";
 import { SessionList } from "@/features/poker-sessions/components/SessionList";
-import { SessionStats } from "@/features/poker-sessions/components/SessionStats";
 import { api } from "@/trpc/react";
 
 interface SessionsPageProps {
@@ -21,6 +20,13 @@ interface SessionsPageProps {
       id: number;
       name: string;
     };
+    game?: {
+      id: number;
+      name: string;
+      smallBlind: number;
+      bigBlind: number;
+      currencyPrefix: string;
+    } | null;
     buyIn: string;
     cashOut: string;
     durationMinutes: number;
@@ -35,14 +41,26 @@ interface SessionsPageProps {
     totalProfit: number;
     sessionCount: number;
     avgProfit: number;
-    byLocation: Array<{
+    totalProfitBB?: number | null;
+    avgProfitBB?: number | null;
+    sessionsWithGameCount?: number;
+    byLocationGame: Array<{
       location: {
         id: number;
         name: string;
       };
+      game: {
+        id: number;
+        name: string;
+      };
+      currency: {
+        id: number;
+        prefix: string;
+      };
       profit: number;
+      durationMinutes: number;
       count: number;
-      avgProfit: number;
+      hourlyRate: number;
     }>;
   };
 }
@@ -124,17 +142,9 @@ export function SessionsPage({ initialSessions, initialStats }: SessionsPageProp
           </Button>
         </Group>
 
-        <SessionStats
-          totalProfit={initialStats.totalProfit}
-          sessionCount={initialStats.sessionCount}
-          avgProfit={initialStats.avgProfit}
-        />
-
-        {initialStats.byLocation.length > 0 && (
-          <LocationStats byLocation={initialStats.byLocation} />
+        {initialStats.byLocationGame.length > 0 && (
+          <LocationStats byLocation={initialStats.byLocationGame} />
         )}
-
-        <Divider />
 
         <SessionFilters
           locations={uniqueLocations}

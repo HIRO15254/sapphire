@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { parseNumeric } from "@/lib/utils/currency";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { locations, pokerSessions, sessionTags, tags } from "@/server/db/schema";
+import { currencies, games, locations, pokerSessions, sessionTags, tags } from "@/server/db/schema";
 
 // Zod validation schemas
 export const createSessionSchema = z
@@ -12,6 +12,7 @@ export const createSessionSchema = z
     date: z.coerce.date(),
     locationId: z.number().int().positive().optional(),
     newLocationName: z.string().min(1).max(255).trim().optional(),
+    gameId: z.number().int().positive().optional().nullable(),
     buyIn: z.number().nonnegative(),
     cashOut: z.number().nonnegative(),
     durationMinutes: z.number().int().positive(),
@@ -28,6 +29,7 @@ export const updateSessionSchema = z.object({
   date: z.coerce.date().optional(),
   locationId: z.number().int().positive().optional(),
   newLocationName: z.string().min(1).max(255).trim().optional(),
+  gameId: z.number().int().positive().optional().nullable(),
   buyIn: z.number().nonnegative().optional(),
   cashOut: z.number().nonnegative().optional(),
   durationMinutes: z.number().int().positive().optional(),
@@ -172,6 +174,7 @@ export const sessionsRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           date: input.date,
           locationId,
+          gameId: input.gameId ?? null,
           buyIn: input.buyIn.toFixed(2),
           cashOut: input.cashOut.toFixed(2),
           durationMinutes: input.durationMinutes,
@@ -224,13 +227,36 @@ export const sessionsRouter = createTRPCRouter({
       .where(eq(pokerSessions.userId, ctx.session.user.id))
       .orderBy(desc(pokerSessions.date));
 
-    // Fetch locations and tags for all sessions
+    // Fetch locations, games, and tags for all sessions
     const results = await Promise.all(
       sessions.map(async (session) => {
         const [location] = await ctx.db
           .select()
           .from(locations)
           .where(eq(locations.id, session.locationId));
+
+        // Fetch game with currency if gameId exists
+        let game: {
+          id: number;
+          name: string;
+          smallBlind: number;
+          bigBlind: number;
+          currencyPrefix: string;
+        } | null = null;
+        if (session.gameId) {
+          const [gameData] = await ctx.db
+            .select({
+              id: games.id,
+              name: games.name,
+              smallBlind: games.smallBlind,
+              bigBlind: games.bigBlind,
+              currencyPrefix: currencies.prefix,
+            })
+            .from(games)
+            .innerJoin(currencies, eq(games.currencyId, currencies.id))
+            .where(eq(games.id, session.gameId));
+          game = gameData ?? null;
+        }
 
         const sessionTagsData = await ctx.db
           .select({
@@ -244,6 +270,7 @@ export const sessionsRouter = createTRPCRouter({
         return {
           ...addProfit(session),
           location: location ?? { id: session.locationId, name: "" },
+          game,
           tags: sessionTagsData,
         };
       })
@@ -263,11 +290,34 @@ export const sessionsRouter = createTRPCRouter({
       return null;
     }
 
-    // Fetch location and tags
+    // Fetch location
     const [location] = await ctx.db
       .select()
       .from(locations)
       .where(eq(locations.id, session.locationId));
+
+    // Fetch game with currency if gameId exists
+    let game: {
+      id: number;
+      name: string;
+      smallBlind: number;
+      bigBlind: number;
+      currencyPrefix: string;
+    } | null = null;
+    if (session.gameId) {
+      const [gameData] = await ctx.db
+        .select({
+          id: games.id,
+          name: games.name,
+          smallBlind: games.smallBlind,
+          bigBlind: games.bigBlind,
+          currencyPrefix: currencies.prefix,
+        })
+        .from(games)
+        .innerJoin(currencies, eq(games.currencyId, currencies.id))
+        .where(eq(games.id, session.gameId));
+      game = gameData ?? null;
+    }
 
     const sessionTagsData = await ctx.db
       .select({
@@ -281,6 +331,7 @@ export const sessionsRouter = createTRPCRouter({
     return {
       ...addProfit(session),
       location: location ?? { id: session.locationId, name: "" },
+      game,
       tags: sessionTagsData,
     };
   }),
@@ -401,6 +452,7 @@ export const sessionsRouter = createTRPCRouter({
       const values: Record<string, unknown> = {};
       if (updates.date !== undefined) values.date = updates.date;
       if (locationId !== existing.locationId) values.locationId = locationId;
+      if (updates.gameId !== undefined) values.gameId = updates.gameId;
       if (updates.buyIn !== undefined) values.buyIn = updates.buyIn.toFixed(2);
       if (updates.cashOut !== undefined) values.cashOut = updates.cashOut.toFixed(2);
       if (updates.durationMinutes !== undefined) values.durationMinutes = updates.durationMinutes;
@@ -457,8 +509,8 @@ export const sessionsRouter = createTRPCRouter({
 
   // Get statistics for authenticated user
   getStats: protectedProcedure.query(async ({ ctx }) => {
-    // Get all user sessions with locations
-    const sessions = await ctx.db
+    // Get all user sessions with locations, games, and currency info
+    const sessionsData = await ctx.db
       .select({
         id: pokerSessions.id,
         buyIn: pokerSessions.buyIn,
@@ -466,54 +518,147 @@ export const sessionsRouter = createTRPCRouter({
         durationMinutes: pokerSessions.durationMinutes,
         locationId: pokerSessions.locationId,
         locationName: locations.name,
+        gameId: pokerSessions.gameId,
+        gameName: games.name,
+        bigBlind: games.bigBlind,
+        currencyId: games.currencyId,
       })
       .from(pokerSessions)
       .innerJoin(locations, eq(pokerSessions.locationId, locations.id))
+      .leftJoin(games, eq(pokerSessions.gameId, games.id))
       .where(eq(pokerSessions.userId, ctx.session.user.id));
 
     // Return zero stats if no sessions
-    if (sessions.length === 0) {
+    if (sessionsData.length === 0) {
       return {
         totalProfit: 0,
         sessionCount: 0,
         avgProfit: 0,
         totalDurationMinutes: 0,
+        totalProfitBB: null as number | null,
+        avgProfitBB: null as number | null,
+        sessionsWithGameCount: 0,
         byLocation: [],
+        byLocationGame: [],
       };
     }
+
+    // Get all currencies for the user to have prefix info
+    const userCurrencies = await ctx.db
+      .select({
+        id: currencies.id,
+        name: currencies.name,
+        prefix: currencies.prefix,
+      })
+      .from(currencies)
+      .where(eq(currencies.userId, ctx.session.user.id));
+
+    const currencyMap = new Map(userCurrencies.map((c) => [c.id, c]));
 
     // Calculate overall stats
     let totalProfit = 0;
     let totalDurationMinutes = 0;
+    let totalProfitBB = 0;
+    let sessionsWithGameCount = 0;
     const locationMap = new Map<
       number,
-      { locationId: number; locationName: string; profit: number; count: number }
+      {
+        locationId: number;
+        locationName: string;
+        profit: number;
+        count: number;
+        profitBB: number;
+        countWithGame: number;
+      }
     >();
 
-    for (const session of sessions) {
+    // locationId-gameId combination stats
+    const locationGameMap = new Map<
+      string,
+      {
+        locationId: number;
+        locationName: string;
+        gameId: number;
+        gameName: string;
+        currencyId: number;
+        currencyPrefix: string;
+        bigBlind: number;
+        profit: number;
+        durationMinutes: number;
+        count: number;
+      }
+    >();
+
+    for (const session of sessionsData) {
       const profit = parseNumeric(session.cashOut) - parseNumeric(session.buyIn);
       totalProfit += profit;
       totalDurationMinutes += session.durationMinutes;
 
-      // Aggregate by location ID
+      // BB単位計算（ゲームが設定されている場合のみ）
+      let profitBB = 0;
+      const hasGame = session.gameId !== null && session.bigBlind !== null && session.bigBlind > 0;
+      if (hasGame) {
+        profitBB = profit / session.bigBlind!;
+        totalProfitBB += profitBB;
+        sessionsWithGameCount += 1;
+      }
+
+      // Aggregate by location ID (for backwards compatibility)
       const locationStats = locationMap.get(session.locationId);
       if (locationStats) {
         locationStats.profit += profit;
         locationStats.count += 1;
+        if (hasGame) {
+          locationStats.profitBB += profitBB;
+          locationStats.countWithGame += 1;
+        }
       } else {
         locationMap.set(session.locationId, {
           locationId: session.locationId,
           locationName: session.locationName,
           profit,
           count: 1,
+          profitBB: hasGame ? profitBB : 0,
+          countWithGame: hasGame ? 1 : 0,
         });
+      }
+
+      // Aggregate by location + game combination
+      if (hasGame && session.gameId && session.gameName && session.currencyId) {
+        const key = `${session.locationId}-${session.gameId}`;
+        const currency = currencyMap.get(session.currencyId);
+        const existing = locationGameMap.get(key);
+        if (existing) {
+          existing.profit += profit;
+          existing.durationMinutes += session.durationMinutes;
+          existing.count += 1;
+        } else {
+          locationGameMap.set(key, {
+            locationId: session.locationId,
+            locationName: session.locationName,
+            gameId: session.gameId,
+            gameName: session.gameName,
+            currencyId: session.currencyId,
+            currencyPrefix: currency?.prefix || "",
+            bigBlind: session.bigBlind!,
+            profit,
+            durationMinutes: session.durationMinutes,
+            count: 1,
+          });
+        }
       }
     }
 
-    const sessionCount = sessions.length;
+    const sessionCount = sessionsData.length;
     const avgProfit = Math.round(totalProfit / sessionCount);
+    const avgProfitBB =
+      sessionsWithGameCount > 0
+        ? Math.round(totalProfitBB * 10) / 10 / sessionsWithGameCount
+        : null;
+    const totalProfitBBResult =
+      sessionsWithGameCount > 0 ? Math.round(totalProfitBB * 10) / 10 : null;
 
-    // Build location stats array
+    // Build location stats array (for backwards compatibility)
     const byLocation = Array.from(locationMap.values()).map((stats) => ({
       location: {
         id: stats.locationId,
@@ -522,6 +667,33 @@ export const sessionsRouter = createTRPCRouter({
       profit: stats.profit,
       count: stats.count,
       avgProfit: Math.round(stats.profit / stats.count),
+      profitBB: stats.countWithGame > 0 ? Math.round(stats.profitBB * 10) / 10 : null,
+      avgProfitBB:
+        stats.countWithGame > 0
+          ? Math.round((stats.profitBB / stats.countWithGame) * 10) / 10
+          : null,
+    }));
+
+    // Build location+game stats array
+    const byLocationGame = Array.from(locationGameMap.values()).map((stats) => ({
+      location: {
+        id: stats.locationId,
+        name: stats.locationName,
+      },
+      game: {
+        id: stats.gameId,
+        name: stats.gameName,
+      },
+      currency: {
+        id: stats.currencyId,
+        prefix: stats.currencyPrefix,
+      },
+      profit: stats.profit,
+      durationMinutes: stats.durationMinutes,
+      count: stats.count,
+      // 時給計算 (profit / hours)
+      hourlyRate:
+        stats.durationMinutes > 0 ? Math.round((stats.profit / stats.durationMinutes) * 60) : 0,
     }));
 
     return {
@@ -529,7 +701,11 @@ export const sessionsRouter = createTRPCRouter({
       sessionCount,
       avgProfit,
       totalDurationMinutes,
+      totalProfitBB: totalProfitBBResult,
+      avgProfitBB,
+      sessionsWithGameCount,
       byLocation,
+      byLocationGame,
     };
   }),
 
@@ -571,13 +747,36 @@ export const sessionsRouter = createTRPCRouter({
       sessions = sessions.filter((session) => validSessionIds.has(session.id));
     }
 
-    // Fetch locations and tags for all sessions
+    // Fetch locations, games, and tags for all sessions
     const results = await Promise.all(
       sessions.map(async (session) => {
         const [location] = await ctx.db
           .select()
           .from(locations)
           .where(eq(locations.id, session.locationId));
+
+        // Fetch game with currency if gameId exists
+        let game: {
+          id: number;
+          name: string;
+          smallBlind: number;
+          bigBlind: number;
+          currencyPrefix: string;
+        } | null = null;
+        if (session.gameId) {
+          const [gameData] = await ctx.db
+            .select({
+              id: games.id,
+              name: games.name,
+              smallBlind: games.smallBlind,
+              bigBlind: games.bigBlind,
+              currencyPrefix: currencies.prefix,
+            })
+            .from(games)
+            .innerJoin(currencies, eq(games.currencyId, currencies.id))
+            .where(eq(games.id, session.gameId));
+          game = gameData ?? null;
+        }
 
         const sessionTagsData = await ctx.db
           .select({
@@ -591,6 +790,7 @@ export const sessionsRouter = createTRPCRouter({
         return {
           ...addProfit(session),
           location: location ?? { id: session.locationId, name: "" },
+          game,
           tags: sessionTagsData,
         };
       })

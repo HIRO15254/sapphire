@@ -28,6 +28,8 @@ export function LocationSelectContainer({
     async (locationName: string) => {
       try {
         await createLocation({ name: locationName });
+        // Invalidate first - the onChange will be called with undefined locationId
+        // because the new location isn't in the cache yet
       } catch (error) {
         console.error("Failed to create location:", error);
         throw error;
@@ -36,10 +38,24 @@ export function LocationSelectContainer({
     [createLocation]
   );
 
+  // Wrap onChange to also look up locationId from locations
+  const handleChange = useCallback(
+    (newValue: string | null, locationId: number | undefined) => {
+      // If locationId is undefined but we have a value, try to find it in locations
+      let resolvedLocationId = locationId;
+      if (!resolvedLocationId && newValue) {
+        const found = locations.find((loc) => loc.value === newValue);
+        resolvedLocationId = found?.id;
+      }
+      onChange(newValue, resolvedLocationId);
+    },
+    [onChange, locations]
+  );
+
   return (
     <LocationSelect
       value={value}
-      onChange={onChange}
+      onChange={handleChange}
       locations={locations}
       onCreateNew={handleCreateNew}
       isLoading={isLoadingLocations || isCreating}

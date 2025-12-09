@@ -6,6 +6,7 @@ import { useForm } from "@mantine/form";
 import { IconDeviceFloppy, IconX } from "@tabler/icons-react";
 import { zod4Resolver as zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
+import { GameSelectContainer } from "../containers/GameSelectContainer";
 import { LocationSelectContainer } from "../containers/LocationSelectContainer";
 import { TagMultiSelectContainer } from "../containers/TagMultiSelectContainer";
 import { RichTextEditor } from "./RichTextEditor";
@@ -14,6 +15,15 @@ import { RichTextEditor } from "./RichTextEditor";
 const sessionFormSchema = z.object({
   date: z.coerce.date(),
   location: z.string().min(1, "場所を入力してください").max(255).trim(),
+  locationId: z.number().int().positive().optional().nullable(),
+  gameId: z
+    .number()
+    .int()
+    .positive("ゲームを選択してください")
+    .nullable()
+    .refine((val) => val !== null, {
+      message: "ゲームを選択してください",
+    }),
   buyIn: z.number().nonnegative("バイインは0以上の値を入力してください"),
   cashOut: z.number().nonnegative("キャッシュアウトは0以上の値を入力してください"),
   durationMinutes: z.number().int().positive("プレイ時間は1分以上を入力してください"),
@@ -42,6 +52,8 @@ export function SessionForm({
     initialValues: {
       date: initialValues?.date ?? new Date(),
       location: initialValues?.location ?? "",
+      locationId: initialValues?.locationId ?? null,
+      gameId: initialValues?.gameId ?? null,
       buyIn: initialValues?.buyIn ?? 0,
       cashOut: initialValues?.cashOut ?? 0,
       durationMinutes: initialValues?.durationMinutes ?? 0,
@@ -84,19 +96,34 @@ export function SessionForm({
             />
           </Grid.Col>
 
-          {/* 2段目: 場所(全幅) */}
-          <Grid.Col span={12}>
+          {/* 2段目: 場所(2/3) + ゲーム(1/3) */}
+          <Grid.Col span={{ base: 12, sm: 8 }}>
             <LocationSelectContainer
               value={form.values.location}
-              onChange={(value) => form.setFieldValue("location", value ?? "")}
+              onChange={(value, locationId) => {
+                form.setFieldValue("location", value ?? "");
+                form.setFieldValue("locationId", locationId ?? null);
+                // 店舗が変わったらゲームをクリア
+                if (locationId !== form.values.locationId) {
+                  form.setFieldValue("gameId", null);
+                }
+              }}
               error={form.errors.location}
+            />
+          </Grid.Col>
+
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <GameSelectContainer
+              locationId={form.values.locationId ?? undefined}
+              value={form.values.gameId ?? null}
+              onChange={(value) => form.setFieldValue("gameId", value)}
             />
           </Grid.Col>
 
           {/* 3段目: バイイン + キャッシュアウト */}
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <NumberInput
-              label="バイイン (円)"
+              label="バイイン"
               placeholder="10000"
               withAsterisk
               min={0}
@@ -109,7 +136,7 @@ export function SessionForm({
 
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <NumberInput
-              label="キャッシュアウト (円)"
+              label="キャッシュアウト"
               placeholder="15000"
               withAsterisk
               min={0}
@@ -134,7 +161,6 @@ export function SessionForm({
             <RichTextEditor
               value={form.values.notes ?? ""}
               onChange={(value) => form.setFieldValue("notes", value)}
-              placeholder="印象的なハンド、テーブルの雰囲気、学んだことなど"
               error={typeof form.errors.notes === "string" ? form.errors.notes : undefined}
               label="メモ (任意)"
             />

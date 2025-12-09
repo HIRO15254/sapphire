@@ -50,6 +50,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   pokerSessions: many(pokerSessions),
   locations: many(locations),
   tags: many(tags),
+  currencies: many(currencies),
 }));
 
 export const accounts = createTable(
@@ -137,6 +138,7 @@ export const locationsRelations = relations(locations, ({ one, many }) => ({
     references: [users.id],
   }),
   pokerSessions: many(pokerSessions),
+  games: many(games),
 }));
 
 export type Location = typeof locations.$inferSelect;
@@ -176,6 +178,93 @@ export const tagsRelations = relations(tags, ({ one, many }) => ({
 
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
+
+// Currency table (for poker game currencies - user-level, independent from locations)
+export const currencies = createTable(
+  "currency",
+  (d) => ({
+    id: d.integer().primaryKey().generatedAlwaysAsIdentity(),
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: d.varchar({ length: 100 }).notNull(),
+    prefix: d.varchar({ length: 10 }).notNull().default(""),
+    balance: d.numeric({ precision: 12, scale: 2 }).notNull().default("0"),
+    createdAt: d.timestamp({ mode: "date", withTimezone: true }).notNull().defaultNow(),
+    updatedAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("currency_user_id_idx").on(t.userId),
+    uniqueIndex("currency_user_name_unique").on(t.userId, t.name),
+  ]
+);
+
+export const currenciesRelations = relations(currencies, ({ one, many }) => ({
+  user: one(users, {
+    fields: [currencies.userId],
+    references: [users.id],
+  }),
+  games: many(games),
+}));
+
+export type Currency = typeof currencies.$inferSelect;
+export type NewCurrency = typeof currencies.$inferInsert;
+
+// Game table (for NLHE ring games - location-level, references currency)
+export const games = createTable(
+  "game",
+  (d) => ({
+    id: d.integer().primaryKey().generatedAlwaysAsIdentity(),
+    locationId: d
+      .integer()
+      .notNull()
+      .references(() => locations.id, { onDelete: "cascade" }),
+    currencyId: d
+      .integer()
+      .notNull()
+      .references(() => currencies.id, { onDelete: "restrict" }),
+    name: d.varchar({ length: 100 }).notNull(),
+    smallBlind: d.integer().notNull(),
+    bigBlind: d.integer().notNull(),
+    ante: d.integer().notNull().default(0),
+    minBuyIn: d.integer().notNull(),
+    maxBuyIn: d.integer().notNull(),
+    rules: d.text(),
+    isArchived: d.boolean().notNull().default(false),
+    createdAt: d.timestamp({ mode: "date", withTimezone: true }).notNull().defaultNow(),
+    updatedAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  }),
+  (t) => [
+    index("game_location_id_idx").on(t.locationId),
+    index("game_currency_id_idx").on(t.currencyId),
+    index("game_location_archived_idx").on(t.locationId, t.isArchived),
+    uniqueIndex("game_location_name_unique").on(t.locationId, t.name),
+  ]
+);
+
+export const gamesRelations = relations(games, ({ one, many }) => ({
+  location: one(locations, {
+    fields: [games.locationId],
+    references: [locations.id],
+  }),
+  currency: one(currencies, {
+    fields: [games.currencyId],
+    references: [currencies.id],
+  }),
+  pokerSessions: many(pokerSessions),
+}));
+
+export type Game = typeof games.$inferSelect;
+export type NewGame = typeof games.$inferInsert;
 
 // Session-Tag junction table (many-to-many)
 export const sessionTags = createTable(
@@ -221,6 +310,7 @@ export const pokerSessions = createTable(
       .integer()
       .notNull()
       .references(() => locations.id),
+    gameId: d.integer().references(() => games.id, { onDelete: "set null" }),
     buyIn: d.numeric({ precision: 10, scale: 2 }).notNull(),
     cashOut: d.numeric({ precision: 10, scale: 2 }).notNull(),
     durationMinutes: d.integer().notNull(),
@@ -236,6 +326,7 @@ export const pokerSessions = createTable(
     index("session_user_date_idx").on(t.userId, t.date.desc()),
     index("session_user_location_idx").on(t.userId, t.locationId),
     index("session_user_date_location_idx").on(t.userId, t.date, t.locationId),
+    index("session_game_id_idx").on(t.gameId),
   ]
 );
 
@@ -247,6 +338,10 @@ export const pokerSessionsRelations = relations(pokerSessions, ({ one, many }) =
   location: one(locations, {
     fields: [pokerSessions.locationId],
     references: [locations.id],
+  }),
+  game: one(games, {
+    fields: [pokerSessions.gameId],
+    references: [games.id],
   }),
   sessionTags: many(sessionTags),
 }));

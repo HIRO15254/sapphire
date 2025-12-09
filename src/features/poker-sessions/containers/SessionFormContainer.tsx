@@ -89,6 +89,7 @@ export function SessionFormContainer({
         id: sessionId,
         date: values.date,
         newLocationName: values.location,
+        gameId: values.gameId,
         buyIn: values.buyIn,
         cashOut: values.cashOut,
         durationMinutes: values.durationMinutes,
@@ -100,6 +101,7 @@ export function SessionFormContainer({
       createSession.mutate({
         date: values.date,
         newLocationName: values.location,
+        gameId: values.gameId,
         buyIn: values.buyIn,
         cashOut: values.cashOut,
         durationMinutes: values.durationMinutes,

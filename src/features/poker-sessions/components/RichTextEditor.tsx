@@ -18,7 +18,6 @@ export interface RichTextEditorProps {
 export function RichTextEditor({
   value,
   onChange,
-  placeholder = "セッション中の重要な出来事や戦略を記録...",
   error,
   label = "メモ",
   withAsterisk = false,
@@ -37,9 +36,6 @@ export function RichTextEditor({
             rel: "noopener noreferrer",
             target: "_blank",
           },
-        }),
-        Placeholder.configure({
-          placeholder,
         }),
       ],
       content: value || "",
