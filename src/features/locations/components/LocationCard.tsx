@@ -34,19 +34,10 @@ export function LocationCard({ location }: LocationCardProps) {
             <Text fw={500}>{location.name}</Text>
           </Group>
           <Group gap="xs">
-            <Badge
-              variant="light"
-              leftSection={<IconCards size={12} />}
-              size="sm"
-            >
+            <Badge variant="light" leftSection={<IconCards size={12} />} size="sm">
               {location.gameCount}ゲーム
             </Badge>
-            <Badge
-              variant="light"
-              color="gray"
-              leftSection={<IconPokerChip size={12} />}
-              size="sm"
-            >
+            <Badge variant="light" color="gray" leftSection={<IconPokerChip size={12} />} size="sm">
               {location.sessionCount}回
             </Badge>
           </Group>

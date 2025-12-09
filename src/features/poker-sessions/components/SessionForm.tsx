@@ -16,9 +16,14 @@ const sessionFormSchema = z.object({
   date: z.coerce.date(),
   location: z.string().min(1, "場所を入力してください").max(255).trim(),
   locationId: z.number().int().positive().optional().nullable(),
-  gameId: z.number().int().positive("ゲームを選択してください").nullable().refine((val) => val !== null, {
-    message: "ゲームを選択してください",
-  }),
+  gameId: z
+    .number()
+    .int()
+    .positive("ゲームを選択してください")
+    .nullable()
+    .refine((val) => val !== null, {
+      message: "ゲームを選択してください",
+    }),
   buyIn: z.number().nonnegative("バイインは0以上の値を入力してください"),
   cashOut: z.number().nonnegative("キャッシュアウトは0以上の値を入力してください"),
   durationMinutes: z.number().int().positive("プレイ時間は1分以上を入力してください"),
@@ -156,7 +161,6 @@ export function SessionForm({
             <RichTextEditor
               value={form.values.notes ?? ""}
               onChange={(value) => form.setFieldValue("notes", value)}
-              placeholder="印象的なハンド、テーブルの雰囲気、学んだことなど"
               error={typeof form.errors.notes === "string" ? form.errors.notes : undefined}
               label="メモ (任意)"
             />

@@ -562,7 +562,14 @@ export const sessionsRouter = createTRPCRouter({
     let sessionsWithGameCount = 0;
     const locationMap = new Map<
       number,
-      { locationId: number; locationName: string; profit: number; count: number; profitBB: number; countWithGame: number }
+      {
+        locationId: number;
+        locationName: string;
+        profit: number;
+        count: number;
+        profitBB: number;
+        countWithGame: number;
+      }
     >();
 
     // locationId-gameId combination stats
@@ -644,8 +651,12 @@ export const sessionsRouter = createTRPCRouter({
 
     const sessionCount = sessionsData.length;
     const avgProfit = Math.round(totalProfit / sessionCount);
-    const avgProfitBB = sessionsWithGameCount > 0 ? Math.round(totalProfitBB * 10) / 10 / sessionsWithGameCount : null;
-    const totalProfitBBResult = sessionsWithGameCount > 0 ? Math.round(totalProfitBB * 10) / 10 : null;
+    const avgProfitBB =
+      sessionsWithGameCount > 0
+        ? Math.round(totalProfitBB * 10) / 10 / sessionsWithGameCount
+        : null;
+    const totalProfitBBResult =
+      sessionsWithGameCount > 0 ? Math.round(totalProfitBB * 10) / 10 : null;
 
     // Build location stats array (for backwards compatibility)
     const byLocation = Array.from(locationMap.values()).map((stats) => ({
@@ -657,7 +668,10 @@ export const sessionsRouter = createTRPCRouter({
       count: stats.count,
       avgProfit: Math.round(stats.profit / stats.count),
       profitBB: stats.countWithGame > 0 ? Math.round(stats.profitBB * 10) / 10 : null,
-      avgProfitBB: stats.countWithGame > 0 ? Math.round((stats.profitBB / stats.countWithGame) * 10) / 10 : null,
+      avgProfitBB:
+        stats.countWithGame > 0
+          ? Math.round((stats.profitBB / stats.countWithGame) * 10) / 10
+          : null,
     }));
 
     // Build location+game stats array
@@ -678,7 +692,8 @@ export const sessionsRouter = createTRPCRouter({
       durationMinutes: stats.durationMinutes,
       count: stats.count,
       // 時給計算 (profit / hours)
-      hourlyRate: stats.durationMinutes > 0 ? Math.round((stats.profit / stats.durationMinutes) * 60) : 0,
+      hourlyRate:
+        stats.durationMinutes > 0 ? Math.round((stats.profit / stats.durationMinutes) * 60) : 0,
     }));
 
     return {

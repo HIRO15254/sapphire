@@ -1,8 +1,5 @@
 "use client";
 
-import { notifications } from "@mantine/notifications";
-import { useDisclosure } from "@mantine/hooks";
-import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -17,6 +14,8 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
   IconArrowLeft,
   IconBuilding,
@@ -27,11 +26,12 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { GameListContainer } from "@/features/games/containers/GameListContainer";
-import { useDeleteLocation, useLocation, useUpdateLocation } from "../hooks/useLocations";
 import { LocationForm, type LocationFormValues } from "../components/LocationForm";
+import { useDeleteLocation, useLocation, useUpdateLocation } from "../hooks/useLocations";
 
 interface LocationDetailContainerProps {
   locationId: number;
@@ -139,11 +139,7 @@ export function LocationDetailContainer({ locationId }: LocationDetailContainerP
             店舗一覧に戻る
           </Button>
           <Group gap="sm">
-            <Button
-              variant="light"
-              leftSection={<IconEdit size={18} />}
-              onClick={openEdit}
-            >
+            <Button variant="light" leftSection={<IconEdit size={18} />} onClick={openEdit}>
               編集
             </Button>
             <Button
@@ -167,11 +163,7 @@ export function LocationDetailContainer({ locationId }: LocationDetailContainerP
             </Group>
 
             <Group gap="md">
-              <Badge
-                variant="light"
-                leftSection={<IconCards size={14} />}
-                size="lg"
-              >
+              <Badge variant="light" leftSection={<IconCards size={14} />} size="lg">
                 {location.gameCount}ゲーム
               </Badge>
               <Badge
@@ -183,7 +175,6 @@ export function LocationDetailContainer({ locationId }: LocationDetailContainerP
                 {location.sessionCount}回プレイ
               </Badge>
             </Group>
-
           </Stack>
         </Card>
 

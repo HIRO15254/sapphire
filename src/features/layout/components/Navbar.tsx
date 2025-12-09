@@ -1,13 +1,7 @@
 "use client";
 
 import { Box, Divider, NavLink, Stack, Text } from "@mantine/core";
-import {
-  IconBuilding,
-  IconCoins,
-  IconHome,
-  IconList,
-  IconLogout,
-} from "@tabler/icons-react";
+import { IconBuilding, IconCoins, IconHome, IconList, IconLogout } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 

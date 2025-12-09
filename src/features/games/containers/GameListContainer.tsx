@@ -139,14 +139,21 @@ export function GameListContainer({ locationId }: GameListContainerProps) {
     <Stack gap="md">
       <Group justify="space-between" align="center">
         {!showCompactHeader && <Title order={2}>ゲーム管理</Title>}
-        <Group gap="sm" style={showCompactHeader ? { width: "100%", justifyContent: "flex-end" } : undefined}>
+        <Group
+          gap="sm"
+          style={showCompactHeader ? { width: "100%", justifyContent: "flex-end" } : undefined}
+        >
           <Checkbox
             label="アーカイブ済みも表示"
             checked={includeArchived}
             onChange={(e) => setIncludeArchived(e.currentTarget.checked)}
             size="sm"
           />
-          <Button leftSection={<IconPlus size={16} />} onClick={openCreate} size={showCompactHeader ? "sm" : "md"}>
+          <Button
+            leftSection={<IconPlus size={16} />}
+            onClick={openCreate}
+            size={showCompactHeader ? "sm" : "md"}
+          >
             ゲームを追加
           </Button>
         </Group>

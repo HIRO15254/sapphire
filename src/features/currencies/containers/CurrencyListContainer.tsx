@@ -57,7 +57,8 @@ export function CurrencyListContainer() {
   const confirmUpdateBalance = async () => {
     if (!selectedCurrency) return;
 
-    const numericBalance = typeof balanceValue === "string" ? Number.parseFloat(balanceValue) : balanceValue;
+    const numericBalance =
+      typeof balanceValue === "string" ? Number.parseFloat(balanceValue) : balanceValue;
     if (Number.isNaN(numericBalance)) {
       notifications.show({
         title: "エラー",

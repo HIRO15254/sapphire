@@ -41,12 +41,22 @@ export function SessionStats({
   }
 
   // BB単位の色分け
-  const profitBBColor = totalProfitBB !== null && totalProfitBB !== undefined
-    ? totalProfitBB > 0 ? "green" : totalProfitBB < 0 ? "red" : "gray"
-    : "gray";
-  const avgProfitBBColor = avgProfitBB !== null && avgProfitBB !== undefined
-    ? avgProfitBB > 0 ? "green" : avgProfitBB < 0 ? "red" : "gray"
-    : "gray";
+  const profitBBColor =
+    totalProfitBB !== null && totalProfitBB !== undefined
+      ? totalProfitBB > 0
+        ? "green"
+        : totalProfitBB < 0
+          ? "red"
+          : "gray"
+      : "gray";
+  const avgProfitBBColor =
+    avgProfitBB !== null && avgProfitBB !== undefined
+      ? avgProfitBB > 0
+        ? "green"
+        : avgProfitBB < 0
+          ? "red"
+          : "gray"
+      : "gray";
 
   // BB統計が利用可能かどうか
   const hasBBStats = totalProfitBB !== null && totalProfitBB !== undefined;
@@ -63,9 +73,11 @@ export function SessionStats({
     <Grid gutter="sm">
       <Grid.Col span={{ base: 12, sm: 4 }}>
         <Tooltip
-          label={partialBBStats
-            ? `${sessionsWithGameCount}/${sessionCount}セッションの統計 (${formatCurrency(totalProfit)})`
-            : formatCurrency(totalProfit)}
+          label={
+            partialBBStats
+              ? `${sessionsWithGameCount}/${sessionCount}セッションの統計 (${formatCurrency(totalProfit)})`
+              : formatCurrency(totalProfit)
+          }
           withArrow
         >
           <Card withBorder p="sm" h="100%">
@@ -105,9 +117,11 @@ export function SessionStats({
 
       <Grid.Col span={{ base: 12, sm: 4 }}>
         <Tooltip
-          label={partialBBStats
-            ? `${sessionsWithGameCount}/${sessionCount}セッションの平均 (${formatCurrency(avgProfit)})`
-            : formatCurrency(avgProfit)}
+          label={
+            partialBBStats
+              ? `${sessionsWithGameCount}/${sessionCount}セッションの平均 (${formatCurrency(avgProfit)})`
+              : formatCurrency(avgProfit)
+          }
           withArrow
         >
           <Card withBorder p="sm" h="100%">

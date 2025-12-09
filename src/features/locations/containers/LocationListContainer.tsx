@@ -1,8 +1,8 @@
 "use client";
 
-import { notifications } from "@mantine/notifications";
-import { useDisclosure } from "@mantine/hooks";
 import { Button, Group, Modal, Stack, Title } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { IconBuilding, IconPlus } from "@tabler/icons-react";
 
 import { LocationForm, type LocationFormValues } from "../components/LocationForm";
@@ -53,11 +53,7 @@ export function LocationListContainer() {
           </Button>
         </Group>
 
-        <LocationList
-          locations={locations}
-          isLoading={isLoading}
-          onAddNew={open}
-        />
+        <LocationList locations={locations} isLoading={isLoading} onAddNew={open} />
       </Stack>
 
       <Modal opened={opened} onClose={close} title="店舗を追加">
