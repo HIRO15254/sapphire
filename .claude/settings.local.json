@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "WebSearch",
+      "Bash(powershell -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -PathsOnly)",
+      "Bash(powershell -File:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
