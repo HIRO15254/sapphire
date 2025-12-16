@@ -131,11 +131,12 @@ export const authConfig = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // Refresh every 24 hours
   },
-  pages: {
-    signIn: '/auth/signin',
-    signOut: '/auth/signout',
-    error: '/auth/error',
-  },
+  // カスタム認証ページはPhase 3で実装予定
+  // pages: {
+  //   signIn: '/auth/signin',
+  //   signOut: '/auth/signout',
+  //   error: '/auth/error',
+  // },
   callbacks: {
     session: ({ session, user }) => ({
       ...session,
