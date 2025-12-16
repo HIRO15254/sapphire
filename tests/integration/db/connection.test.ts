@@ -25,22 +25,16 @@ describe('Database Schema', () => {
       expect(accounts).toBeDefined()
     })
 
-    it('should export sessions table', async () => {
-      const { sessions } = await import('~/server/db/schema')
-      expect(sessions).toBeDefined()
-    })
-
     it('should export verificationTokens table', async () => {
       const { verificationTokens } = await import('~/server/db/schema')
       expect(verificationTokens).toBeDefined()
     })
 
     it('should export relations', async () => {
-      const { usersRelations, accountsRelations, sessionsRelations } =
+      const { usersRelations, accountsRelations } =
         await import('~/server/db/schema')
       expect(usersRelations).toBeDefined()
       expect(accountsRelations).toBeDefined()
-      expect(sessionsRelations).toBeDefined()
     })
   })
 

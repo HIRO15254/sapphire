@@ -19,7 +19,7 @@ import { IconAlertCircle, IconBrandDiscord, IconBrandGoogle } from '@tabler/icon
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { z } from 'zod'
 
 const signInSchema = z.object({
@@ -27,7 +27,7 @@ const signInSchema = z.object({
   password: z.string().min(1, { message: 'パスワードを入力してください' }),
 })
 
-export default function SignInPage() {
+function SignInContent() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') ?? '/'
   const error = searchParams.get('error')
@@ -166,5 +166,13 @@ export default function SignInPage() {
         ホームに戻る
       </Button>
     </Container>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<Container py="xl" size="xs"><Text ta="center">読み込み中...</Text></Container>}>
+      <SignInContent />
+    </Suspense>
   )
 }
