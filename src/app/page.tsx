@@ -1,6 +1,7 @@
 import { Button, Container, Stack, Text, Title } from '@mantine/core'
 import Link from 'next/link'
 
+import { SignOutButton } from '~/components/auth/SignOutButton'
 import { auth } from '~/server/auth'
 
 export default async function Home() {
@@ -17,15 +18,16 @@ export default async function Home() {
         {session?.user ? (
           <Stack align="center" gap="md">
             <Text>ようこそ、{session.user.name ?? session.user.email}さん</Text>
-            <Button component={Link} href="/api/auth/signout" variant="outline">
-              ログアウト
-            </Button>
+            <SignOutButton variant="outline" w={200} />
           </Stack>
         ) : (
           <Stack align="center" gap="md">
             <Text c="dimmed">ログインして始めましょう</Text>
-            <Button component={Link} href="/api/auth/signin">
+            <Button component={Link} href="/auth/signin" w={200}>
               ログイン
+            </Button>
+            <Button component={Link} href="/auth/register" variant="outline" w={200}>
+              新規登録
             </Button>
           </Stack>
         )}

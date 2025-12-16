@@ -1,3 +1,4 @@
+import { authRouter } from '~/server/api/routers/auth'
 import {
   createCallerFactory,
   createTRPCRouter,
@@ -10,6 +11,7 @@ import {
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
+  auth: authRouter,
   /**
    * Health check procedure.
    * Returns the current server status.
