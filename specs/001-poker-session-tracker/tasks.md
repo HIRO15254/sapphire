@@ -69,7 +69,7 @@ tests/
 - [X] T013 Write unit test for user schema validation in tests/unit/server/db/schema/user.test.ts
 - [X] T014 Create User schema with passwordHash field in src/server/db/schema/user.ts
 - [X] T015 [P] Create Account schema (OAuth) in src/server/db/schema/account.ts
-- [X] T016 [P] Create AuthSession schema in src/server/db/schema/session.ts
+- [X] ~~T016 [P] Create AuthSession schema in src/server/db/schema/session.ts~~ - REMOVED (JWT sessions used instead)
 - [X] T017 [P] Create VerificationToken schema in src/server/db/schema/verificationToken.ts
 - [X] T018 Export all auth schemas from src/server/db/schema/index.ts
 - [ ] T019 Run initial database migration with bun run db:generate && bun run db:migrate
@@ -87,7 +87,7 @@ tests/
 ### NextAuth Foundation
 
 - [X] T027 Write integration test for NextAuth configuration in tests/integration/auth/config.test.ts
-- [X] T028 Configure NextAuth.js v5 with database sessions in src/server/auth.ts
+- [X] T028 Configure NextAuth.js v5 with JWT sessions in src/server/auth.ts (JWT required for Credentials provider)
 - [X] T029 [P] Configure Credentials provider (email/password) with bcrypt in src/server/auth.ts
 - [X] T030 [P] Configure Google OAuth provider in src/server/auth.ts
 - [X] T031 [P] Configure Discord OAuth provider in src/server/auth.ts

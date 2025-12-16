@@ -95,13 +95,25 @@ NextAuth.jsで管理。Credentialsプロバイダー用に`passwordHash`を拡�
 
 ---
 
-### 2-4. NextAuth テーブル（Account, AuthSession, VerificationToken）
+### 2. Account（アカウント）- NextAuth
 
 （英語版と同様）
 
 ---
 
-### 5. Currency（通貨）
+### ~~3. AuthSession（認証セッション）~~ - 削除済み
+
+**このテーブルは削除されました。** NextAuth.js v5のCredentialsプロバイダーがデータベースセッションと互換性がないため、JWTセッションのみを使用します。全認証（OAuthとCredentials）でJWTセッションを使用。
+
+---
+
+### 3. VerificationToken（検証トークン）- NextAuth
+
+（英語版と同様）
+
+---
+
+### 4. Currency（通貨）
 
 アミューズメントポーカー施設の仮想通貨。
 

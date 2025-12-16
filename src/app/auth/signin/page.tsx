@@ -14,11 +14,18 @@ import {
   Title,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
+import { zodResolver } from 'mantine-form-zod-resolver'
 import { IconAlertCircle, IconBrandDiscord, IconBrandGoogle } from '@tabler/icons-react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
+import { z } from 'zod'
+
+const signInSchema = z.object({
+  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  password: z.string().min(1, { message: 'パスワードを入力してください' }),
+})
 
 export default function SignInPage() {
   const searchParams = useSearchParams()
@@ -28,16 +35,12 @@ export default function SignInPage() {
   const [credentialsError, setCredentialsError] = useState<string | null>(null)
 
   const form = useForm({
+    mode: 'uncontrolled',
     initialValues: {
       email: '',
       password: '',
     },
-    validate: {
-      email: (value) =>
-        /^\S+@\S+$/.test(value) ? null : '有効なメールアドレスを入力してください',
-      password: (value) =>
-        value.length > 0 ? null : 'パスワードを入力してください',
-    },
+    validate: zodResolver(signInSchema),
   })
 
   const handleCredentialsSubmit = form.onSubmit(async (values) => {

@@ -10,25 +10,42 @@ This document consolidates research findings to resolve technical decisions for 
 ## 1. Authentication: NextAuth.js + Drizzle ORM
 
 ### Decision
-Use NextAuth.js v5 with `@auth/drizzle-adapter` and **database sessions** (not JWT).
+Use NextAuth.js v5 with `@auth/drizzle-adapter` and **JWT sessions**.
 
 ### Rationale
-- Multi-device sync requirement (users access from phone at venue, desktop at home)
-- Immediate session revocation capability (logout from all devices)
-- User data changes (currency balances, session results) stay fresh without token refresh
-- 1,000 concurrent users is easily handled by database sessions
+- **JWT required for Credentials provider**: NextAuth.js v5's Credentials provider is not compatible with database sessions
+- Credentials provider does not trigger the adapter's `createSession` method, making database sessions impossible
+- JWT sessions work seamlessly with all providers (OAuth + Credentials)
+- User data changes (currency balances, session results) are fetched fresh from database on each request via tRPC
 
 ### Alternatives Considered
-- **JWT sessions**: Rejected because stale data issues and no immediate revocation
+- **Database sessions**: Not compatible with Credentials provider in NextAuth.js v5
 - **Custom auth**: Rejected due to complexity and security concerns
 
 ### Key Configuration
 ```typescript
-// Database session strategy
+// JWT session strategy (required for Credentials provider)
 session: {
-  strategy: "database",
+  strategy: "jwt",
   maxAge: 30 * 24 * 60 * 60, // 30 days
   updateAge: 24 * 60 * 60,   // Refresh every 24 hours
+}
+
+// JWT callback to include user.id in token
+callbacks: {
+  jwt: ({ token, user }) => {
+    if (user) {
+      token.id = user.id
+    }
+    return token
+  },
+  session: ({ session, token }) => ({
+    ...session,
+    user: {
+      ...session.user,
+      id: token.id as string,
+    },
+  }),
 }
 
 // Providers: Google, Discord, Credentials (email/password)
@@ -38,13 +55,15 @@ session: {
 ### Schema Requirements
 - `users`: id, name, email, emailVerified, image, passwordHash
 - `accounts`: userId, type, provider, providerAccountId, tokens
-- `sessions`: sessionToken, userId, expires
 - `verificationTokens`: identifier, token, expires
+
+**Note**: `sessions` table has been removed since JWT sessions are used exclusively. Database sessions are not compatible with Credentials provider.
 
 ### Notes
 - Use `allowDangerousEmailAccountLinking: true` for OAuth (email verified by providers)
-- Credentials provider requires manual session creation
-- Add user.id to session via callbacks for tRPC context
+- JWT callbacks are required to include user.id in session for tRPC context
+- DrizzleAdapter is still used for user/account management (OAuth account linking)
+- All authentication (OAuth and Credentials) uses JWT sessions
 
 ---
 

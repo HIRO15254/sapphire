@@ -10,25 +10,42 @@
 ## 1. 認証: NextAuth.js + Drizzle ORM
 
 ### 決定
-NextAuth.js v5 + `@auth/drizzle-adapter`、**データベースセッション**（JWTではない）を使用
+NextAuth.js v5 + `@auth/drizzle-adapter`、**JWTセッション**を使用
 
 ### 理由
-- マルチデバイス同期要件（ユーザーは施設でスマホ、自宅でデスクトップからアクセス）
-- 即時セッション無効化機能（全デバイスからログアウト）
-- ユーザーデータ変更（通貨残高、セッション結果）がトークン更新なしで最新状態を維持
-- 1,000同時ユーザーはデータベースセッションで十分対応可能
+- **Credentialsプロバイダーに必須**: NextAuth.js v5のCredentialsプロバイダーはデータベースセッションと互換性がない
+- Credentialsプロバイダーはアダプターの`createSession`メソッドをトリガーしないため、データベースセッションは使用不可
+- JWTセッションは全プロバイダー（OAuth + Credentials）でシームレスに動作
+- ユーザーデータ変更（通貨残高、セッション結果）はtRPCリクエストごとにデータベースから最新を取得
 
 ### 検討した代替案
-- **JWTセッション**: データの陳腐化問題と即時無効化不可のため却下
+- **データベースセッション**: NextAuth.js v5ではCredentialsプロバイダーと互換性なし
 - **カスタム認証**: 複雑性とセキュリティ懸念のため却下
 
 ### 主要な設定
 ```typescript
-// データベースセッション戦略
+// JWTセッション戦略（Credentialsプロバイダーに必須）
 session: {
-  strategy: "database",
+  strategy: "jwt",
   maxAge: 30 * 24 * 60 * 60, // 30日
   updateAge: 24 * 60 * 60,   // 24時間ごとに更新
+}
+
+// user.idをトークンに含めるJWTコールバック
+callbacks: {
+  jwt: ({ token, user }) => {
+    if (user) {
+      token.id = user.id
+    }
+    return token
+  },
+  session: ({ session, token }) => ({
+    ...session,
+    user: {
+      ...session.user,
+      id: token.id as string,
+    },
+  }),
 }
 
 // プロバイダー: Google, Discord, Credentials（メール/パスワード）
@@ -38,13 +55,15 @@ session: {
 ### 必要なスキーマ
 - `users`: id, name, email, emailVerified, image, passwordHash
 - `accounts`: userId, type, provider, providerAccountId, トークン類
-- `sessions`: sessionToken, userId, expires
 - `verificationTokens`: identifier, token, expires
+
+**注意**: `sessions`テーブルは削除されました。JWTセッションのみを使用するためです。データベースセッションはCredentialsプロバイダーと互換性がありません。
 
 ### 注意点
 - OAuthには`allowDangerousEmailAccountLinking: true`を使用（プロバイダーがメール検証済み）
-- Credentialsプロバイダーは手動セッション作成が必要
-- コールバックでsession.user.idをtRPCコンテキスト用に追加
+- tRPCコンテキスト用にsession.user.idを含めるJWTコールバックが必須
+- DrizzleAdapterはユーザー/アカウント管理（OAuthアカウントリンク）に引き続き使用
+- 全認証（OAuthとCredentials）でJWTセッションを使用
 
 ---
 

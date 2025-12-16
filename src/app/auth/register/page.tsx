@@ -13,12 +13,26 @@ import {
   Title,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
+import { zodResolver } from 'mantine-form-zod-resolver'
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { z } from 'zod'
 
 import { api } from '~/trpc/react'
+
+const registerSchema = z
+  .object({
+    name: z.string().min(1, { message: '名前を入力してください' }),
+    email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+    password: z.string().min(8, { message: 'パスワードは8文字以上で入力してください' }),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'パスワードが一致しません',
+    path: ['confirmPassword'],
+  })
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -26,22 +40,14 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false)
 
   const form = useForm({
+    mode: 'uncontrolled',
     initialValues: {
       email: '',
       password: '',
       confirmPassword: '',
       name: '',
     },
-    validate: {
-      email: (value) =>
-        /^\S+@\S+$/.test(value) ? null : '有効なメールアドレスを入力してください',
-      password: (value) =>
-        value.length >= 8 ? null : 'パスワードは8文字以上で入力してください',
-      confirmPassword: (value, values) =>
-        value === values.password ? null : 'パスワードが一致しません',
-      name: (value) =>
-        value.length > 0 ? null : '名前を入力してください',
-    },
+    validate: zodResolver(registerSchema),
   })
 
   const registerMutation = api.auth.register.useMutation({
