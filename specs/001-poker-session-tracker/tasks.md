@@ -59,46 +59,46 @@ tests/
 
 ### Database Schema Foundation
 
-- [ ] T009 Write integration test for database connection in tests/integration/db/connection.test.ts
-- [ ] T010 Configure Drizzle ORM with PostgreSQL in src/server/db/index.ts
-- [ ] T011 [P] Create timestamps mixin (createdAt, updatedAt, deletedAt) pattern in src/server/db/schema/common.ts
-- [ ] T012 [P] Create soft delete helper function (isNotDeleted) in src/server/db/schema/common.ts
+- [X] T009 Write integration test for database connection in tests/integration/db/connection.test.ts
+- [X] T010 Configure Drizzle ORM with PostgreSQL in src/server/db/index.ts
+- [X] T011 [P] Create timestamps mixin (createdAt, updatedAt, deletedAt) pattern in src/server/db/schema/common.ts
+- [X] T012 [P] Create soft delete helper function (isNotDeleted) in src/server/db/schema/common.ts
 
 ### Authentication Foundation (Required for all user stories)
 
-- [ ] T013 Write unit test for user schema validation in tests/unit/server/db/schema/user.test.ts
-- [ ] T014 Create User schema with passwordHash field in src/server/db/schema/user.ts
-- [ ] T015 [P] Create Account schema (OAuth) in src/server/db/schema/account.ts
-- [ ] T016 [P] Create AuthSession schema in src/server/db/schema/session.ts
-- [ ] T017 [P] Create VerificationToken schema in src/server/db/schema/verificationToken.ts
-- [ ] T018 Export all auth schemas from src/server/db/schema/index.ts
+- [X] T013 Write unit test for user schema validation in tests/unit/server/db/schema/user.test.ts
+- [X] T014 Create User schema with passwordHash field in src/server/db/schema/user.ts
+- [X] T015 [P] Create Account schema (OAuth) in src/server/db/schema/account.ts
+- [X] T016 [P] Create AuthSession schema in src/server/db/schema/session.ts
+- [X] T017 [P] Create VerificationToken schema in src/server/db/schema/verificationToken.ts
+- [X] T018 Export all auth schemas from src/server/db/schema/index.ts
 - [ ] T019 Run initial database migration with bun run db:generate && bun run db:migrate
 
 ### tRPC Foundation
 
-- [ ] T020 Write unit test for tRPC context creation in tests/unit/server/api/trpc.test.ts
-- [ ] T021 Configure tRPC v11 with context and procedures in src/server/api/trpc.ts
-- [ ] T022 Create protectedProcedure with auth enforcement in src/server/api/trpc.ts
-- [ ] T023 Create root router structure in src/server/api/root.ts
-- [ ] T024 Configure tRPC client with React Query in src/trpc/react.tsx
-- [ ] T025 Configure tRPC server caller in src/trpc/server.ts
-- [ ] T026 Create tRPC API route handler in src/app/api/trpc/[trpc]/route.ts
+- [X] T020 Write unit test for tRPC context creation in tests/unit/server/api/trpc.test.ts
+- [X] T021 Configure tRPC v11 with context and procedures in src/server/api/trpc.ts
+- [X] T022 Create protectedProcedure with auth enforcement in src/server/api/trpc.ts
+- [X] T023 Create root router structure in src/server/api/root.ts
+- [X] T024 Configure tRPC client with React Query in src/trpc/react.tsx
+- [X] T025 Configure tRPC server caller in src/trpc/server.ts
+- [X] T026 Create tRPC API route handler in src/app/api/trpc/[trpc]/route.ts
 
 ### NextAuth Foundation
 
-- [ ] T027 Write integration test for NextAuth configuration in tests/integration/auth/config.test.ts
-- [ ] T028 Configure NextAuth.js v5 with database sessions in src/server/auth.ts
-- [ ] T029 [P] Configure Credentials provider (email/password) with bcrypt in src/server/auth.ts
-- [ ] T030 [P] Configure Google OAuth provider in src/server/auth.ts
-- [ ] T031 [P] Configure Discord OAuth provider in src/server/auth.ts
-- [ ] T032 Create auth API route handlers in src/app/api/auth/[...nextauth]/route.ts
+- [X] T027 Write integration test for NextAuth configuration in tests/integration/auth/config.test.ts
+- [X] T028 Configure NextAuth.js v5 with database sessions in src/server/auth.ts
+- [X] T029 [P] Configure Credentials provider (email/password) with bcrypt in src/server/auth.ts
+- [X] T030 [P] Configure Google OAuth provider in src/server/auth.ts
+- [X] T031 [P] Configure Discord OAuth provider in src/server/auth.ts
+- [X] T032 Create auth API route handlers in src/app/api/auth/[...nextauth]/route.ts
 
 ### Base UI Components
 
-- [ ] T033 [P] Create AppShell layout component with navigation in src/components/layouts/AppShell.tsx
-- [ ] T034 [P] Create ThemeToggle component using useMantineColorScheme in src/components/ui/ThemeToggle.tsx
-- [ ] T035 [P] Create LoadingOverlay wrapper component in src/components/ui/LoadingOverlay.tsx
-- [ ] T036 [P] Create ErrorBoundary component with Japanese error messages in src/components/ui/ErrorBoundary.tsx
+- [X] T033 [P] Create AppShell layout component with navigation in src/components/layouts/AppShell.tsx
+- [X] T034 [P] Create ThemeToggle component using useMantineColorScheme in src/components/ui/ThemeToggle.tsx
+- [X] T035 [P] Create LoadingOverlay wrapper component in src/components/ui/LoadingOverlay.tsx
+- [X] T036 [P] Create ErrorBoundary component with Japanese error messages in src/components/ui/ErrorBoundary.tsx
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
