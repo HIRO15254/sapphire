@@ -4,7 +4,14 @@
       "Bash(git fetch:*)",
       "WebSearch",
       "Bash(powershell -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -PathsOnly)",
-      "Bash(powershell -File:*)"
+      "Bash(powershell -File:*)",
+      "Bash(bun run check:write:*)",
+      "Bash(bun run typecheck:*)",
+      "Bash(bun run test:*)",
+      "Bash(bun run build:*)",
+      "Bash(bun run lint)",
+      "Bash(git add:*)",
+      "Bash(bun add:*)"
     ],
     "deny": [],
     "ask": []

@@ -117,21 +117,13 @@ Links OAuth providers to users.
 
 ---
 
-### 3. AuthSession (NextAuth)
+### ~~3. AuthSession (NextAuth)~~ - REMOVED
 
-Database session for authenticated users.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| sessionToken | varchar(255) | PK | Session token |
-| userId | uuid | FK → users.id, cascade | Session owner |
-| expires | timestamptz | NOT NULL | Session expiry |
-
-**Indexes**: `userId`, `expires`
+**This table has been removed.** JWT sessions are used exclusively because NextAuth.js v5's Credentials provider is not compatible with database sessions. All authentication (OAuth and Credentials) now uses JWT sessions.
 
 ---
 
-### 4. VerificationToken (NextAuth)
+### 3. VerificationToken (NextAuth)
 
 Email verification tokens.
 
