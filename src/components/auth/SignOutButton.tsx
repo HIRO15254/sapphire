@@ -15,7 +15,7 @@ export function SignOutButton({
   ...props
 }: SignOutButtonProps) {
   const handleSignOut = () => {
-    signOut({ callbackUrl: '/' })
+    signOut({ redirectTo: '/' })
   }
 
   return (
