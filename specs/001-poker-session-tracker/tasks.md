@@ -40,14 +40,14 @@ tests/
 
 **Purpose**: Project initialization and T3 Stack configuration
 
-- [ ] T001 Initialize T3 Stack project with Next.js 15, tRPC v11, Drizzle ORM, NextAuth.js v5, and Mantine v8 at repository root
-- [ ] T002 [P] Configure TypeScript strict mode in tsconfig.json
-- [ ] T003 [P] Configure Vitest in vitest.config.ts with test paths and coverage settings
-- [ ] T004 [P] Configure Playwright in playwright.config.ts for E2E tests
-- [ ] T005 [P] Configure Biome for linting and formatting (biome.json)
-- [ ] T006 [P] Create .env.example with required environment variables (DATABASE_URL, AUTH_SECRET, AUTH_URL, OAuth credentials)
-- [ ] T007 [P] Configure Mantine v8 with Japanese font (Noto Sans JP) and ColorSchemeScript in src/app/layout.tsx
-- [ ] T008 [P] Add package.json scripts for db:generate, db:migrate, db:push, db:studio, db:seed, db:reset
+- [X] T001 Initialize T3 Stack project with Next.js 15, tRPC v11, Drizzle ORM, NextAuth.js v5, and Mantine v8 at repository root
+- [X] T002 [P] Configure TypeScript strict mode in tsconfig.json
+- [X] T003 [P] Configure Vitest in vitest.config.ts with test paths and coverage settings
+- [X] T004 [P] Configure Playwright in playwright.config.ts for E2E tests
+- [X] T005 [P] Configure Biome for linting and formatting (biome.json)
+- [X] T006 [P] Create .env.example with required environment variables (DATABASE_URL, AUTH_SECRET, AUTH_URL, OAuth credentials)
+- [X] T007 [P] Configure Mantine v8 with Japanese font (Noto Sans JP) and ColorSchemeScript in src/app/layout.tsx
+- [X] T008 [P] Add package.json scripts for db:generate, db:migrate, db:push, db:studio, db:seed, db:reset
 
 ---
 
