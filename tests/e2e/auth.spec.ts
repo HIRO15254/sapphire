@@ -8,6 +8,9 @@ import { expect, test } from '@playwright/test'
  * - User login (signin)
  * - User logout (signout)
  * - Protected route access
+ *
+ * NOTE: Uses getByRole and getByLabel for stable selectors that avoid
+ * duplicate text matching issues.
  */
 
 test.describe('Authentication', () => {
@@ -15,41 +18,40 @@ test.describe('Authentication', () => {
     test('should navigate to registration page', async ({ page }) => {
       await page.goto('/auth/signin')
 
-      // Click on register link
-      await page.click('text=新規登録')
+      // Click on register link (use role for specificity)
+      await page.getByRole('link', { name: '新規登録' }).click()
 
       // Should be on register page
       await expect(page).toHaveURL(/\/auth\/register/)
-      await expect(page.locator('h1')).toContainText('新規登録')
+      await expect(
+        page.getByRole('heading', { level: 1, name: '新規登録' }),
+      ).toBeVisible()
     })
 
     test('should show validation errors for empty form', async ({ page }) => {
       await page.goto('/auth/register')
 
-      // Submit empty form
-      await page.click('button[type="submit"]')
+      // Submit empty form (use role to find submit button)
+      await page.getByRole('button', { name: '登録' }).click()
 
-      // Should show validation errors
-      await expect(page.locator('text=名前を入力してください')).toBeVisible()
+      // Should show Mantine validation errors (not browser native)
+      await expect(page.getByText('名前を入力してください')).toBeVisible()
     })
 
     test('should show password mismatch error', async ({ page }) => {
       await page.goto('/auth/register')
 
-      // Fill form with mismatched passwords
-      await page.fill('input[placeholder="山田 太郎"]', 'テストユーザー')
-      await page.fill(
-        'input[placeholder="you@example.com"]',
-        'test@example.com',
-      )
-      await page.fill('input[placeholder="8文字以上"]', 'password123')
-      await page.fill('input[placeholder="もう一度入力"]', 'different123')
+      // Fill form with mismatched passwords using labels
+      await page.getByLabel('名前').fill('テストユーザー')
+      await page.getByLabel('メールアドレス').fill('test@example.com')
+      await page.getByLabel('パスワード', { exact: true }).fill('password123')
+      await page.getByLabel('パスワード（確認）').fill('different123')
 
       // Submit form
-      await page.click('button[type="submit"]')
+      await page.getByRole('button', { name: '登録' }).click()
 
       // Should show password mismatch error
-      await expect(page.locator('text=パスワードが一致しません')).toBeVisible()
+      await expect(page.getByText('パスワードが一致しません')).toBeVisible()
     })
 
     test('should register new user successfully', async ({ page }) => {
@@ -57,17 +59,17 @@ test.describe('Authentication', () => {
 
       await page.goto('/auth/register')
 
-      // Fill registration form
-      await page.fill('input[placeholder="山田 太郎"]', 'テストユーザー')
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="8文字以上"]', 'password123')
-      await page.fill('input[placeholder="もう一度入力"]', 'password123')
+      // Fill registration form using labels
+      await page.getByLabel('名前').fill('テストユーザー')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード', { exact: true }).fill('password123')
+      await page.getByLabel('パスワード（確認）').fill('password123')
 
       // Submit form
-      await page.click('button[type="submit"]')
+      await page.getByRole('button', { name: '登録' }).click()
 
       // Should show success message
-      await expect(page.locator('text=アカウントが作成されました')).toBeVisible({
+      await expect(page.getByText('アカウントが作成されました')).toBeVisible({
         timeout: 10000,
       })
 
@@ -81,11 +83,11 @@ test.describe('Authentication', () => {
 
       await page.goto('/auth/register')
 
-      await page.fill('input[placeholder="山田 太郎"]', 'テストユーザー1')
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="8文字以上"]', 'password123')
-      await page.fill('input[placeholder="もう一度入力"]', 'password123')
-      await page.click('button[type="submit"]')
+      await page.getByLabel('名前').fill('テストユーザー1')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード', { exact: true }).fill('password123')
+      await page.getByLabel('パスワード（確認）').fill('password123')
+      await page.getByRole('button', { name: '登録' }).click()
 
       // Wait for redirect
       await page.waitForURL(/\/auth\/signin/, { timeout: 10000 })
@@ -93,15 +95,15 @@ test.describe('Authentication', () => {
       // Try to register again with same email
       await page.goto('/auth/register')
 
-      await page.fill('input[placeholder="山田 太郎"]', 'テストユーザー2')
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="8文字以上"]', 'password123')
-      await page.fill('input[placeholder="もう一度入力"]', 'password123')
-      await page.click('button[type="submit"]')
+      await page.getByLabel('名前').fill('テストユーザー2')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード', { exact: true }).fill('password123')
+      await page.getByLabel('パスワード（確認）').fill('password123')
+      await page.getByRole('button', { name: '登録' }).click()
 
       // Should show duplicate email error
       await expect(
-        page.locator('text=このメールアドレスは既に登録されています'),
+        page.getByText('このメールアドレスは既に登録されています'),
       ).toBeVisible({
         timeout: 10000,
       })
@@ -112,36 +114,36 @@ test.describe('Authentication', () => {
     test('should navigate to login page', async ({ page }) => {
       await page.goto('/auth/signin')
 
-      await expect(page.locator('h1')).toContainText('ログイン')
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'ログイン' }),
+      ).toBeVisible()
     })
 
     test('should show validation errors for empty form', async ({ page }) => {
       await page.goto('/auth/signin')
 
-      // Submit empty form
-      await page.click('button[type="submit"]')
+      // Submit empty form (use exact match to avoid OAuth button conflicts)
+      await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
-      // Should show validation errors (either field-level or after submit)
+      // Should show Mantine validation errors
       await expect(
-        page.locator('text=有効なメールアドレスを入力してください'),
+        page.getByText('有効なメールアドレスを入力してください'),
       ).toBeVisible()
     })
 
     test('should show error for invalid credentials', async ({ page }) => {
       await page.goto('/auth/signin')
 
-      // Fill with invalid credentials
-      await page.fill('input[placeholder="you@example.com"]', 'fake@example.com')
-      await page.fill('input[placeholder="パスワードを入力"]', 'wrongpassword')
+      // Fill with invalid credentials using labels
+      await page.getByLabel('メールアドレス').fill('fake@example.com')
+      await page.getByLabel('パスワード').fill('wrongpassword')
 
       // Submit form
-      await page.click('button[type="submit"]')
+      await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
       // Should show error message
       await expect(
-        page.locator(
-          'text=メールアドレスまたはパスワードが正しくありません',
-        ),
+        page.getByText('メールアドレスまたはパスワードが正しくありません'),
       ).toBeVisible({
         timeout: 10000,
       })
@@ -155,19 +157,19 @@ test.describe('Authentication', () => {
       const password = 'testpassword123'
 
       await page.goto('/auth/register')
-      await page.fill('input[placeholder="山田 太郎"]', 'ログインテストユーザー')
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="8文字以上"]', password)
-      await page.fill('input[placeholder="もう一度入力"]', password)
-      await page.click('button[type="submit"]')
+      await page.getByLabel('名前').fill('ログインテストユーザー')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード', { exact: true }).fill(password)
+      await page.getByLabel('パスワード（確認）').fill(password)
+      await page.getByRole('button', { name: '登録' }).click()
 
       // Wait for redirect to signin
       await page.waitForURL(/\/auth\/signin/, { timeout: 10000 })
 
       // Now login
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="パスワードを入力"]', password)
-      await page.click('button[type="submit"]')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード').fill(password)
+      await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
       // Should redirect to home or dashboard
       await expect(page).not.toHaveURL(/\/auth\/signin/, { timeout: 10000 })
@@ -176,8 +178,8 @@ test.describe('Authentication', () => {
     test('should navigate to register from login', async ({ page }) => {
       await page.goto('/auth/signin')
 
-      // Click register link
-      await page.click('text=新規登録')
+      // Click register link (use role for specificity)
+      await page.getByRole('link', { name: '新規登録' }).click()
 
       await expect(page).toHaveURL(/\/auth\/register/)
     })
@@ -185,9 +187,13 @@ test.describe('Authentication', () => {
     test('should have OAuth login buttons', async ({ page }) => {
       await page.goto('/auth/signin')
 
-      // Check for OAuth buttons
-      await expect(page.locator('text=Googleでログイン')).toBeVisible()
-      await expect(page.locator('text=Discordでログイン')).toBeVisible()
+      // Check for OAuth buttons using role
+      await expect(
+        page.getByRole('button', { name: 'Googleでログイン' }),
+      ).toBeVisible()
+      await expect(
+        page.getByRole('button', { name: 'Discordでログイン' }),
+      ).toBeVisible()
     })
   })
 
@@ -198,25 +204,25 @@ test.describe('Authentication', () => {
       const password = 'testpassword123'
 
       await page.goto('/auth/register')
-      await page.fill('input[placeholder="山田 太郎"]', 'ログアウトテストユーザー')
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="8文字以上"]', password)
-      await page.fill('input[placeholder="もう一度入力"]', password)
-      await page.click('button[type="submit"]')
+      await page.getByLabel('名前').fill('ログアウトテストユーザー')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード', { exact: true }).fill(password)
+      await page.getByLabel('パスワード（確認）').fill(password)
+      await page.getByRole('button', { name: '登録' }).click()
 
       // Wait for redirect
       await page.waitForURL(/\/auth\/signin/, { timeout: 10000 })
 
       // Login
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="パスワードを入力"]', password)
-      await page.click('button[type="submit"]')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード').fill(password)
+      await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
       // Wait for login
       await expect(page).not.toHaveURL(/\/auth\/signin/, { timeout: 10000 })
 
       // Find and click logout button (if visible)
-      const logoutButton = page.locator('text=ログアウト')
+      const logoutButton = page.getByRole('button', { name: 'ログアウト' })
       if (await logoutButton.isVisible()) {
         await logoutButton.click()
 
@@ -244,17 +250,17 @@ test.describe('Authentication', () => {
       const password = 'testpassword123'
 
       await page.goto('/auth/register')
-      await page.fill('input[placeholder="山田 太郎"]', '保護ルートテストユーザー')
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="8文字以上"]', password)
-      await page.fill('input[placeholder="もう一度入力"]', password)
-      await page.click('button[type="submit"]')
+      await page.getByLabel('名前').fill('保護ルートテストユーザー')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード', { exact: true }).fill(password)
+      await page.getByLabel('パスワード（確認）').fill(password)
+      await page.getByRole('button', { name: '登録' }).click()
 
       await page.waitForURL(/\/auth\/signin/, { timeout: 10000 })
 
-      await page.fill('input[placeholder="you@example.com"]', uniqueEmail)
-      await page.fill('input[placeholder="パスワードを入力"]', password)
-      await page.click('button[type="submit"]')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByLabel('パスワード').fill(password)
+      await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
       // Wait for login to complete
       await expect(page).not.toHaveURL(/\/auth\/signin/, { timeout: 10000 })
@@ -274,15 +280,15 @@ test.describe('Authentication', () => {
     }) => {
       await page.goto('/')
 
-      // Should show login button or link
-      const loginButton = page.locator('text=ログイン')
-      await expect(loginButton).toBeVisible()
+      // Should show login link (use role for specificity)
+      const loginLink = page.getByRole('link', { name: 'ログイン' })
+      await expect(loginLink).toBeVisible()
     })
 
     test('should navigate to signin from home', async ({ page }) => {
       await page.goto('/')
 
-      await page.click('text=ログイン')
+      await page.getByRole('link', { name: 'ログイン' }).click()
 
       await expect(page).toHaveURL(/\/auth\/signin/)
     })

@@ -15,7 +15,11 @@ import {
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { zodResolver } from 'mantine-form-zod-resolver'
-import { IconAlertCircle, IconBrandDiscord, IconBrandGoogle } from '@tabler/icons-react'
+import {
+  IconAlertCircle,
+  IconBrandDiscord,
+  IconBrandGoogle,
+} from '@tabler/icons-react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -23,7 +27,9 @@ import { Suspense, useState } from 'react'
 import { z } from 'zod'
 
 const signInSchema = z.object({
-  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  email: z
+    .string()
+    .email({ message: '有効なメールアドレスを入力してください' }),
   password: z.string().min(1, { message: 'パスワードを入力してください' }),
 })
 
@@ -109,21 +115,16 @@ function SignInContent() {
             <TextInput
               label="メールアドレス"
               placeholder="you@example.com"
-              required
+              withAsterisk
               {...form.getInputProps('email')}
             />
             <PasswordInput
               label="パスワード"
               placeholder="パスワードを入力"
-              required
+              withAsterisk
               {...form.getInputProps('password')}
             />
-            <Button
-              fullWidth
-              loading={isLoading}
-              mt="md"
-              type="submit"
-            >
+            <Button fullWidth loading={isLoading} mt="md" type="submit">
               ログイン
             </Button>
           </Stack>
@@ -156,13 +157,7 @@ function SignInContent() {
         </Text>
       </Paper>
 
-      <Button
-        component={Link}
-        href="/"
-        mt="lg"
-        variant="subtle"
-        w="100%"
-      >
+      <Button component={Link} href="/" mt="lg" variant="subtle" w="100%">
         ホームに戻る
       </Button>
     </Container>
@@ -171,7 +166,13 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<Container py="xl" size="xs"><Text ta="center">読み込み中...</Text></Container>}>
+    <Suspense
+      fallback={
+        <Container py="xl" size="xs">
+          <Text ta="center">読み込み中...</Text>
+        </Container>
+      }
+    >
       <SignInContent />
     </Suspense>
   )

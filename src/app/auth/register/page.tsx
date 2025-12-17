@@ -25,8 +25,12 @@ import { api } from '~/trpc/react'
 const registerSchema = z
   .object({
     name: z.string().min(1, { message: '名前を入力してください' }),
-    email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
-    password: z.string().min(8, { message: 'パスワードは8文字以上で入力してください' }),
+    email: z
+      .string()
+      .email({ message: '有効なメールアドレスを入力してください' }),
+    password: z
+      .string()
+      .min(8, { message: 'パスワードは8文字以上で入力してください' }),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -111,25 +115,25 @@ export default function RegisterPage() {
             <TextInput
               label="名前"
               placeholder="山田 太郎"
-              required
+              withAsterisk
               {...form.getInputProps('name')}
             />
             <TextInput
               label="メールアドレス"
               placeholder="you@example.com"
-              required
+              withAsterisk
               {...form.getInputProps('email')}
             />
             <PasswordInput
               label="パスワード"
               placeholder="8文字以上"
-              required
+              withAsterisk
               {...form.getInputProps('password')}
             />
             <PasswordInput
               label="パスワード（確認）"
               placeholder="もう一度入力"
-              required
+              withAsterisk
               {...form.getInputProps('confirmPassword')}
             />
             <Button
@@ -152,13 +156,7 @@ export default function RegisterPage() {
         </Text>
       </Paper>
 
-      <Button
-        component={Link}
-        href="/"
-        mt="lg"
-        variant="subtle"
-        w="100%"
-      >
+      <Button component={Link} href="/" mt="lg" variant="subtle" w="100%">
         ホームに戻る
       </Button>
     </Container>
