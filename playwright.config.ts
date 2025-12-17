@@ -1,10 +1,48 @@
 import { defineConfig, devices } from '@playwright/test'
+import { config } from 'dotenv'
+
+// Load .env file for local development
+config()
+
+/**
+ * Generate test database URL from DATABASE_URL.
+ * Appends '_test' suffix to the database name.
+ */
+function getTestDatabaseUrl(): string {
+  const baseUrl = process.env.DATABASE_URL
+  if (!baseUrl) {
+    // Return empty string if no DATABASE_URL - will use TEST_DATABASE_URL if set
+    return ''
+  }
+
+  try {
+    const url = new URL(baseUrl)
+    const pathParts = url.pathname.split('/')
+    const dbName = pathParts[pathParts.length - 1] ?? ''
+
+    if (dbName && !dbName.endsWith('_test')) {
+      pathParts[pathParts.length - 1] = `${dbName}_test`
+      url.pathname = pathParts.join('/')
+    }
+
+    return url.toString()
+  } catch {
+    return ''
+  }
+}
+
+// Use TEST_DATABASE_URL if set, otherwise generate from DATABASE_URL
+const testDatabaseUrl = process.env.TEST_DATABASE_URL || getTestDatabaseUrl()
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
   testDir: './tests/e2e',
+
+  /* Global setup - clean test database before all tests */
+  globalSetup: './tests/e2e/global-setup.ts',
+
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -46,5 +84,9 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    /* Pass test database URL to the dev server */
+    env: {
+      DATABASE_URL: testDatabaseUrl || process.env.DATABASE_URL || '',
+    },
   },
 })

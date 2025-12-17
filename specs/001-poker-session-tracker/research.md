@@ -705,6 +705,115 @@ Use **Biome** as the single tool for linting and formatting (replaces ESLint + P
 
 ---
 
+## 11. Testing Standards
+
+### Test Database Setup
+
+Both Vitest integration tests and Playwright E2E tests use a **separate test database** to avoid polluting development data.
+
+**Environment Variables**:
+```bash
+# .env or .env.test
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sapphire"
+# Optional - auto-generated with '_test' suffix if not set
+TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sapphire_test"
+```
+
+**Test DB Setup (First Time)**:
+```bash
+# 1. Create test database
+createdb sapphire_test
+
+# 2. Apply migrations to test database
+TEST_DATABASE_URL="..." bun run db:push
+```
+
+**How It Works**:
+- `bun run test` (Vitest): Uses `tests/helpers/db.ts` helpers
+- `bun run test:e2e` (Playwright): Uses `globalSetup` to clean DB, passes test DB URL to dev server
+
+**Vitest Integration Tests**:
+```typescript
+// tests/helpers/db.ts
+import { setupTestDatabase, cleanTestDatabase } from '../helpers/db'
+
+describe('Database Integration', () => {
+  let db: ReturnType<typeof createTestDb>
+
+  beforeAll(async () => {
+    db = await setupTestDatabase()  // Connects to test DB and cleans
+  })
+
+  beforeEach(async () => {
+    await cleanTestDatabase(db)     // Truncates all tables
+  })
+})
+```
+
+**Playwright E2E Tests**:
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  globalSetup: './tests/e2e/global-setup.ts',  // Cleans test DB before all tests
+  webServer: {
+    command: 'bun run dev',
+    env: {
+      DATABASE_URL: testDatabaseUrl,  // Passes test DB to dev server
+    },
+  },
+})
+```
+
+### Mantine Form Validation
+
+**IMPORTANT**: Use `withAsterisk` instead of `required` to prevent browser native validation.
+
+```typescript
+// ✅ Correct - Mantine validation only
+<TextInput
+  label="メールアドレス"
+  placeholder="you@example.com"
+  withAsterisk  // Visual indicator only
+  {...form.getInputProps('email')}
+/>
+
+// ❌ Wrong - Triggers browser native validation popup
+<TextInput
+  label="メールアドレス"
+  required  // This triggers browser validation before Mantine
+  {...form.getInputProps('email')}
+/>
+```
+
+This ensures:
+- Validation messages are displayed in Japanese (via Zod)
+- Consistent styling with Mantine's error display
+- No browser-specific popup messages
+
+### Playwright Selectors
+
+Use specific selectors to avoid matching multiple elements:
+
+```typescript
+// ✅ Correct - Use role-based selectors for specificity
+await page.getByRole('button', { name: 'ログイン', exact: true }).click()
+await page.getByRole('link', { name: '新規登録' }).click()
+await page.getByLabel('メールアドレス').fill('test@example.com')
+await page.getByRole('heading', { level: 1, name: 'ログイン' })
+
+// ❌ Avoid - May match multiple elements
+await page.click('text=ログイン')  // Matches buttons AND links
+await page.locator('text=新規登録')  // Matches heading AND link
+```
+
+**Selector Priority**:
+1. `getByRole` - Most reliable for buttons, links, headings
+2. `getByLabel` - For form inputs with labels
+3. `getByTestId` - For complex scenarios (add `data-testid` if needed)
+4. `getByText` - Last resort, use `{ exact: true }` when possible
+
+---
+
 ## Dependencies Summary
 
 ```json

@@ -114,20 +114,20 @@ tests/
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T037 [P] [US7] Write unit test for auth.register mutation in tests/unit/server/api/routers/auth.test.ts
-- [ ] T038 [P] [US7] Write integration test for user registration flow in tests/integration/auth/register.test.ts
-- [ ] T039 [P] [US7] Write integration test for OAuth login flow in tests/integration/auth/oauth.test.ts
-- [ ] T040 [P] [US7] Write E2E test for signup/signin/signout flow in tests/e2e/auth.spec.ts
+- [X] T037 [P] [US7] Write unit test for auth.register mutation in tests/unit/server/api/routers/auth.test.ts
+- [X] T038 [P] [US7] Write integration test for user registration flow in tests/integration/auth/register.test.ts
+- [X] T039 [P] [US7] Write integration test for OAuth login flow in tests/integration/auth/oauth.test.ts
+- [X] T040 [P] [US7] Write E2E test for signup/signin/signout flow in tests/e2e/auth.spec.ts
 
 ### Implementation for User Story 7
 
-- [ ] T041 [US7] Create Zod schemas for auth input validation in src/server/api/schemas/auth.schema.ts
-- [ ] T042 [US7] Implement auth router with register mutation in src/server/api/routers/auth.ts
-- [ ] T043 [US7] Add auth router to root router in src/server/api/root.ts
-- [ ] T044 [P] [US7] Create SignInPage component in src/app/auth/signin/page.tsx
-- [ ] T045 [P] [US7] Create SignUpPage component in src/app/auth/signup/page.tsx
-- [ ] T046 [US7] Create auth middleware for protected routes in src/middleware.ts
-- [ ] T047 [US7] Implement session callback to include user.id in src/server/auth.ts
+- [X] T041 [US7] Create Zod schemas for auth input validation in src/server/api/schemas/auth.schema.ts
+- [X] T042 [US7] Implement auth router with register mutation in src/server/api/routers/auth.ts
+- [X] T043 [US7] Add auth router to root router in src/server/api/root.ts
+- [X] T044 [P] [US7] Create SignInPage component in src/app/auth/signin/page.tsx
+- [X] T045 [P] [US7] Create SignUpPage component in src/app/auth/signup/page.tsx
+- [X] T046 [US7] Create auth middleware for protected routes in src/middleware.ts
+- [X] T047 [US7] Implement session callback to include user.id in src/server/auth.ts
 
 **Checkpoint**: Users can register and log in; data isolation enforced
 
