@@ -14,15 +14,15 @@ import {
   Title,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import { zodResolver } from 'mantine-form-zod-resolver'
 import {
   IconAlertCircle,
   IconBrandDiscord,
   IconBrandGoogle,
 } from '@tabler/icons-react'
-import { signIn } from 'next-auth/react'
+import { zodResolver } from 'mantine-form-zod-resolver'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import { Suspense, useState } from 'react'
 import { z } from 'zod'
 

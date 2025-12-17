@@ -13,8 +13,8 @@ import {
   Title,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import { zodResolver } from 'mantine-form-zod-resolver'
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react'
+import { zodResolver } from 'mantine-form-zod-resolver'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'

@@ -74,7 +74,7 @@ export async function cleanTestDatabase(
  * Override this function in specific test files if custom seed data is needed.
  */
 export async function seedTestDatabase(
-  db: ReturnType<typeof createTestDb>,
+  _db: ReturnType<typeof createTestDb>,
 ): Promise<void> {
   // Default seed: no data (tests should create their own data)
   // This can be extended in the future if common test data is needed
@@ -97,7 +97,7 @@ export async function setupTestDatabase(): Promise<
  * Close test database connection.
  */
 export async function closeTestDatabase(
-  db: ReturnType<typeof createTestDb>,
+  _db: ReturnType<typeof createTestDb>,
 ): Promise<void> {
   // postgres-js doesn't have a close method exposed through drizzle
   // The connection pool will be cleaned up automatically

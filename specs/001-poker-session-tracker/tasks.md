@@ -72,7 +72,7 @@ tests/
 - [X] ~~T016 [P] Create AuthSession schema in src/server/db/schema/session.ts~~ - REMOVED (JWT sessions used instead)
 - [X] T017 [P] Create VerificationToken schema in src/server/db/schema/verificationToken.ts
 - [X] T018 Export all auth schemas from src/server/db/schema/index.ts
-- [ ] T019 Run initial database migration with bun run db:generate && bun run db:migrate
+- [X] T019 Run initial database migration with bun run db:generate && bun run db:migrate
 
 ### tRPC Foundation
 

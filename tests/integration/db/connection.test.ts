@@ -31,8 +31,9 @@ describe('Database Schema', () => {
     })
 
     it('should export relations', async () => {
-      const { usersRelations, accountsRelations } =
-        await import('~/server/db/schema')
+      const { usersRelations, accountsRelations } = await import(
+        '~/server/db/schema'
+      )
       expect(usersRelations).toBeDefined()
       expect(accountsRelations).toBeDefined()
     })

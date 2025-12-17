@@ -60,7 +60,9 @@ async function cleanTestDatabase(): Promise<void> {
       console.log(
         '[E2E Setup] No tables found. Make sure migrations have been run on the test database.',
       )
-      console.log(`[E2E Setup] Run: TEST_DATABASE_URL="${testUrl}" bun run db:push`)
+      console.log(
+        `[E2E Setup] Run: TEST_DATABASE_URL="${testUrl}" bun run db:push`,
+      )
       return
     }
 

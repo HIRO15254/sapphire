@@ -26,7 +26,12 @@ export default async function Home() {
             <Button component={Link} href="/auth/signin" w={200}>
               ログイン
             </Button>
-            <Button component={Link} href="/auth/register" variant="outline" w={200}>
+            <Button
+              component={Link}
+              href="/auth/register"
+              variant="outline"
+              w={200}
+            >
               新規登録
             </Button>
           </Stack>

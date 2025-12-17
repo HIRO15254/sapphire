@@ -11,7 +11,8 @@
       "Bash(bun run build:*)",
       "Bash(bun run lint)",
       "Bash(git add:*)",
-      "Bash(bun add:*)"
+      "Bash(bun add:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 /**
@@ -51,8 +51,8 @@ describe('User Registration Flow', () => {
       const result = registerSchema.safeParse(invalidInput)
       expect(result.success).toBe(false)
       if (!result.success) {
-        const confirmPasswordError = result.error.issues.find(
-          (issue) => issue.path.includes('confirmPassword'),
+        const confirmPasswordError = result.error.issues.find((issue) =>
+          issue.path.includes('confirmPassword'),
         )
         expect(confirmPasswordError?.message).toBe('パスワードが一致しません')
       }

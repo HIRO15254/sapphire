@@ -1,5 +1,5 @@
-import NextAuth from 'next-auth'
 import { NextResponse } from 'next/server'
+import NextAuth from 'next-auth'
 
 import { edgeAuthConfig } from '~/server/auth/edge-config'
 

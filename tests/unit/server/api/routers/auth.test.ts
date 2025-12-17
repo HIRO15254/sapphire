@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 /**

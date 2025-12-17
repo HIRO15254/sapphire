@@ -97,12 +97,8 @@
           "name": "sapphire_account_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_account",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -110,10 +106,7 @@
       "compositePrimaryKeys": {
         "sapphire_account_provider_provider_account_id_pk": {
           "name": "sapphire_account_provider_provider_account_id_pk",
-          "columns": [
-            "provider",
-            "provider_account_id"
-          ]
+          "columns": ["provider", "provider_account_id"]
         }
       },
       "uniqueConstraints": {},
@@ -234,10 +227,7 @@
       "compositePrimaryKeys": {
         "sapphire_verification_token_identifier_token_pk": {
           "name": "sapphire_verification_token_identifier_token_pk",
-          "columns": [
-            "identifier",
-            "token"
-          ]
+          "columns": ["identifier", "token"]
         }
       },
       "uniqueConstraints": {},
