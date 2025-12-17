@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
+import { config } from 'dotenv'
+
+// Load .env file for local development
+config()
 
 /**
  * Generate test database URL from DATABASE_URL.

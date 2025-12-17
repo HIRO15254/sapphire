@@ -41,11 +41,11 @@ test.describe('Authentication', () => {
     test('should show password mismatch error', async ({ page }) => {
       await page.goto('/auth/register')
 
-      // Fill form with mismatched passwords using labels
+      // Fill form with mismatched passwords using placeholders for PasswordInput
       await page.getByLabel('名前').fill('テストユーザー')
       await page.getByLabel('メールアドレス').fill('test@example.com')
-      await page.getByLabel('パスワード', { exact: true }).fill('password123')
-      await page.getByLabel('パスワード（確認）').fill('different123')
+      await page.getByPlaceholder('8文字以上').fill('password123')
+      await page.getByPlaceholder('もう一度入力').fill('different123')
 
       // Submit form
       await page.getByRole('button', { name: '登録' }).click()
@@ -59,11 +59,11 @@ test.describe('Authentication', () => {
 
       await page.goto('/auth/register')
 
-      // Fill registration form using labels
+      // Fill registration form using placeholders for PasswordInput
       await page.getByLabel('名前').fill('テストユーザー')
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード', { exact: true }).fill('password123')
-      await page.getByLabel('パスワード（確認）').fill('password123')
+      await page.getByPlaceholder('8文字以上').fill('password123')
+      await page.getByPlaceholder('もう一度入力').fill('password123')
 
       // Submit form
       await page.getByRole('button', { name: '登録' }).click()
@@ -85,8 +85,8 @@ test.describe('Authentication', () => {
 
       await page.getByLabel('名前').fill('テストユーザー1')
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード', { exact: true }).fill('password123')
-      await page.getByLabel('パスワード（確認）').fill('password123')
+      await page.getByPlaceholder('8文字以上').fill('password123')
+      await page.getByPlaceholder('もう一度入力').fill('password123')
       await page.getByRole('button', { name: '登録' }).click()
 
       // Wait for redirect
@@ -97,8 +97,8 @@ test.describe('Authentication', () => {
 
       await page.getByLabel('名前').fill('テストユーザー2')
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード', { exact: true }).fill('password123')
-      await page.getByLabel('パスワード（確認）').fill('password123')
+      await page.getByPlaceholder('8文字以上').fill('password123')
+      await page.getByPlaceholder('もう一度入力').fill('password123')
       await page.getByRole('button', { name: '登録' }).click()
 
       // Should show duplicate email error
@@ -134,9 +134,9 @@ test.describe('Authentication', () => {
     test('should show error for invalid credentials', async ({ page }) => {
       await page.goto('/auth/signin')
 
-      // Fill with invalid credentials using labels
+      // Fill with invalid credentials using placeholder for PasswordInput
       await page.getByLabel('メールアドレス').fill('fake@example.com')
-      await page.getByLabel('パスワード').fill('wrongpassword')
+      await page.getByPlaceholder('パスワードを入力').fill('wrongpassword')
 
       // Submit form
       await page.getByRole('button', { name: 'ログイン', exact: true }).click()
@@ -159,8 +159,8 @@ test.describe('Authentication', () => {
       await page.goto('/auth/register')
       await page.getByLabel('名前').fill('ログインテストユーザー')
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード', { exact: true }).fill(password)
-      await page.getByLabel('パスワード（確認）').fill(password)
+      await page.getByPlaceholder('8文字以上').fill(password)
+      await page.getByPlaceholder('もう一度入力').fill(password)
       await page.getByRole('button', { name: '登録' }).click()
 
       // Wait for redirect to signin
@@ -168,7 +168,7 @@ test.describe('Authentication', () => {
 
       // Now login
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード').fill(password)
+      await page.getByPlaceholder('パスワードを入力').fill(password)
       await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
       // Should redirect to home or dashboard
@@ -206,8 +206,8 @@ test.describe('Authentication', () => {
       await page.goto('/auth/register')
       await page.getByLabel('名前').fill('ログアウトテストユーザー')
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード', { exact: true }).fill(password)
-      await page.getByLabel('パスワード（確認）').fill(password)
+      await page.getByPlaceholder('8文字以上').fill(password)
+      await page.getByPlaceholder('もう一度入力').fill(password)
       await page.getByRole('button', { name: '登録' }).click()
 
       // Wait for redirect
@@ -215,7 +215,7 @@ test.describe('Authentication', () => {
 
       // Login
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード').fill(password)
+      await page.getByPlaceholder('パスワードを入力').fill(password)
       await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
       // Wait for login
@@ -252,14 +252,14 @@ test.describe('Authentication', () => {
       await page.goto('/auth/register')
       await page.getByLabel('名前').fill('保護ルートテストユーザー')
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード', { exact: true }).fill(password)
-      await page.getByLabel('パスワード（確認）').fill(password)
+      await page.getByPlaceholder('8文字以上').fill(password)
+      await page.getByPlaceholder('もう一度入力').fill(password)
       await page.getByRole('button', { name: '登録' }).click()
 
       await page.waitForURL(/\/auth\/signin/, { timeout: 10000 })
 
       await page.getByLabel('メールアドレス').fill(uniqueEmail)
-      await page.getByLabel('パスワード').fill(password)
+      await page.getByPlaceholder('パスワードを入力').fill(password)
       await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
       // Wait for login to complete
