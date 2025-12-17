@@ -9,26 +9,13 @@ import { edgeAuthConfig } from '~/server/auth/edge-config'
  * This middleware checks if the user is authenticated before allowing access
  * to protected routes. Unauthenticated users are redirected to the sign-in page.
  *
- * Protected routes pattern: All routes under /(auth) group
- * Public routes: /auth/*, /api/*, /, /offline
+ * All routes are protected by default except for explicitly listed public routes.
+ * Public routes: /, /auth/signin, /auth/register, /api/*, /_next/*
  */
-
-/**
- * Routes that require authentication.
- * All routes under (auth) group are protected.
- */
-const protectedRoutes = [
-  '/dashboard',
-  '/sessions',
-  '/currencies',
-  '/stores',
-  '/players',
-  '/hands',
-  '/help',
-]
 
 /**
  * Routes that should be accessible without authentication.
+ * All other routes require authentication.
  */
 const publicRoutes = [
   '/',
@@ -37,15 +24,6 @@ const publicRoutes = [
   '/auth/signout',
   '/offline',
 ]
-
-/**
- * Check if the pathname matches any of the protected routes.
- */
-function isProtectedRoute(pathname: string): boolean {
-  return protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  )
-}
 
 /**
  * Check if the pathname matches any of the public routes.
@@ -83,13 +61,11 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
-  // Protect routes that require authentication
-  if (isProtectedRoute(nextUrl.pathname)) {
-    if (!isLoggedIn) {
-      const signInUrl = new URL('/auth/signin', nextUrl)
-      signInUrl.searchParams.set('callbackUrl', nextUrl.pathname)
-      return NextResponse.redirect(signInUrl)
-    }
+  // All non-public routes require authentication
+  if (!isLoggedIn) {
+    const signInUrl = new URL('/auth/signin', nextUrl)
+    signInUrl.searchParams.set('callbackUrl', nextUrl.pathname)
+    return NextResponse.redirect(signInUrl)
   }
 
   return NextResponse.next()
