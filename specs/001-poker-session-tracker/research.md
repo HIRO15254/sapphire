@@ -721,14 +721,20 @@ TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sapphire_test"
 
 **Test DB Setup (First Time)**:
 ```bash
-# 1. Create test database
-createdb sapphire_test
+# 1. Start PostgreSQL with docker-compose (auto-creates both sapphire and sapphire_test databases)
+docker compose down -v  # Remove existing volume if needed
+docker compose up -d
 
-# 2. Apply migrations to test database
-TEST_DATABASE_URL="..." bun run db:push
+# 2. Apply migrations to both databases
+bun run db:push  # Pushes to both sapphire and sapphire_test automatically
 ```
 
+**Docker Compose Configuration**:
+The test database is automatically created via `docker/init-db.sql` which runs on container initialization.
+
 **How It Works**:
+- `bun run db:push`: Pushes schema to both `sapphire` and `sapphire_test` databases
+- `bun run db:push:test`: Pushes schema to test database only
 - `bun run test` (Vitest): Uses `tests/helpers/db.ts` helpers
 - `bun run test:e2e` (Playwright): Uses `globalSetup` to clean DB, passes test DB URL to dev server
 
@@ -808,9 +814,20 @@ await page.locator('text=新規登録')  // Matches heading AND link
 
 **Selector Priority**:
 1. `getByRole` - Most reliable for buttons, links, headings
-2. `getByLabel` - For form inputs with labels
-3. `getByTestId` - For complex scenarios (add `data-testid` if needed)
-4. `getByText` - Last resort, use `{ exact: true }` when possible
+2. `getByLabel` - For form inputs with labels (TextInput, Select, etc.)
+3. `getByPlaceholder` - For PasswordInput (Mantine's PasswordInput doesn't work well with getByLabel)
+4. `getByTestId` - For complex scenarios (add `data-testid` if needed)
+5. `getByText` - Last resort, use `{ exact: true }` when possible
+
+**PasswordInput Special Case**:
+```typescript
+// ✅ Correct - Use placeholder for Mantine PasswordInput
+await page.getByPlaceholder('8文字以上').fill('password123')
+await page.getByPlaceholder('パスワードを入力').fill('password')
+
+// ❌ Wrong - getByLabel doesn't work reliably with PasswordInput
+await page.getByLabel('パスワード').fill('password')
+```
 
 ---
 
