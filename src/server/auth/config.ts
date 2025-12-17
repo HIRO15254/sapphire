@@ -51,6 +51,7 @@ export async function verifyPassword(
  * @see https://next-auth.js.org/configuration/options
  */
 export const authConfig = {
+  trustHost: true,
   providers: [
     /**
      * Credentials provider for email/password authentication.

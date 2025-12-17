@@ -7,6 +7,7 @@ import type { NextAuthConfig } from 'next-auth'
  * in middleware, without database dependencies.
  */
 export const edgeAuthConfig = {
+  trustHost: true,
   pages: {
     signIn: '/auth/signin',
   },
