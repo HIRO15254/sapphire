@@ -15,6 +15,13 @@
       "when": 1765900104767,
       "tag": "0001_slow_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765985019981,
+      "tag": "0002_regular_wolfpack",
+      "breakpoints": true
     }
   ]
 }

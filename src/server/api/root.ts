@@ -1,4 +1,5 @@
 import { authRouter } from '~/server/api/routers/auth'
+import { currencyRouter } from '~/server/api/routers/currency'
 import {
   createCallerFactory,
   createTRPCRouter,
@@ -12,6 +13,7 @@ import {
  */
 export const appRouter = createTRPCRouter({
   auth: authRouter,
+  currency: currencyRouter,
   /**
    * Health check procedure.
    * Returns the current server status.

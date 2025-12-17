@@ -73,7 +73,7 @@ export function AppShell({ children }: AppShellProps) {
               href="/dashboard"
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
-              <Title order={3}>PokerTracker</Title>
+              <Title order={3}>Sapphire</Title>
             </Link>
           </Group>
           <ThemeToggle />

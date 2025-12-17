@@ -226,8 +226,8 @@ test.describe('Authentication', () => {
       if (await logoutButton.isVisible()) {
         await logoutButton.click()
 
-        // Should be logged out
-        await expect(page).toHaveURL('/')
+        // Should be logged out and redirected to signin (home redirects unauthenticated to signin)
+        await expect(page).toHaveURL(/\/auth\/signin/, { timeout: 10000 })
       }
     })
   })
@@ -275,22 +275,43 @@ test.describe('Authentication', () => {
   })
 
   test.describe('Home Page', () => {
-    test('should show login button when not authenticated', async ({
+    test('should redirect unauthenticated user to signin from home', async ({
       page,
     }) => {
       await page.goto('/')
 
-      // Should show login link (use role for specificity)
-      const loginLink = page.getByRole('link', { name: 'ログイン' })
-      await expect(loginLink).toBeVisible()
+      // Home page redirects unauthenticated users to signin
+      await expect(page).toHaveURL(/\/auth\/signin/, { timeout: 10000 })
     })
 
-    test('should navigate to signin from home', async ({ page }) => {
+    test('should redirect authenticated user to dashboard from home', async ({
+      page,
+    }) => {
+      // First, login
+      const uniqueEmail = `home-test-${Date.now()}@example.com`
+      const password = 'testpassword123'
+
+      await page.goto('/auth/register')
+      await page.getByLabel('名前').fill('ホームテストユーザー')
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByPlaceholder('8文字以上').fill(password)
+      await page.getByPlaceholder('もう一度入力').fill(password)
+      await page.getByRole('button', { name: '登録' }).click()
+
+      await page.waitForURL(/\/auth\/signin/, { timeout: 10000 })
+
+      await page.getByLabel('メールアドレス').fill(uniqueEmail)
+      await page.getByPlaceholder('パスワードを入力').fill(password)
+      await page.getByRole('button', { name: 'ログイン', exact: true }).click()
+
+      // Wait for login to complete
+      await expect(page).not.toHaveURL(/\/auth\/signin/, { timeout: 10000 })
+
+      // Now go to home page
       await page.goto('/')
 
-      await page.getByRole('link', { name: 'ログイン' }).click()
-
-      await expect(page).toHaveURL(/\/auth\/signin/)
+      // Should redirect to dashboard
+      await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
     })
   })
 })

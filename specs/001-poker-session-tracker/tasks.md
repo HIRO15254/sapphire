@@ -141,24 +141,24 @@ tests/
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T048 [P] [US2] Write unit test for Currency schema in tests/unit/server/db/schema/currency.test.ts
-- [ ] T049 [P] [US2] Write unit test for currency router in tests/unit/server/api/routers/currency.test.ts
-- [ ] T050 [P] [US2] Write integration test for currency balance calculation in tests/integration/currency/balance.test.ts
-- [ ] T051 [P] [US2] Write E2E test for currency CRUD flow in tests/e2e/currency.spec.ts
+- [X] T048 [P] [US2] Write unit test for Currency schema in tests/unit/server/db/schema/currency.test.ts
+- [X] T049 [P] [US2] Write unit test for currency router in tests/unit/server/api/routers/currency.test.ts
+- [X] T050 [P] [US2] Write integration test for currency balance calculation in tests/integration/currency/balance.test.ts
+- [X] T051 [P] [US2] Write E2E test for currency CRUD flow in tests/e2e/currency.spec.ts
 
 ### Implementation for User Story 2
 
-- [ ] T052 [US2] Create Currency schema in src/server/db/schema/currency.ts
-- [ ] T053 [P] [US2] Create BonusTransaction schema in src/server/db/schema/bonusTransaction.ts
-- [ ] T054 [P] [US2] Create PurchaseTransaction schema in src/server/db/schema/purchaseTransaction.ts
-- [ ] T055 [US2] Create currency_balances database VIEW migration in drizzle/migrations/
-- [ ] T056 [US2] Create Zod schemas for currency validation in src/server/api/schemas/currency.schema.ts
-- [ ] T057 [US2] Implement currency router (list, getById, create, update, archive, delete, addBonus, addPurchase) in src/server/api/routers/currency.ts
-- [ ] T058 [US2] Add currency router to root router in src/server/api/root.ts
-- [ ] T059 [P] [US2] Create CurrencyListPage in src/app/(auth)/currencies/page.tsx
-- [ ] T060 [P] [US2] Create CurrencyDetailPage in src/app/(auth)/currencies/[id]/page.tsx
-- [ ] T061 [P] [US2] Create CurrencyForm component in src/components/forms/CurrencyForm.tsx
-- [ ] T062 [US2] Create CurrencyBalanceBreakdown component in src/components/currency/CurrencyBalanceBreakdown.tsx
+- [X] T052 [US2] Create Currency schema in src/server/db/schema/currency.ts
+- [X] T053 [P] [US2] Create BonusTransaction schema in src/server/db/schema/bonusTransaction.ts
+- [X] T054 [P] [US2] Create PurchaseTransaction schema in src/server/db/schema/purchaseTransaction.ts
+- [X] T055 [US2] Create currency_balances database VIEW migration in drizzle/migrations/ (Note: Implemented via calculateCurrencyBalance function instead of DB VIEW per pragmatic approach)
+- [X] T056 [US2] Create Zod schemas for currency validation in src/server/api/schemas/currency.schema.ts
+- [X] T057 [US2] Implement currency router (list, getById, create, update, archive, delete, addBonus, addPurchase) in src/server/api/routers/currency.ts
+- [X] T058 [US2] Add currency router to root router in src/server/api/root.ts
+- [X] T059 [P] [US2] Create CurrencyListPage in src/app/currencies/page.tsx (Note: Using /currencies/ instead of /(auth)/currencies/ per existing routing pattern)
+- [X] T060 [P] [US2] Create CurrencyDetailPage in src/app/currencies/[id]/page.tsx
+- [X] T061 [P] [US2] Create CurrencyForm component in src/app/currencies/new/page.tsx (Note: Integrated into new/edit pages)
+- [X] T062 [US2] Create CurrencyBalanceBreakdown component in src/app/currencies/[id]/page.tsx (Note: Integrated into detail page)
 
 **Checkpoint**: Users can manage currencies and track balances
 
