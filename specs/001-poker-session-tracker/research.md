@@ -709,51 +709,58 @@ Use **Biome** as the single tool for linting and formatting (replaces ESLint + P
 
 ### Test Database Setup
 
-For database integration tests, use a **separate test database** with fresh seeding for each test run.
+Both Vitest integration tests and Playwright E2E tests use a **separate test database** to avoid polluting development data.
 
-**Database Configuration**:
-```typescript
-// tests/helpers/db.ts
-export function getTestDatabaseUrl(): string {
-  // Use TEST_DATABASE_URL if set, otherwise append '_test' to DATABASE_URL
-  if (process.env.TEST_DATABASE_URL) {
-    return process.env.TEST_DATABASE_URL
-  }
-  // Automatically create test DB name: sapphire_test
-  const url = new URL(process.env.DATABASE_URL)
-  const dbName = url.pathname.split('/').pop()
-  if (!dbName.endsWith('_test')) {
-    url.pathname = url.pathname.replace(dbName, `${dbName}_test`)
-  }
-  return url.toString()
-}
-
-export async function cleanTestDatabase(db): Promise<void> {
-  // Truncate all sapphire_ prefixed tables
-  const tables = await db.execute(sql`
-    SELECT tablename FROM pg_tables
-    WHERE schemaname = 'public' AND tablename LIKE 'sapphire_%'
-  `)
-  for (const { tablename } of tables) {
-    await db.execute(sql.raw(`TRUNCATE TABLE "${tablename}" CASCADE`))
-  }
-}
+**Environment Variables**:
+```bash
+# .env or .env.test
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sapphire"
+# Optional - auto-generated with '_test' suffix if not set
+TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sapphire_test"
 ```
 
-**Test Setup**:
+**Test DB Setup (First Time)**:
+```bash
+# 1. Create test database
+createdb sapphire_test
+
+# 2. Apply migrations to test database
+TEST_DATABASE_URL="..." bun run db:push
+```
+
+**How It Works**:
+- `bun run test` (Vitest): Uses `tests/helpers/db.ts` helpers
+- `bun run test:e2e` (Playwright): Uses `globalSetup` to clean DB, passes test DB URL to dev server
+
+**Vitest Integration Tests**:
 ```typescript
+// tests/helpers/db.ts
 import { setupTestDatabase, cleanTestDatabase } from '../helpers/db'
 
 describe('Database Integration', () => {
   let db: ReturnType<typeof createTestDb>
 
   beforeAll(async () => {
-    db = await setupTestDatabase()
+    db = await setupTestDatabase()  // Connects to test DB and cleans
   })
 
   beforeEach(async () => {
-    await cleanTestDatabase(db)
+    await cleanTestDatabase(db)     // Truncates all tables
   })
+})
+```
+
+**Playwright E2E Tests**:
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  globalSetup: './tests/e2e/global-setup.ts',  // Cleans test DB before all tests
+  webServer: {
+    command: 'bun run dev',
+    env: {
+      DATABASE_URL: testDatabaseUrl,  // Passes test DB to dev server
+    },
+  },
 })
 ```
 
