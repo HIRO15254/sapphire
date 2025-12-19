@@ -1,8 +1,10 @@
 import '~/styles/globals.css'
 import '@mantine/core/styles.css'
+import '@mantine/notifications/styles.css'
 import '@mantine/tiptap/styles.css'
 
 import { ColorSchemeScript, createTheme, MantineProvider } from '@mantine/core'
+import { Notifications } from '@mantine/notifications'
 import type { Metadata } from 'next'
 import { Noto_Sans_JP } from 'next/font/google'
 
@@ -27,7 +29,7 @@ const theme = createTheme({
 })
 
 export const metadata: Metadata = {
-  title: 'ポーカーセッショントラッカー',
+  title: 'Sapphire',
   description: 'ライブポーカーセッション・ハンド記録アプリ',
   icons: [{ rel: 'icon', url: '/favicon.ico' }],
 }
@@ -42,6 +44,7 @@ export default function RootLayout({
       </head>
       <body className={notoSansJP.variable}>
         <MantineProvider defaultColorScheme="auto" theme={theme}>
+          <Notifications position="top-right" />
           <TRPCReactProvider>{children}</TRPCReactProvider>
         </MantineProvider>
       </body>

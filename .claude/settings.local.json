@@ -12,7 +12,8 @@
       "Bash(bun run lint)",
       "Bash(git add:*)",
       "Bash(bun add:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(bun run test:e2e:*)"
     ],
     "deny": [],
     "ask": []
