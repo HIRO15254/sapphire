@@ -2,6 +2,7 @@
 
 import {
   Burger,
+  Divider,
   Group,
   AppShell as MantineAppShell,
   NavLink,
@@ -16,12 +17,14 @@ import {
   IconCoin,
   IconHelp,
   IconHome,
+  IconLogout,
   IconUsers,
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
+import { SignOutButton } from '~/components/auth/SignOutButton'
 import { ThemeToggle } from '~/components/ui/ThemeToggle'
 
 interface AppShellProps {
@@ -95,6 +98,18 @@ export function AppShell({ children }: AppShellProps) {
               onClick={toggle}
             />
           ))}
+        </MantineAppShell.Section>
+
+        <MantineAppShell.Section>
+          <Divider my="sm" />
+          <SignOutButton
+            fullWidth
+            justify="flex-start"
+            leftSection={<IconLogout size={20} stroke={1.5} />}
+            variant="subtle"
+          >
+            ログアウト
+          </SignOutButton>
         </MantineAppShell.Section>
       </MantineAppShell.Navbar>
 

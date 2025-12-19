@@ -199,7 +199,7 @@ test.describe('Authentication', () => {
 
   test.describe('Logout Flow', () => {
     test('should logout and redirect to home', async ({ page }) => {
-      // First, login
+      // First, register and login
       const uniqueEmail = `logout-test-${Date.now()}@example.com`
       const password = 'testpassword123'
 
@@ -210,7 +210,7 @@ test.describe('Authentication', () => {
       await page.getByPlaceholder('もう一度入力').fill(password)
       await page.getByRole('button', { name: '登録' }).click()
 
-      // Wait for redirect
+      // Wait for redirect to signin
       await page.waitForURL(/\/auth\/signin/, { timeout: 10000 })
 
       // Login
@@ -218,17 +218,24 @@ test.describe('Authentication', () => {
       await page.getByPlaceholder('パスワードを入力').fill(password)
       await page.getByRole('button', { name: 'ログイン', exact: true }).click()
 
-      // Wait for login
-      await expect(page).not.toHaveURL(/\/auth\/signin/, { timeout: 10000 })
+      // Wait for login to complete and redirect to dashboard
+      await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
 
-      // Find and click logout button (if visible)
-      const logoutButton = page.getByRole('button', { name: 'ログアウト' })
-      if (await logoutButton.isVisible()) {
-        await logoutButton.click()
-
-        // Should be logged out and redirected to signin (home redirects unauthenticated to signin)
-        await expect(page).toHaveURL(/\/auth\/signin/, { timeout: 10000 })
+      // On mobile, open the hamburger menu first to access the navigation
+      const hamburgerMenu = page.getByRole('button', { name: 'メニューを開く' })
+      if (await hamburgerMenu.isVisible()) {
+        await hamburgerMenu.click()
       }
+
+      // Click logout button in the navigation
+      await page.getByRole('button', { name: 'ログアウト' }).click()
+
+      // Should be logged out and redirected to home (which redirects to signin)
+      await expect(page).toHaveURL(/\/auth\/signin/, { timeout: 10000 })
+
+      // Verify we can't access protected routes after logout
+      await page.goto('/dashboard')
+      await expect(page).toHaveURL(/\/auth\/signin/, { timeout: 10000 })
     })
   })
 
