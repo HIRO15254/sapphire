@@ -57,19 +57,195 @@ Array<{
 }>
 ```
 
-### `currency.archive`（mutation、保護）
+### `currency.getById`（query、保護）
 
-通貨をアーカイブまたはアーカイブ解除。
+残高内訳を含む単一の通貨を取得。
+
+**入力**:
+```typescript
+{ id: string }
+```
+
+**出力**: リスト項目と同様 + `bonusTransactions[]` + `purchaseTransactions[]`
+
+**エラー**:
+- `NOT_FOUND`: 通貨が見つからないか、ユーザーが所有していない
+
+### `currency.create`（mutation、保護）
+
+新規通貨を作成。
+
+**入力**:
+```typescript
+{
+  name: string;           // 1-255文字
+  initialBalance: number; // >= 0
+}
+```
+
+### `currency.update`（mutation、保護）
+
+通貨の詳細を更新。
 
 **入力**:
 ```typescript
 {
   id: string;
-  isArchived: boolean;
+  name?: string;
+  initialBalance?: number;
 }
 ```
 
-（その他のエンドポイントは英語版と同様）
+### `currency.archive`（mutation、保護）
+
+通貨をアーカイブ。
+
+**入力**:
+```typescript
+{ id: string }
+```
+
+### `currency.unarchive`（mutation、保護）
+
+通貨のアーカイブを解除。
+
+**入力**:
+```typescript
+{ id: string }
+```
+
+### `currency.delete`（mutation、保護）
+
+通貨をソフトデリート。
+
+**入力**:
+```typescript
+{ id: string }
+```
+
+### `currency.addBonus`（mutation、保護）
+
+ボーナストランザクションを記録。
+
+**入力**:
+```typescript
+{
+  currencyId: string;
+  amount: number;         // > 0
+  source?: string;        // 任意の説明
+  transactionDate?: Date; // デフォルト: 現在時刻
+}
+```
+
+### `currency.addPurchase`（mutation、保護）
+
+購入トランザクションを記録。
+
+**入力**:
+```typescript
+{
+  currencyId: string;
+  amount: number;         // > 0
+  note?: string;          // 任意のメモ
+  transactionDate?: Date;
+}
+```
+
+### `currency.listBonuses`（query、保護）
+
+通貨のボーナストランザクション一覧を取得。
+
+**入力**:
+```typescript
+{ currencyId: string }
+```
+
+**出力**:
+```typescript
+{
+  bonuses: Array<{
+    id: string;
+    currencyId: string;
+    userId: string;
+    amount: number;
+    source?: string;
+    transactionDate: Date;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}
+```
+
+### `currency.updateBonus`（mutation、保護）
+
+ボーナストランザクションを更新。
+
+**入力**:
+```typescript
+{
+  id: string;
+  amount?: number;
+  source?: string;
+  transactionDate?: Date;
+}
+```
+
+### `currency.deleteBonus`（mutation、保護）
+
+ボーナストランザクションをソフトデリート。
+
+**入力**:
+```typescript
+{ id: string }
+```
+
+### `currency.listPurchases`（query、保護）
+
+通貨の購入トランザクション一覧を取得。
+
+**入力**:
+```typescript
+{ currencyId: string }
+```
+
+**出力**:
+```typescript
+{
+  purchases: Array<{
+    id: string;
+    currencyId: string;
+    userId: string;
+    amount: number;
+    note?: string;
+    transactionDate: Date;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}
+```
+
+### `currency.updatePurchase`（mutation、保護）
+
+購入トランザクションを更新。
+
+**入力**:
+```typescript
+{
+  id: string;
+  amount?: number;
+  note?: string;
+  transactionDate?: Date;
+}
+```
+
+### `currency.deletePurchase`（mutation、保護）
+
+購入トランザクションをソフトデリート。
+
+**入力**:
+```typescript
+{ id: string }
+```
 
 ---
 
