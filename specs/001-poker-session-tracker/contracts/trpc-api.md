@@ -173,6 +173,111 @@ Record a purchase transaction.
 }
 ```
 
+### `currency.unarchive` (mutation, protected)
+
+Unarchive a currency.
+
+**Input**:
+```typescript
+{ id: string }
+```
+
+### `currency.listBonuses` (query, protected)
+
+List bonus transactions for a currency.
+
+**Input**:
+```typescript
+{ currencyId: string }
+```
+
+**Output**:
+```typescript
+{
+  bonuses: Array<{
+    id: string;
+    currencyId: string;
+    userId: string;
+    amount: number;
+    source?: string;
+    transactionDate: Date;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}
+```
+
+### `currency.updateBonus` (mutation, protected)
+
+Update a bonus transaction.
+
+**Input**:
+```typescript
+{
+  id: string;
+  amount?: number;
+  source?: string;
+  transactionDate?: Date;
+}
+```
+
+### `currency.deleteBonus` (mutation, protected)
+
+Soft delete a bonus transaction.
+
+**Input**:
+```typescript
+{ id: string }
+```
+
+### `currency.listPurchases` (query, protected)
+
+List purchase transactions for a currency.
+
+**Input**:
+```typescript
+{ currencyId: string }
+```
+
+**Output**:
+```typescript
+{
+  purchases: Array<{
+    id: string;
+    currencyId: string;
+    userId: string;
+    amount: number;
+    note?: string;
+    transactionDate: Date;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}
+```
+
+### `currency.updatePurchase` (mutation, protected)
+
+Update a purchase transaction.
+
+**Input**:
+```typescript
+{
+  id: string;
+  amount?: number;
+  note?: string;
+  transactionDate?: Date;
+}
+```
+
+### `currency.deletePurchase` (mutation, protected)
+
+Soft delete a purchase transaction.
+
+**Input**:
+```typescript
+{ id: string }
+```
+
 ---
 
 ## Store Router (`store`)
