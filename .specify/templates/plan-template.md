@@ -35,7 +35,8 @@
 | Technology Stack | Uses T3 Stack (Next.js, tRPC, Drizzle, NextAuth) + Mantine v8 | ☐ |
 | Architecture | Follows 3-layer structure (Presentation → Application → Infrastructure) | ☐ |
 | Dependency Direction | Upper layers depend only on lower layers; no reverse dependencies | ☐ |
-| tRPC Communication | Presentation layer uses only tRPC to communicate with Application layer | ☐ |
+| Data Fetching | Server Components use tRPC server API; Client Components receive data via props | ☐ |
+| Data Mutations | Uses Server Actions with entity-based cache invalidation (revalidateTag) | ☐ |
 | Module Independence | Feature is self-contained; external service failures isolated | ☐ |
 | TDD Compliance | Tests written first; Red-Green-Refactor cycle planned | ☐ |
 | Language Rules | UI text in Japanese; identifiers in English | ☐ |
@@ -71,12 +72,15 @@ specs/[###-feature]/
 src/
 ├── app/                    # Next.js App Router (Presentation Layer)
 │   ├── (auth)/             # Auth-required routes
+│   │   ├── page.tsx        # Server Component (data fetching)
+│   │   ├── XxxContent.tsx  # Client Component (UI rendering)
+│   │   └── actions.ts      # Server Actions (mutations)
 │   ├── api/                # API routes (tRPC adapter)
 │   └── _components/        # Page-specific components
 ├── components/             # Shared React components (Presentation Layer)
 ├── server/                 # Server-side code (Application + Infrastructure)
 │   ├── api/
-│   │   ├── routers/        # tRPC routers (Application Layer)
+│   │   ├── routers/        # tRPC routers (Application Layer - data queries)
 │   │   └── root.ts         # Root router
 │   ├── db/                 # Drizzle schema & queries (Infrastructure Layer)
 │   │   ├── schema/
@@ -94,6 +98,9 @@ tests/
 
 **Structure Decision**: T3 Stack monolith with App Router.
 Presentation layer in `src/app/` and `src/components/`.
+- Server Components (page.tsx) fetch data via tRPC server API
+- Client Components (XxxContent.tsx) handle UI and receive data via props
+- Server Actions (actions.ts) handle mutations with entity-based cache tags
 Application layer in `src/server/api/routers/`.
 Infrastructure layer in `src/server/db/`.
 

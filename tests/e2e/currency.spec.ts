@@ -77,9 +77,9 @@ test.describe('Currency Management', () => {
       await page.goto('/currencies')
 
       // Wait for page content to load (either empty state or list)
-      await expect(
-        page.getByRole('heading', { name: '通貨管理' }),
-      ).toBeVisible({ timeout: 15000 })
+      await expect(page.getByRole('heading', { name: '通貨管理' })).toBeVisible(
+        { timeout: 15000 },
+      )
 
       // Click create button (first one in the header)
       await page.getByRole('link', { name: '新しい通貨を追加' }).first().click()
@@ -331,13 +331,11 @@ test.describe('Currency Management', () => {
       await page.waitForURL(/\/currencies\/[^/]+$/, { timeout: 10000 })
 
       await page.getByRole('button', { name: 'アーカイブ' }).click()
-      const confirmButton = page.getByRole('button', { name: '確認' })
-      if (await confirmButton.isVisible()) {
-        await confirmButton.click()
-      }
 
       // Go to list
       await page.goto('/currencies')
+
+      await page.waitForTimeout(500)
 
       // Should not show archived currency
       await expect(page.getByText('非表示テスト通貨')).not.toBeVisible()
@@ -422,7 +420,10 @@ test.describe('Currency Management', () => {
       await expect(page.locator('.mantine-Modal-content')).toBeVisible()
 
       // Fill form in modal
-      await page.locator('.mantine-Modal-content').getByLabel('金額').fill('1000')
+      await page
+        .locator('.mantine-Modal-content')
+        .getByLabel('金額')
+        .fill('1000')
       await page
         .locator('.mantine-Modal-content')
         .getByLabel('取得元')
@@ -464,7 +465,10 @@ test.describe('Currency Management', () => {
       await expect(page.locator('.mantine-Modal-content')).toBeVisible()
 
       // Fill form in modal
-      await page.locator('.mantine-Modal-content').getByLabel('金額').fill('5000')
+      await page
+        .locator('.mantine-Modal-content')
+        .getByLabel('金額')
+        .fill('5000')
       await page
         .locator('.mantine-Modal-content')
         .getByLabel('メモ')
@@ -487,8 +491,10 @@ test.describe('Currency Management', () => {
   })
 
   test.describe('Data Isolation', () => {
-    // TODO: This test has session/cookie clearing issues on chromium - investigate
-    test.skip('should not show other users currencies', async ({ page, context }) => {
+    test('should not show other users currencies', async ({
+      page,
+      context,
+    }) => {
       // Create first user and add currency
       const user1 = await createTestUser(page)
       await loginUser(page, user1.email, user1.password)
