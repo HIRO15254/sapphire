@@ -3,7 +3,12 @@ import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 import '@mantine/tiptap/styles.css'
 
-import { ColorSchemeScript, createTheme, MantineProvider } from '@mantine/core'
+import {
+  ColorSchemeScript,
+  createTheme,
+  MantineProvider,
+  mantineHtmlProps,
+} from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import type { Metadata } from 'next'
 import { Noto_Sans_JP } from 'next/font/google'
@@ -38,7 +43,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ja" suppressHydrationWarning>
+    <html lang="ja" {...mantineHtmlProps}>
       <head>
         <ColorSchemeScript defaultColorScheme="auto" />
       </head>

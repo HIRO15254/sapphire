@@ -1,19 +1,25 @@
 <!--
 === Sync Impact Report ===
-Version change: 1.0.0 → 1.1.0 (MINOR)
+Version change: 1.3.0 → 1.4.0 (MINOR)
 Modified sections:
-  - VI. Git Workflow Principles: Added "Multi-Phase Implementation Rule" subsection
+  - IV. Architecture Principles: Added "Server Actions Pattern" subsection
 
-New rules added:
-  - Sub-branch requirement for multi-phase implementations
-  - Phase-by-phase PR workflow with user approval gates
-  - Sub-branch naming convention: <feature-branch>/phase-<N>
+Changes to rules:
+  - Data mutations: tRPC mutations → Server Actions
+  - Cache invalidation: client-side invalidate() → server-side revalidateTag()
+  - Tag strategy: entity-based tags only (currency-list, currency-{id})
+  - Loading states: tRPC mutation.isPending → useTransition()
+  - Added example code demonstrating the pattern
 
 Templates status:
-  - .specify/templates/plan-template.md: ✅ compatible (no changes required)
+  - .specify/templates/plan-template.md: ✅ UPDATED (Constitution Check gates, project structure)
   - .specify/templates/spec-template.md: ✅ compatible (no changes required)
-  - .specify/templates/tasks-template.md: ✅ compatible (phase structure already defined)
-  - .specify/templates/commands/*.md: N/A (no command files found)
+  - .specify/templates/tasks-template.md: ✅ compatible (no changes required)
+
+Template changes made:
+  - plan-template.md: Updated Constitution Check gates for data fetching and mutations
+  - plan-template.md: Added Server Actions file structure to project layout
+  - plan-template.md: Clarified tRPC routers are for queries, Server Actions for mutations
 
 Follow-up TODOs: None
 -->
@@ -59,9 +65,9 @@ A three-layer architecture leveraging T3 Stack characteristics:
 ```
 ┌─────────────────────────────────────┐
 │  Presentation Layer                  │
-│  - React components                  │
 │  - Pages (App Router)                │
-│  - tRPC client calls                 │
+│  - React components                  │
+│  - tRPC prefetch (server) & calls    │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
@@ -71,11 +77,155 @@ A three-layer architecture leveraging T3 Stack characteristics:
 │  - Zod input/output validation       │
 └─────────────────┬───────────────────┘
                   │
-┌─────────────────▼───────────────────┐
+┌─────────────────▼───────────────────┘
 │  Infrastructure Layer                │
 │  - Drizzle ORM (data access)         │
 │  - External API integrations         │
 └─────────────────────────────────────┘
+```
+
+#### Page Component Pattern
+
+Pages MUST follow the Server/Client Component separation pattern:
+
+1. **page.tsx (Server Component)**:
+   - MUST be a Server Component (no 'use client' directive)
+   - MUST fetch data using tRPC server API (`await api.xxx()`)
+   - MUST process/transform data on server as needed
+   - MUST pass processed data to Client Component via props
+   - MUST wrap client content with `HydrateClient`
+   - MUST use `export const dynamic = 'force-dynamic'` for authenticated pages
+   - SHOULD NOT contain UI rendering logic
+
+2. **XxxContent.tsx (Client Component)**:
+   - MUST be a Client Component ('use client' directive)
+   - MUST handle all UI rendering and user interactions
+   - MUST receive initial data via props (typed using `RouterOutputs`)
+   - SHOULD use props data directly instead of tRPC `useQuery()` to avoid cache conflicts
+   - MAY use tRPC React hooks only for client-side filtering/sorting (with `initialData`)
+   - MUST use Server Actions for data modifications (NOT tRPC mutations)
+
+Example structure:
+```typescript
+// page.tsx (Server Component)
+export default async function CurrenciesPage() {
+  const { currencies } = await api.currency.list({ includeArchived: false })
+  return (
+    <HydrateClient>
+      <CurrenciesContent initialCurrencies={currencies} />
+    </HydrateClient>
+  )
+}
+
+// CurrencyDetailContent.tsx (Client Component)
+'use client'
+import type { RouterOutputs } from '~/trpc/react'
+type Currency = RouterOutputs['currency']['getById']
+
+interface Props {
+  initialCurrency: Currency
+}
+
+export function CurrencyDetailContent({ initialCurrency }: Props) {
+  // Use props data directly (refreshed via router.refresh())
+  const currency = initialCurrency
+
+  // ... UI rendering with currency data
+}
+```
+
+#### Server Actions Pattern
+
+Data mutations MUST use Next.js Server Actions instead of tRPC mutations:
+
+1. **Server Actions File (`actions.ts`)**:
+   - MUST be colocated with the feature's page components
+   - MUST have `'use server'` directive at the top
+   - MUST validate inputs using shared Zod schemas
+   - MUST verify authentication and authorization
+   - MUST use entity-based cache tags for revalidation
+   - MUST return `ActionResult<T>` type for consistent error handling
+   - MAY use `redirect()` for navigation after successful mutations
+
+2. **Cache Invalidation Strategy**:
+   - MUST use entity-based tags only (e.g., `currency-list`, `currency-{id}`)
+   - MUST NOT use page-specific tags (e.g., `dashboard-stats`, `analytics-page`)
+   - MUST call `revalidateTag()` for all affected entity tags
+   - Entity tags automatically invalidate all pages that depend on that data
+
+3. **Client Component Usage**:
+   - MUST use `useTransition()` for loading states during Server Action calls
+   - MUST handle `ActionResult<T>` return values
+   - MUST show user feedback (notifications) based on success/error
+   - MUST call `router.refresh()` after successful mutations to update Server Component data
+   - SHOULD use props data directly instead of tRPC `useQuery()` to avoid cache conflicts
+   - MUST NOT use tRPC `invalidate()` calls (handled by `revalidateTag()` + `router.refresh()`)
+
+Example structure:
+```typescript
+// actions.ts (Server Actions file)
+'use server'
+
+export type ActionResult<T = void> =
+  | { success: true; data: T }
+  | { success: false; error: string }
+
+export async function updateCurrency(
+  input: UpdateCurrencyInput,
+): Promise<ActionResult> {
+  // 1. Authenticate
+  const session = await auth()
+  if (!session?.user?.id) return { success: false, error: '認証が必要です' }
+
+  // 2. Validate
+  const validated = updateCurrencySchema.parse(input)
+
+  // 3. Verify ownership
+  const existing = await db.query.currencies.findFirst({...})
+  if (!existing) return { success: false, error: '通貨が見つかりません' }
+
+  // 4. Perform DB operation
+  await db.update(currencies).set(updateData).where(...)
+
+  // 5. Revalidate entity-based tags
+  revalidateTag(`currency-${validated.id}`)  // Specific entity
+  revalidateTag('currency-list')              // List entity
+
+  return { success: true, data: undefined }
+}
+
+// XxxContent.tsx (Client Component)
+'use client'
+import { useRouter } from 'next/navigation'
+import { useTransition } from 'react'
+import { updateCurrency } from './actions'
+
+export function CurrencyDetailContent({ initialCurrency }: Props) {
+  const router = useRouter()
+  const [isUpdating, startUpdateTransition] = useTransition()
+
+  // Use props data directly (NOT useQuery)
+  const currency = initialCurrency
+
+  const handleUpdate = (values) => {
+    startUpdateTransition(async () => {
+      const result = await updateCurrency(values)
+      if (result.success) {
+        notifications.show({ message: '更新しました', color: 'green' })
+        router.refresh() // Refresh Server Component → new props → UI updates
+      } else {
+        notifications.show({ message: result.error, color: 'red' })
+      }
+    })
+  }
+
+  return (
+    <div>
+      <Text>{currency.name}</Text>
+      <Button loading={isUpdating} onClick={handleUpdate}>保存</Button>
+    </div>
+  )
+}
 ```
 
 #### Dependency Rules
@@ -246,4 +396,4 @@ Constitution amendments require:
 - MINOR: Addition of new principles/sections or substantial expansion
 - PATCH: Clarifications, wording fixes, non-semantic improvements
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-11 | **Last Amended**: 2025-12-15
+**Version**: 1.4.0 | **Ratified**: 2025-12-11 | **Last Amended**: 2025-12-22
