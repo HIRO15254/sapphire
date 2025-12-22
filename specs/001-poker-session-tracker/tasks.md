@@ -164,104 +164,86 @@ tests/
 
 ---
 
-## Phase 5: User Story 1 - Record a Completed Session (Archive Recording) (Priority: P1) 🎯 MVP Core
-
-**Goal**: Quick logging of completed sessions with store, game, buy-in, cashout, and all-in EV tracking
-
-**Independent Test**: Create session with store/game/currency, add all-in records, verify profit/loss and EV calculations
-
-### Tests for User Story 1 ⚠️
-
-- [ ] T063 [P] [US1] Write unit test for PokerSession schema in tests/unit/server/db/schema/session.test.ts
-- [ ] T064 [P] [US1] Write unit test for AllInRecord schema in tests/unit/server/db/schema/allIn.test.ts
-- [ ] T065 [P] [US1] Write unit test for session router in tests/unit/server/api/routers/session.test.ts
-- [ ] T066 [P] [US1] Write unit test for allIn router in tests/unit/server/api/routers/allIn.test.ts
-- [ ] T067 [P] [US1] Write integration test for session with all-in EV calculation in tests/integration/session/allInEv.test.ts
-- [ ] T068 [P] [US1] Write E2E test for archive session recording flow in tests/e2e/session-archive.spec.ts
-
-### Implementation for User Story 1
-
-- [ ] T069 [US1] Create PokerSession schema in src/server/db/schema/session.ts
-- [ ] T070 [US1] Create AllInRecord schema with winProbability decimal(5,2) in src/server/db/schema/allInRecord.ts
-- [ ] T071 [US1] Create Zod schemas for session validation in src/server/api/schemas/session.schema.ts
-- [ ] T072 [US1] Create Zod schemas for allIn validation in src/server/api/schemas/allIn.schema.ts
-- [ ] T073 [US1] Implement session router (list, getById, createArchive, update, delete) in src/server/api/routers/session.ts
-- [ ] T074 [US1] Implement allIn router (listBySession, create, update, delete) in src/server/api/routers/allIn.ts
-- [ ] T075 [US1] Add session and allIn routers to root router in src/server/api/root.ts
-- [ ] T076 [P] [US1] Create SessionListPage with pagination in src/app/(auth)/sessions/page.tsx
-- [ ] T077 [P] [US1] Create SessionDetailPage in src/app/(auth)/sessions/[id]/page.tsx
-- [ ] T078 [P] [US1] Create ArchiveSessionForm component in src/components/forms/ArchiveSessionForm.tsx
-- [ ] T079 [P] [US1] Create AllInRecordForm component in src/components/forms/AllInRecordForm.tsx
-- [ ] T080 [US1] Create AllInSummary component (count, pot total, avg win rate, EV, actual result, EV差分) in src/components/session/AllInSummary.tsx
-- [ ] T081 [US1] Add empty state handling in ArchiveSessionForm when no stores exist (prompt to create store first) in src/components/forms/ArchiveSessionForm.tsx
-
-**Checkpoint**: Users can record archive sessions with full all-in EV tracking
-
----
-
-## Phase 6: User Story 3 - Manage Stores and Games (Priority: P2)
+## Phase 5: User Story 3 - Manage Stores and Games (Priority: P2)
 
 **Goal**: Register poker venues with location and manage cash games/tournaments at each venue
 
 **Independent Test**: Create store with location, add cash games and tournaments, view store details
 
+**⚠️ NOTE**: This phase must complete BEFORE User Story 1 (Sessions) because sessions require both currencies (Phase 4) and stores/games (Phase 5)
+
 ### Tests for User Story 3 ⚠️
 
-- [ ] T082 [P] [US3] Write unit test for Store schema in tests/unit/server/db/schema/store.test.ts
-- [ ] T083 [P] [US3] Write unit test for CashGame schema in tests/unit/server/db/schema/cashGame.test.ts
-- [ ] T084 [P] [US3] Write unit test for Tournament schema in tests/unit/server/db/schema/tournament.test.ts
-- [ ] T085 [P] [US3] Write unit test for store router in tests/unit/server/api/routers/store.test.ts
-- [ ] T086 [P] [US3] Write unit test for cashGame router in tests/unit/server/api/routers/cashGame.test.ts
-- [ ] T087 [P] [US3] Write unit test for tournament router in tests/unit/server/api/routers/tournament.test.ts
-- [ ] T088 [P] [US3] Write E2E test for store and game management flow in tests/e2e/store.spec.ts
+- [ ] T063 [P] [US3] Write unit test for Store schema in tests/unit/server/db/schema/store.test.ts
+- [ ] T064 [P] [US3] Write unit test for CashGame schema in tests/unit/server/db/schema/cashGame.test.ts
+- [ ] T065 [P] [US3] Write unit test for Tournament schema in tests/unit/server/db/schema/tournament.test.ts
+- [ ] T066 [P] [US3] Write unit test for store router in tests/unit/server/api/routers/store.test.ts
+- [ ] T067 [P] [US3] Write unit test for cashGame router in tests/unit/server/api/routers/cashGame.test.ts
+- [ ] T068 [P] [US3] Write unit test for tournament router in tests/unit/server/api/routers/tournament.test.ts
+- [ ] T069 [P] [US3] Write E2E test for store and game management flow in tests/e2e/store.spec.ts
 
 ### Implementation for User Story 3
 
-- [ ] T089 [US3] Create Store schema with Google Maps fields (latitude, longitude, placeId) in src/server/db/schema/store.ts
-- [ ] T090 [US3] Create CashGame schema with explicit blind/ante fields in src/server/db/schema/cashGame.ts
-- [ ] T091 [US3] Create Tournament schema in src/server/db/schema/tournament.ts
-- [ ] T092 [P] [US3] Create TournamentPrizeLevel schema in src/server/db/schema/tournamentPrizeLevel.ts
-- [ ] T093 [P] [US3] Create TournamentBlindLevel schema in src/server/db/schema/tournamentBlindLevel.ts
-- [ ] T094 [US3] Create Google Maps URL generator utility in src/lib/google-maps.ts
-- [ ] T095 [US3] Create Zod schemas for store, cashGame, tournament validation in src/server/api/schemas/store.schema.ts
-- [ ] T096 [US3] Implement store router in src/server/api/routers/store.ts
-- [ ] T097 [US3] Implement cashGame router in src/server/api/routers/cashGame.ts
-- [ ] T098 [US3] Implement tournament router (including setPrizeLevels, setBlindLevels) in src/server/api/routers/tournament.ts
-- [ ] T099 [US3] Add store, cashGame, tournament routers to root router in src/server/api/root.ts
-- [ ] T100 [P] [US3] Create StoreListPage in src/app/(auth)/stores/page.tsx
-- [ ] T101 [P] [US3] Create StoreDetailPage in src/app/(auth)/stores/[id]/page.tsx
-- [ ] T102 [P] [US3] Create StoreForm component in src/components/forms/StoreForm.tsx
-- [ ] T103 [P] [US3] Create CashGameForm component in src/components/forms/CashGameForm.tsx
-- [ ] T104 [P] [US3] Create TournamentForm component (with prize/blind level editors) in src/components/forms/TournamentForm.tsx
-- [ ] T105 [US3] Create GoogleMapsLink component in src/components/ui/GoogleMapsLink.tsx
+- [ ] T070 [US3] Create Store schema with Google Maps fields (latitude, longitude, placeId) in src/server/db/schema/store.ts
+- [ ] T071 [US3] Create CashGame schema with explicit blind/ante fields in src/server/db/schema/cashGame.ts
+- [ ] T072 [US3] Create Tournament schema in src/server/db/schema/tournament.ts
+- [ ] T073 [P] [US3] Create TournamentPrizeLevel schema in src/server/db/schema/tournamentPrizeLevel.ts
+- [ ] T074 [P] [US3] Create TournamentBlindLevel schema in src/server/db/schema/tournamentBlindLevel.ts
+- [ ] T075 [US3] Create Google Maps URL generator utility in src/lib/google-maps.ts
+- [ ] T076 [US3] Create Zod schemas for store, cashGame, tournament validation in src/server/api/schemas/store.schema.ts
+- [ ] T077 [US3] Implement store router in src/server/api/routers/store.ts
+- [ ] T078 [US3] Implement cashGame router in src/server/api/routers/cashGame.ts
+- [ ] T079 [US3] Implement tournament router (including setPrizeLevels, setBlindLevels) in src/server/api/routers/tournament.ts
+- [ ] T080 [US3] Add store, cashGame, tournament routers to root router in src/server/api/root.ts
+- [ ] T081 [P] [US3] Create StoreListPage in src/app/(auth)/stores/page.tsx
+- [ ] T082 [P] [US3] Create StoreDetailPage in src/app/(auth)/stores/[id]/page.tsx
+- [ ] T083 [P] [US3] Create StoreForm component in src/components/forms/StoreForm.tsx
+- [ ] T084 [P] [US3] Create CashGameForm component in src/components/forms/CashGameForm.tsx
+- [ ] T085 [P] [US3] Create TournamentForm component (with prize/blind level editors) in src/components/forms/TournamentForm.tsx
+- [ ] T086 [US3] Create GoogleMapsLink component in src/components/ui/GoogleMapsLink.tsx
 
 **Checkpoint**: Users can manage stores with location and games
 
 ---
 
-## Phase 7: User Story 8 - Responsive Design and Theme Support (Priority: P2)
+## Phase 6: User Story 1 - Record a Completed Session (Archive Recording) (Priority: P1) 🎯 MVP Core
 
-**Goal**: Mobile-first responsive design with light/dark theme support
+**Goal**: Quick logging of completed sessions with store, game, buy-in, cashout, and all-in EV tracking
 
-**Independent Test**: Access app on different screen sizes, toggle theme, verify preference persistence
+**Independent Test**: Create session with store/game/currency, add all-in records, verify profit/loss and EV calculations
 
-### Tests for User Story 8 ⚠️
+**Dependencies**: Requires both User Story 2 (Currencies) and User Story 3 (Stores/Games) to be complete
 
-- [ ] T106 [P] [US8] Write E2E test for responsive layout on mobile viewport in tests/e2e/responsive.spec.ts
-- [ ] T107 [P] [US8] Write E2E test for theme toggle and persistence in tests/e2e/theme.spec.ts
+### Tests for User Story 1 ⚠️
 
-### Implementation for User Story 8
+- [ ] T087 [P] [US1] Write unit test for PokerSession schema in tests/unit/server/db/schema/session.test.ts
+- [ ] T088 [P] [US1] Write unit test for AllInRecord schema in tests/unit/server/db/schema/allIn.test.ts
+- [ ] T089 [P] [US1] Write unit test for session router in tests/unit/server/api/routers/session.test.ts
+- [ ] T090 [P] [US1] Write unit test for allIn router in tests/unit/server/api/routers/allIn.test.ts
+- [ ] T091 [P] [US1] Write integration test for session with all-in EV calculation in tests/integration/session/allInEv.test.ts
+- [ ] T092 [P] [US1] Write E2E test for archive session recording flow in tests/e2e/session-archive.spec.ts
 
-- [ ] T108 [US8] Implement responsive navigation (burger menu on mobile) in src/components/layouts/AppShell.tsx
-- [ ] T109 [P] [US8] Add responsive breakpoints to all form components using Mantine style props
-- [ ] T110 [P] [US8] Add responsive breakpoints to all list/detail pages using visibleFrom/hiddenFrom
-- [ ] T111 [US8] Verify theme toggle under 100ms performance (SC-006) in src/components/ui/ThemeToggle.tsx
+### Implementation for User Story 1
 
-**Checkpoint**: App is fully responsive and supports light/dark themes
+- [ ] T093 [US1] Create PokerSession schema in src/server/db/schema/session.ts
+- [ ] T094 [US1] Create AllInRecord schema with winProbability decimal(5,2) in src/server/db/schema/allInRecord.ts
+- [ ] T095 [US1] Create Zod schemas for session validation in src/server/api/schemas/session.schema.ts
+- [ ] T096 [US1] Create Zod schemas for allIn validation in src/server/api/schemas/allIn.schema.ts
+- [ ] T097 [US1] Implement session router (list, getById, createArchive, update, delete) in src/server/api/routers/session.ts
+- [ ] T098 [US1] Implement allIn router (listBySession, create, update, delete) in src/server/api/routers/allIn.ts
+- [ ] T099 [US1] Add session and allIn routers to root router in src/server/api/root.ts
+- [ ] T100 [P] [US1] Create SessionListPage with pagination in src/app/(auth)/sessions/page.tsx
+- [ ] T101 [P] [US1] Create SessionDetailPage in src/app/(auth)/sessions/[id]/page.tsx
+- [ ] T102 [P] [US1] Create ArchiveSessionForm component in src/components/forms/ArchiveSessionForm.tsx
+- [ ] T103 [P] [US1] Create AllInRecordForm component in src/components/forms/AllInRecordForm.tsx
+- [ ] T104 [US1] Create AllInSummary component (count, pot total, avg win rate, EV, actual result, EV差分) in src/components/session/AllInSummary.tsx
+- [ ] T105 [US1] Add empty state handling in ArchiveSessionForm when no stores exist (prompt to create store first) in src/components/forms/ArchiveSessionForm.tsx
+
+**Checkpoint**: Users can record archive sessions with full all-in EV tracking
 
 ---
 
-## Phase 8: User Story 4 - Active Session Recording (Priority: P2)
+## Phase 7: User Story 4 - Active Session Recording (Priority: P2)
 
 **Goal**: Real-time session recording with player tracking, hand recording, and stack progression
 
@@ -269,29 +251,29 @@ tests/
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T112 [P] [US4] Write unit test for SessionEvent schema in tests/unit/server/db/schema/sessionEvent.test.ts
-- [ ] T113 [P] [US4] Write unit test for sessionEvent router in tests/unit/server/api/routers/sessionEvent.test.ts
-- [ ] T114 [P] [US4] Write integration test for active session state transitions in tests/integration/session/active.test.ts
-- [ ] T115 [P] [US4] Write E2E test for active session flow in tests/e2e/session-active.spec.ts
+- [ ] T106 [P] [US4] Write unit test for SessionEvent schema in tests/unit/server/db/schema/sessionEvent.test.ts
+- [ ] T107 [P] [US4] Write unit test for sessionEvent router in tests/unit/server/api/routers/sessionEvent.test.ts
+- [ ] T108 [P] [US4] Write integration test for active session state transitions in tests/integration/session/active.test.ts
+- [ ] T109 [P] [US4] Write E2E test for active session flow in tests/e2e/session-active.spec.ts
 
 ### Implementation for User Story 4
 
-- [ ] T116 [US4] Create SessionEvent schema with JSONB eventData in src/server/db/schema/sessionEvent.ts
-- [ ] T117 [US4] Create Zod schemas for each event type validation in src/server/api/schemas/sessionEvent.schema.ts
-- [ ] T118 [US4] Implement sessionEvent router (startSession, pauseSession, resumeSession, endSession, seatPlayer, recordHand, recordHandsPassed, updateStack, recordRebuy, recordAddon) in src/server/api/routers/sessionEvent.ts
-- [ ] T119 [US4] Add sessionEvent router to root router in src/server/api/root.ts
-- [ ] T120 [US4] Update session.createArchive to validate only one active session per user in src/server/api/routers/session.ts
-- [ ] T121 [P] [US4] Create ActiveSessionPage with real-time event display in src/app/(auth)/sessions/active/page.tsx
-- [ ] T122 [P] [US4] Create StartSessionForm component in src/components/forms/StartSessionForm.tsx
-- [ ] T123 [P] [US4] Create StackUpdateForm component in src/components/forms/StackUpdateForm.tsx
-- [ ] T124 [P] [US4] Create RebuyAddonForm component in src/components/forms/RebuyAddonForm.tsx
-- [ ] T125 [US4] Create SessionEventTimeline component in src/components/session/SessionEventTimeline.tsx
+- [ ] T110 [US4] Create SessionEvent schema with JSONB eventData in src/server/db/schema/sessionEvent.ts
+- [ ] T111 [US4] Create Zod schemas for each event type validation in src/server/api/schemas/sessionEvent.schema.ts
+- [ ] T112 [US4] Implement sessionEvent router (startSession, pauseSession, resumeSession, endSession, seatPlayer, recordHand, recordHandsPassed, updateStack, recordRebuy, recordAddon) in src/server/api/routers/sessionEvent.ts
+- [ ] T113 [US4] Add sessionEvent router to root router in src/server/api/root.ts
+- [ ] T114 [US4] Update session.createArchive to validate only one active session per user in src/server/api/routers/session.ts
+- [ ] T115 [P] [US4] Create ActiveSessionPage with real-time event display in src/app/(auth)/sessions/active/page.tsx
+- [ ] T116 [P] [US4] Create StartSessionForm component in src/components/forms/StartSessionForm.tsx
+- [ ] T117 [P] [US4] Create StackUpdateForm component in src/components/forms/StackUpdateForm.tsx
+- [ ] T118 [P] [US4] Create RebuyAddonForm component in src/components/forms/RebuyAddonForm.tsx
+- [ ] T119 [US4] Create SessionEventTimeline component in src/components/session/SessionEventTimeline.tsx
 
 **Checkpoint**: Users can record sessions in real-time with full event tracking
 
 ---
 
-## Phase 9: User Story 5 - Track Players at the Table (Priority: P3)
+## Phase 8: User Story 5 - Track Players at the Table (Priority: P3)
 
 **Goal**: Record opponent information with tags and date-specific notes
 
@@ -299,33 +281,33 @@ tests/
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T126 [P] [US5] Write unit test for Player schema in tests/unit/server/db/schema/player.test.ts
-- [ ] T127 [P] [US5] Write unit test for PlayerTag schema in tests/unit/server/db/schema/playerTag.test.ts
-- [ ] T128 [P] [US5] Write unit test for player router in tests/unit/server/api/routers/player.test.ts
-- [ ] T129 [P] [US5] Write unit test for playerTag router in tests/unit/server/api/routers/playerTag.test.ts
-- [ ] T130 [P] [US5] Write E2E test for player management flow in tests/e2e/player.spec.ts
+- [ ] T120 [P] [US5] Write unit test for Player schema in tests/unit/server/db/schema/player.test.ts
+- [ ] T121 [P] [US5] Write unit test for PlayerTag schema in tests/unit/server/db/schema/playerTag.test.ts
+- [ ] T122 [P] [US5] Write unit test for player router in tests/unit/server/api/routers/player.test.ts
+- [ ] T123 [P] [US5] Write unit test for playerTag router in tests/unit/server/api/routers/playerTag.test.ts
+- [ ] T124 [P] [US5] Write E2E test for player management flow in tests/e2e/player.spec.ts
 
 ### Implementation for User Story 5
 
-- [ ] T131 [US5] Create Player schema in src/server/db/schema/player.ts
-- [ ] T132 [P] [US5] Create PlayerTag schema in src/server/db/schema/playerTag.ts
-- [ ] T133 [P] [US5] Create PlayerTagAssignment junction schema in src/server/db/schema/playerTagAssignment.ts
-- [ ] T134 [P] [US5] Create PlayerNote schema in src/server/db/schema/playerNote.ts
-- [ ] T135 [US5] Create Zod schemas for player/tag validation in src/server/api/schemas/player.schema.ts
-- [ ] T136 [US5] Implement player router in src/server/api/routers/player.ts
-- [ ] T137 [US5] Implement playerTag router in src/server/api/routers/playerTag.ts
-- [ ] T138 [US5] Add player, playerTag routers to root router in src/server/api/root.ts
-- [ ] T139 [P] [US5] Create PlayerListPage with search and tag filter in src/app/(auth)/players/page.tsx
-- [ ] T140 [P] [US5] Create PlayerDetailPage in src/app/(auth)/players/[id]/page.tsx
-- [ ] T141 [P] [US5] Create PlayerForm component in src/components/forms/PlayerForm.tsx
-- [ ] T142 [P] [US5] Create PlayerTagManager component in src/components/player/PlayerTagManager.tsx
-- [ ] T143 [US5] Create PlayerNoteForm component in src/components/forms/PlayerNoteForm.tsx
+- [ ] T125 [US5] Create Player schema in src/server/db/schema/player.ts
+- [ ] T126 [P] [US5] Create PlayerTag schema in src/server/db/schema/playerTag.ts
+- [ ] T127 [P] [US5] Create PlayerTagAssignment junction schema in src/server/db/schema/playerTagAssignment.ts
+- [ ] T128 [P] [US5] Create PlayerNote schema in src/server/db/schema/playerNote.ts
+- [ ] T129 [US5] Create Zod schemas for player/tag validation in src/server/api/schemas/player.schema.ts
+- [ ] T130 [US5] Implement player router in src/server/api/routers/player.ts
+- [ ] T131 [US5] Implement playerTag router in src/server/api/routers/playerTag.ts
+- [ ] T132 [US5] Add player, playerTag routers to root router in src/server/api/root.ts
+- [ ] T133 [P] [US5] Create PlayerListPage with search and tag filter in src/app/(auth)/players/page.tsx
+- [ ] T134 [P] [US5] Create PlayerDetailPage in src/app/(auth)/players/[id]/page.tsx
+- [ ] T135 [P] [US5] Create PlayerForm component in src/components/forms/PlayerForm.tsx
+- [ ] T136 [P] [US5] Create PlayerTagManager component in src/components/player/PlayerTagManager.tsx
+- [ ] T137 [US5] Create PlayerNoteForm component in src/components/forms/PlayerNoteForm.tsx
 
 **Checkpoint**: Users can track opponents with tags and notes
 
 ---
 
-## Phase 10: User Story 6 - Record Hand Details (Priority: P3)
+## Phase 9: User Story 6 - Record Hand Details (Priority: P3)
 
 **Goal**: Detailed hand recording in PHH format with player linking and review flags
 
@@ -333,33 +315,55 @@ tests/
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T144 [P] [US6] Write unit test for Hand schema in tests/unit/server/db/schema/hand.test.ts
-- [ ] T145 [P] [US6] Write unit test for HandSeat schema in tests/unit/server/db/schema/handSeat.test.ts
-- [ ] T146 [P] [US6] Write unit test for HandReviewFlag schema in tests/unit/server/db/schema/handReviewFlag.test.ts
-- [ ] T147 [P] [US6] Write unit test for hand router in tests/unit/server/api/routers/hand.test.ts
-- [ ] T148 [P] [US6] Write unit test for handSeat router in tests/unit/server/api/routers/handSeat.test.ts
-- [ ] T149 [P] [US6] Write unit test for handReviewFlag router in tests/unit/server/api/routers/handReviewFlag.test.ts
-- [ ] T150 [P] [US6] Write E2E test for hand recording flow in tests/e2e/hand.spec.ts
+- [ ] T138 [P] [US6] Write unit test for Hand schema in tests/unit/server/db/schema/hand.test.ts
+- [ ] T139 [P] [US6] Write unit test for HandSeat schema in tests/unit/server/db/schema/handSeat.test.ts
+- [ ] T140 [P] [US6] Write unit test for HandReviewFlag schema in tests/unit/server/db/schema/handReviewFlag.test.ts
+- [ ] T141 [P] [US6] Write unit test for hand router in tests/unit/server/api/routers/hand.test.ts
+- [ ] T142 [P] [US6] Write unit test for handSeat router in tests/unit/server/api/routers/handSeat.test.ts
+- [ ] T143 [P] [US6] Write unit test for handReviewFlag router in tests/unit/server/api/routers/handReviewFlag.test.ts
+- [ ] T144 [P] [US6] Write E2E test for hand recording flow in tests/e2e/hand.spec.ts
 
 ### Implementation for User Story 6
 
-- [ ] T151 [US6] Create Hand schema (PHH format only, with isDraft field) in src/server/db/schema/hand.ts
-- [ ] T152 [P] [US6] Create HandSeat schema in src/server/db/schema/handSeat.ts
-- [ ] T153 [P] [US6] Create HandReviewFlag schema in src/server/db/schema/handReviewFlag.ts
-- [ ] T154 [P] [US6] Create HandReviewFlagAssignment junction schema in src/server/db/schema/handReviewFlagAssignment.ts
-- [ ] T155 [US6] Create Zod schemas for hand/seat/flag validation in src/server/api/schemas/hand.schema.ts
-- [ ] T156 [US6] Implement hand router in src/server/api/routers/hand.ts
-- [ ] T157 [US6] Implement handSeat router in src/server/api/routers/handSeat.ts
-- [ ] T158 [US6] Implement handReviewFlag router in src/server/api/routers/handReviewFlag.ts
-- [ ] T159 [US6] Add hand, handSeat, handReviewFlag routers to root router in src/server/api/root.ts
-- [ ] T160 [P] [US6] Create HandListPage with flag filter in src/app/(auth)/sessions/[id]/hands/page.tsx
-- [ ] T161 [P] [US6] Create HandDetailPage with PHH display in src/app/(auth)/hands/[id]/page.tsx
-- [ ] T162 [P] [US6] Create HandForm component for PHH input in src/components/forms/HandForm.tsx
-- [ ] T163 [P] [US6] Create HandSeatEditor component in src/components/hand/HandSeatEditor.tsx
-- [ ] T164 [US6] Create HandReviewFlagManager component in src/components/hand/HandReviewFlagManager.tsx
-- [ ] T165 [US6] Create PHHViewer component for formatted hand history display in src/components/hand/PHHViewer.tsx
+- [ ] T145 [US6] Create Hand schema (PHH format only, with isDraft field) in src/server/db/schema/hand.ts
+- [ ] T146 [P] [US6] Create HandSeat schema in src/server/db/schema/handSeat.ts
+- [ ] T147 [P] [US6] Create HandReviewFlag schema in src/server/db/schema/handReviewFlag.ts
+- [ ] T148 [P] [US6] Create HandReviewFlagAssignment junction schema in src/server/db/schema/handReviewFlagAssignment.ts
+- [ ] T149 [US6] Create Zod schemas for hand/seat/flag validation in src/server/api/schemas/hand.schema.ts
+- [ ] T150 [US6] Implement hand router in src/server/api/routers/hand.ts
+- [ ] T151 [US6] Implement handSeat router in src/server/api/routers/handSeat.ts
+- [ ] T152 [US6] Implement handReviewFlag router in src/server/api/routers/handReviewFlag.ts
+- [ ] T153 [US6] Add hand, handSeat, handReviewFlag routers to root router in src/server/api/root.ts
+- [ ] T154 [P] [US6] Create HandListPage with flag filter in src/app/(auth)/sessions/[id]/hands/page.tsx
+- [ ] T155 [P] [US6] Create HandDetailPage with PHH display in src/app/(auth)/hands/[id]/page.tsx
+- [ ] T156 [P] [US6] Create HandForm component for PHH input in src/components/forms/HandForm.tsx
+- [ ] T157 [P] [US6] Create HandSeatEditor component in src/components/hand/HandSeatEditor.tsx
+- [ ] T158 [US6] Create HandReviewFlagManager component in src/components/hand/HandReviewFlagManager.tsx
+- [ ] T159 [US6] Create PHHViewer component for formatted hand history display in src/components/hand/PHHViewer.tsx
 
 **Checkpoint**: Users can record detailed hands with full PHH support
+
+---
+
+## Phase 10: User Story 8 - Responsive Design and Theme Support (Priority: P2)
+
+**Goal**: Mobile-first responsive design with light/dark theme support
+
+**Independent Test**: Access app on different screen sizes, toggle theme, verify preference persistence
+
+### Tests for User Story 8 ⚠️
+
+- [ ] T160 [P] [US8] Write E2E test for responsive layout on mobile viewport in tests/e2e/responsive.spec.ts
+- [ ] T161 [P] [US8] Write E2E test for theme toggle and persistence in tests/e2e/theme.spec.ts
+
+### Implementation for User Story 8
+
+- [ ] T162 [US8] Implement responsive navigation (burger menu on mobile) in src/components/layouts/AppShell.tsx
+- [ ] T163 [P] [US8] Add responsive breakpoints to all form components using Mantine style props
+- [ ] T164 [P] [US8] Add responsive breakpoints to all list/detail pages using visibleFrom/hiddenFrom
+- [ ] T165 [US8] Verify theme toggle under 100ms performance (SC-006) in src/components/ui/ThemeToggle.tsx
+
+**Checkpoint**: App is fully responsive and supports light/dark themes
 
 ---
 
@@ -392,6 +396,8 @@ tests/
 
 **Purpose**: Home screen with navigation and statistics summary (FR-085, FR-086)
 
+**Dependencies**: Requires US1 (Sessions) and US2 (Currencies) for statistics
+
 - [ ] T175 Write E2E test for dashboard with statistics in tests/e2e/dashboard.spec.ts
 - [ ] T176 Create dashboard statistics query (session.getStatistics) in src/server/api/routers/session.ts
 - [ ] T177 Create DashboardPage with active session link and statistics in src/app/(auth)/dashboard/page.tsx
@@ -404,6 +410,8 @@ tests/
 ## Phase 13: Help Guide & Polish
 
 **Purpose**: User guide pages and cross-cutting concerns (FR-091)
+
+**Dependencies**: All user stories should be complete
 
 - [ ] T181 Create help/guide pages with feature documentation in src/app/(auth)/help/page.tsx
 - [ ] T182 [P] Create HelpNavigation component with sections in src/components/help/HelpNavigation.tsx
@@ -425,36 +433,58 @@ tests/
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
 - **User Stories (Phase 3+)**: All depend on Foundational phase completion
-  - US7 (Auth) MUST complete before other user stories can test data isolation
-  - US2 (Currency) and US3 (Store/Game) should complete before US1 (Session)
-  - US1 (Session) provides foundation for US4 (Active Session)
-  - US4 (Active Session) provides context for US6 (Hand Recording)
-  - US5 (Player) can proceed independently after Foundation
-- **Dashboard (Phase 12)**: Depends on US1 (Session) for statistics
+  - **US7 (Auth - Phase 3)** MUST complete before other user stories can test data isolation
+  - **US2 (Currency - Phase 4)** depends on US7 - required by US1 and US3
+  - **US3 (Store/Game - Phase 5)** depends on US2 - required by US1 (sessions need BOTH currencies AND stores/games)
+  - **US1 (Session - Phase 6)** depends on US2 AND US3 - provides foundation for US4
+  - **US4 (Active Session - Phase 7)** depends on US1 - provides context for US6
+  - **US5 (Player - Phase 8)** can proceed independently after Foundation - required by US6
+  - **US6 (Hand Recording - Phase 9)** depends on US4 AND US5
+  - **US8 (Responsive/Theme - Phase 10)** can proceed after any core features are implemented
+  - **US9 (PWA - Phase 11)** can proceed after core features are implemented
+- **Dashboard (Phase 12)**: Depends on US1 (Session) and US2 (Currency) for statistics
 - **Polish (Phase 13)**: Depends on all user stories being complete
 
-### User Story Dependencies
+### User Story Dependencies (Updated - Correct Order)
 
 ```
-[Foundation]
+[Foundation - Phase 2]
      │
-     ├── [US7: Auth] ──────────────────────────────────────┐
-     │        │                                            │
-     │        ├── [US2: Currency] ─┐                       │
-     │        │                    │                       │
-     │        ├── [US3: Store/Game]├── [US1: Session] ─────┤
-     │        │                    │        │              │
-     │        └────────────────────┘        │              │
-     │                                      ▼              │
-     │                              [US4: Active Session]  │
-     │                                      │              │
-     │                                      ▼              │
-     ├── [US5: Player] ────────────► [US6: Hand Recording] │
-     │                                                     │
-     ├── [US8: Responsive/Theme] ◄─────────────────────────┤
-     │                                                     │
-     └── [US9: PWA] ◄──────────────────────────────────────┘
+     ├── [US7: Auth - Phase 3] ─────────────────────────────────┐
+     │        │                                                 │
+     │        │                                                 │
+     │        ▼                                                 │
+     │   [US2: Currency - Phase 4] ──────────┐                 │
+     │        │                               │                 │
+     │        ▼                               │                 │
+     │   [US3: Store/Game - Phase 5]         │                 │
+     │        │                               │                 │
+     │        └──────┬────────────────────────┘                 │
+     │               │                                          │
+     │               ▼                                          │
+     │        [US1: Archive Session - Phase 6] 🎯               │
+     │               │                                          │
+     │               ▼                                          │
+     │        [US4: Active Session - Phase 7]                   │
+     │               │                                          │
+     │               │         ┌────────────────────────────────┤
+     │               │         │                                │
+     │               │    [US5: Player - Phase 8]               │
+     │               │         │                                │
+     │               └────┬────┘                                │
+     │                    │                                     │
+     │                    ▼                                     │
+     │             [US6: Hand Recording - Phase 9]              │
+     │                                                          │
+     ├── [US8: Responsive/Theme - Phase 10] ◄──────────────────┤
+     │                                                          │
+     └── [US9: PWA - Phase 11] ◄───────────────────────────────┘
+
+[Dashboard - Phase 12] depends on US1 + US2
+[Polish - Phase 13] depends on ALL user stories
 ```
+
+**Key Insight**: Sessions (US1) are always tied to both currencies (US2) AND stores/games (US3), so US3 MUST complete before US1 can start.
 
 ### Within Each User Story
 
@@ -496,25 +526,27 @@ Task: "Create AllInRecordForm component in src/components/forms/AllInRecordForm.
 
 ## Implementation Strategy
 
-### MVP First (User Stories 7, 2, 1)
+### MVP First (Corrected Order: User Stories 7, 2, 3, 1)
 
 1. Complete Phase 1: Setup
 2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
 3. Complete Phase 3: User Story 7 (Authentication)
-4. Complete Phase 4: User Story 2 (Currency)
-5. Complete Phase 5: User Story 1 (Archive Session)
-6. **STOP and VALIDATE**: Test MVP independently - users can log in, manage currencies, record sessions
+4. Complete Phase 4: User Story 2 (Currency Management)
+5. Complete Phase 5: User Story 3 (Stores and Games)
+6. Complete Phase 6: User Story 1 (Archive Session Recording)
+7. **STOP and VALIDATE**: Test MVP independently - users can log in, manage currencies, register venues with games, and record completed sessions with all-in EV tracking
+
+**MVP Delivers**: Full poker session tracking with venue/game management, currency tracking, and session profit/loss analysis.
 
 ### Incremental Delivery
 
-1. MVP (Auth + Currency + Archive Session) → Deploy/Demo
-2. Add User Story 3 (Stores/Games) → Deploy/Demo
-3. Add User Story 8 (Responsive/Theme) → Deploy/Demo
-4. Add User Story 4 (Active Session) → Deploy/Demo
-5. Add User Story 5 (Players) → Deploy/Demo
-6. Add User Story 6 (Hand Recording) → Deploy/Demo
-7. Add User Story 9 (PWA) → Deploy/Demo
-8. Add Dashboard and Help pages → Final Deploy
+1. **MVP** (Auth + Currency + Stores/Games + Archive Session) → Deploy/Demo
+2. Add User Story 4 (Active Session Recording) → Deploy/Demo
+3. Add User Story 5 (Player Tracking) → Deploy/Demo
+4. Add User Story 6 (Hand Recording) → Deploy/Demo
+5. Add User Story 8 (Responsive/Theme) → Deploy/Demo
+6. Add User Story 9 (PWA) → Deploy/Demo
+7. Add Dashboard and Help pages → Final Deploy
 
 ---
 
