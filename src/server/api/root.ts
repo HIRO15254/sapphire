@@ -1,5 +1,8 @@
 import { authRouter } from '~/server/api/routers/auth'
+import { cashGameRouter } from '~/server/api/routers/cashGame'
 import { currencyRouter } from '~/server/api/routers/currency'
+import { storeRouter } from '~/server/api/routers/store'
+import { tournamentRouter } from '~/server/api/routers/tournament'
 import {
   createCallerFactory,
   createTRPCRouter,
@@ -13,7 +16,10 @@ import {
  */
 export const appRouter = createTRPCRouter({
   auth: authRouter,
+  cashGame: cashGameRouter,
   currency: currencyRouter,
+  store: storeRouter,
+  tournament: tournamentRouter,
   /**
    * Health check procedure.
    * Returns the current server status.

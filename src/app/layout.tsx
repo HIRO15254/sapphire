@@ -12,7 +12,7 @@ import {
 import { Notifications } from '@mantine/notifications'
 import type { Metadata } from 'next'
 import { Noto_Sans_JP } from 'next/font/google'
-
+import type React from 'react'
 import { TRPCReactProvider } from '~/trpc/react'
 
 const notoSansJP = Noto_Sans_JP({
@@ -45,10 +45,10 @@ export default function RootLayout({
   return (
     <html lang="ja" {...mantineHtmlProps}>
       <head>
-        <ColorSchemeScript defaultColorScheme="auto" />
+        <ColorSchemeScript />
       </head>
       <body className={notoSansJP.variable}>
-        <MantineProvider defaultColorScheme="auto" theme={theme}>
+        <MantineProvider theme={theme}>
           <Notifications position="top-right" />
           <TRPCReactProvider>{children}</TRPCReactProvider>
         </MantineProvider>

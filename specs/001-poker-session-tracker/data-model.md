@@ -214,6 +214,7 @@ Poker venue / amusement establishment with Google Maps integration.
 | latitude | decimal(10,8) | nullable | Latitude coordinate |
 | longitude | decimal(11,8) | nullable | Longitude coordinate |
 | placeId | varchar(255) | nullable | Google Place ID for stable reference |
+| customMapUrl | text | nullable | Custom Google Maps URL (takes precedence over generated URL) |
 | notes | text | nullable | Rich text notes (HTML) |
 | isArchived | boolean | NOT NULL, default false | Archived (hidden from active lists) |
 | createdAt | timestamptz | NOT NULL, default now | |
@@ -224,7 +225,8 @@ Poker venue / amusement establishment with Google Maps integration.
 
 **Google Maps URL Generation**:
 ```typescript
-// Priority: placeId > coordinates > name+address
+// Priority: customMapUrl > placeId > coordinates > name+address
+if (customMapUrl) return customMapUrl;
 if (placeId) return `https://www.google.com/maps/search/?api=1&query_place_id=${placeId}`;
 if (latitude && longitude) return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
 return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}`;
@@ -275,7 +277,8 @@ Tournament configuration at a store (NLHE only for initial release).
 | userId | uuid | FK → users.id, cascade | Owner user |
 | currencyId | uuid | FK → currencies.id, set null | Currency used |
 | name | varchar(255) | nullable | Tournament name |
-| buyIn | integer | NOT NULL | Tournament buy-in amount |
+| buyIn | integer | NOT NULL | Tournament buy-in amount (total) |
+| rake | integer | nullable | Rake amount included in buy-in |
 | startingStack | integer | nullable | Starting chip stack |
 | notes | text | nullable | Rich text notes (HTML) |
 | isArchived | boolean | NOT NULL, default false | Archived (hidden from active lists) |
@@ -284,6 +287,8 @@ Tournament configuration at a store (NLHE only for initial release).
 | deletedAt | timestamptz | nullable | Soft delete |
 
 **Indexes**: `storeId`, `userId`, `isArchived`
+
+**Note**: `buyIn` is the total amount paid. `rake` is the portion that goes to the house (optional). Prize pool contribution = buyIn - rake.
 
 ---
 

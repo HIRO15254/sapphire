@@ -516,9 +516,9 @@ test.describe('Currency Management', () => {
       const password2 = 'testpassword123'
 
       await page.goto('/auth/register')
-      await expect(
-        page.getByRole('heading', { name: '新規登録' }),
-      ).toBeVisible({ timeout: 10000 })
+      await expect(page.getByRole('heading', { name: '新規登録' })).toBeVisible(
+        { timeout: 10000 },
+      )
 
       await page.getByLabel('名前').fill('通貨テストユーザー2')
       await page.getByLabel('メールアドレス').fill(uniqueEmail2)
