@@ -85,11 +85,79 @@ export type Tournament = typeof tournaments.$inferSelect
 export type NewTournament = typeof tournaments.$inferInsert
 
 /**
- * TournamentPrizeLevel schema for tournament prize structures.
+ * Prize type enum values for tournament prize items.
+ * - percentage: プライズプールの何%が得られるか
+ * - fixed_amount: バイインと同じ仮想通貨の特定数量
+ * - custom_prize: カスタムプライズ（説明文と換算価値）
+ */
+export const PRIZE_TYPES = [
+  'percentage',
+  'fixed_amount',
+  'custom_prize',
+] as const
+export type PrizeType = (typeof PRIZE_TYPES)[number]
+
+/**
+ * TournamentPrizeStructure schema for entry count ranges.
  *
- * Defines prize payouts by position (percentage or fixed amount).
+ * Each tournament can have multiple prize structures for different entry count ranges.
  *
- * @see data-model.md Section 11. TournamentPrizeLevel
+ * @see data-model.md Section 11. TournamentPrizeStructure
+ */
+export const tournamentPrizeStructures = createTable(
+  'tournament_prize_structure',
+  (d) => ({
+    id: d
+      .varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    /**
+     * Parent tournament - required reference.
+     * Cascades on delete to remove all tournament's prize structures.
+     */
+    tournamentId: d
+      .varchar('tournament_id', { length: 255 })
+      .notNull()
+      .references(() => tournaments.id, { onDelete: 'cascade' }),
+    /**
+     * Minimum number of entrants for this structure (a人から)
+     */
+    minEntrants: d.integer('min_entrants').notNull(),
+    /**
+     * Maximum number of entrants for this structure (b人まで, null = no limit)
+     */
+    maxEntrants: d.integer('max_entrants'),
+    /**
+     * Display order
+     */
+    sortOrder: d.integer('sort_order').notNull().default(0),
+    /**
+     * Created timestamp
+     */
+    createdAt: d
+      .timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (t) => [
+    index('tournament_prize_structure_tournament_id_idx').on(t.tournamentId),
+    index('tournament_prize_structure_sort_order_idx').on(t.sortOrder),
+  ],
+)
+
+// Type exports
+export type TournamentPrizeStructure =
+  typeof tournamentPrizeStructures.$inferSelect
+export type NewTournamentPrizeStructure =
+  typeof tournamentPrizeStructures.$inferInsert
+
+/**
+ * TournamentPrizeLevel schema for position ranges within a prize structure.
+ *
+ * Each prize structure can have multiple prize levels for different position ranges.
+ *
+ * @see data-model.md Section 11a. TournamentPrizeLevel
  */
 export const tournamentPrizeLevels = createTable(
   'tournament_prize_level',
@@ -100,27 +168,25 @@ export const tournamentPrizeLevels = createTable(
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
     /**
-     * Parent tournament - required reference.
-     * Cascades on delete to remove all tournament's prize levels.
+     * Parent prize structure - required reference.
+     * Cascades on delete to remove all structure's prize levels.
      */
-    tournamentId: d
-      .varchar('tournament_id', { length: 255 })
+    prizeStructureId: d
+      .varchar('prize_structure_id', { length: 255 })
       .notNull()
-      .references(() => tournaments.id, { onDelete: 'cascade' }),
+      .references(() => tournamentPrizeStructures.id, { onDelete: 'cascade' }),
     /**
-     * Finishing position (1st, 2nd, 3rd, etc.)
+     * Starting position of the range (a位から)
      */
-    position: d.integer('position').notNull(),
+    minPosition: d.integer('min_position').notNull(),
     /**
-     * Prize percentage of total pool (0-100)
-     * Either percentage or fixedAmount should be set.
+     * Ending position of the range (b位まで)
      */
-    percentage: d.numeric('percentage', { precision: 5, scale: 2 }),
+    maxPosition: d.integer('max_position').notNull(),
     /**
-     * Fixed prize amount
-     * Either percentage or fixedAmount should be set.
+     * Display order
      */
-    fixedAmount: d.integer('fixed_amount'),
+    sortOrder: d.integer('sort_order').notNull().default(0),
     /**
      * Created timestamp
      */
@@ -130,8 +196,8 @@ export const tournamentPrizeLevels = createTable(
       .defaultNow(),
   }),
   (t) => [
-    index('tournament_prize_level_tournament_id_idx').on(t.tournamentId),
-    index('tournament_prize_level_position_idx').on(t.position),
+    index('tournament_prize_level_structure_id_idx').on(t.prizeStructureId),
+    index('tournament_prize_level_sort_order_idx').on(t.sortOrder),
   ],
 )
 
@@ -140,9 +206,78 @@ export type TournamentPrizeLevel = typeof tournamentPrizeLevels.$inferSelect
 export type NewTournamentPrizeLevel = typeof tournamentPrizeLevels.$inferInsert
 
 /**
+ * TournamentPrizeItem schema for individual prizes within a prize level.
+ *
+ * Each prize level can have multiple prize items (percentage, fixed amount, custom prize).
+ *
+ * @see data-model.md Section 11b. TournamentPrizeItem
+ */
+export const tournamentPrizeItems = createTable(
+  'tournament_prize_item',
+  (d) => ({
+    id: d
+      .varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    /**
+     * Parent prize level - required reference.
+     * Cascades on delete to remove all level's prize items.
+     */
+    prizeLevelId: d
+      .varchar('prize_level_id', { length: 255 })
+      .notNull()
+      .references(() => tournamentPrizeLevels.id, { onDelete: 'cascade' }),
+    /**
+     * Prize type: 'percentage', 'fixed_amount', or 'custom_prize'
+     */
+    prizeType: d.varchar('prize_type', { length: 20 }).notNull(),
+    /**
+     * Prize percentage of total pool (0-100)
+     * Used when prizeType = 'percentage'
+     */
+    percentage: d.numeric('percentage', { precision: 5, scale: 2 }),
+    /**
+     * Fixed prize amount in virtual currency
+     * Used when prizeType = 'fixed_amount'
+     */
+    fixedAmount: d.integer('fixed_amount'),
+    /**
+     * Custom prize description label
+     * Used when prizeType = 'custom_prize'
+     */
+    customPrizeLabel: d.text('custom_prize_label'),
+    /**
+     * Custom prize value in virtual currency equivalent
+     * Used when prizeType = 'custom_prize'
+     */
+    customPrizeValue: d.integer('custom_prize_value'),
+    /**
+     * Display order
+     */
+    sortOrder: d.integer('sort_order').notNull().default(0),
+    /**
+     * Created timestamp
+     */
+    createdAt: d
+      .timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (t) => [
+    index('tournament_prize_item_level_id_idx').on(t.prizeLevelId),
+    index('tournament_prize_item_sort_order_idx').on(t.sortOrder),
+  ],
+)
+
+// Type exports
+export type TournamentPrizeItem = typeof tournamentPrizeItems.$inferSelect
+export type NewTournamentPrizeItem = typeof tournamentPrizeItems.$inferInsert
+
+/**
  * TournamentBlindLevel schema for tournament blind structures.
  *
- * Defines blind levels with SB/BB, optional ante, and duration.
+ * Defines blind levels with SB/BB, optional ante, duration, and break support.
  *
  * @see data-model.md Section 12. TournamentBlindLevel
  */
@@ -167,19 +302,23 @@ export const tournamentBlindLevels = createTable(
      */
     level: d.integer('level').notNull(),
     /**
-     * Small blind amount for this level
+     * Whether this is a break (休憩) instead of a blind level
      */
-    smallBlind: d.integer('small_blind').notNull(),
+    isBreak: d.boolean('is_break').notNull().default(false),
     /**
-     * Big blind amount for this level (must be > smallBlind)
+     * Small blind amount for this level (nullable for breaks)
      */
-    bigBlind: d.integer('big_blind').notNull(),
+    smallBlind: d.integer('small_blind'),
+    /**
+     * Big blind amount for this level (nullable for breaks)
+     */
+    bigBlind: d.integer('big_blind'),
     /**
      * Optional ante amount for this level
      */
     ante: d.integer('ante'),
     /**
-     * Duration of this level in minutes
+     * Duration of this level/break in minutes
      */
     durationMinutes: d.integer('duration_minutes').notNull(),
     /**

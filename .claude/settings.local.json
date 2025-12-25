@@ -14,7 +14,10 @@
       "Bash(bun add:*)",
       "Bash(cat:*)",
       "Bash(bun run test:e2e:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "WebFetch(domain:help.mantine.dev)",
+      "WebFetch(domain:mantine.dev)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

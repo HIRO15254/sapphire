@@ -134,7 +134,7 @@ export const storeRouter = createTRPCRouter({
         orderBy: [desc(cashGames.createdAt)],
       })
 
-      // Get tournaments for this store with prize and blind levels
+      // Get tournaments for this store with prize structures and blind levels
       const tournamentList = await ctx.db.query.tournaments.findMany({
         where: and(
           eq(tournaments.storeId, store.id),
@@ -142,8 +142,18 @@ export const storeRouter = createTRPCRouter({
         ),
         with: {
           currency: true,
-          prizeLevels: {
-            orderBy: (levels, { asc }) => [asc(levels.position)],
+          prizeStructures: {
+            orderBy: (structures, { asc }) => [asc(structures.sortOrder)],
+            with: {
+              prizeLevels: {
+                orderBy: (levels, { asc }) => [asc(levels.sortOrder)],
+                with: {
+                  prizeItems: {
+                    orderBy: (items, { asc }) => [asc(items.sortOrder)],
+                  },
+                },
+              },
+            },
           },
           blindLevels: {
             orderBy: (levels, { asc }) => [asc(levels.level)],

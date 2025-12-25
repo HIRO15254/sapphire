@@ -6,7 +6,9 @@ import {
   softDelete,
   stores,
   tournamentBlindLevels,
+  tournamentPrizeItems,
   tournamentPrizeLevels,
+  tournamentPrizeStructures,
   tournaments,
 } from '~/server/db/schema'
 import {
@@ -16,7 +18,7 @@ import {
   getTournamentByIdSchema,
   listTournamentsByStoreSchema,
   setBlindLevelsSchema,
-  setPrizeLevelsSchema,
+  setPrizeStructuresSchema,
   updateTournamentSchema,
 } from '../schemas/tournament.schema'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
@@ -27,7 +29,7 @@ import { createTRPCRouter, protectedProcedure } from '../trpc'
  * All procedures require authentication (protectedProcedure).
  * Data isolation is enforced by filtering on userId.
  *
- * @see data-model.md Section 10-12. Tournament, TournamentPrizeLevel, TournamentBlindLevel
+ * @see data-model.md Section 10-12. Tournament, TournamentPrizeStructure, TournamentPrizeLevel, TournamentPrizeItem, TournamentBlindLevel
  */
 export const tournamentRouter = createTRPCRouter({
   // ============================================================================
@@ -84,7 +86,7 @@ export const tournamentRouter = createTRPCRouter({
     }),
 
   /**
-   * Get a single tournament by ID with prize and blind levels.
+   * Get a single tournament by ID with prize structures and blind levels.
    */
   getById: protectedProcedure
     .input(getTournamentByIdSchema)
@@ -100,8 +102,18 @@ export const tournamentRouter = createTRPCRouter({
         with: {
           store: true,
           currency: true,
-          prizeLevels: {
-            orderBy: (levels, { asc }) => [asc(levels.position)],
+          prizeStructures: {
+            orderBy: (structures, { asc }) => [asc(structures.sortOrder)],
+            with: {
+              prizeLevels: {
+                orderBy: (levels, { asc }) => [asc(levels.sortOrder)],
+                with: {
+                  prizeItems: {
+                    orderBy: (items, { asc }) => [asc(items.sortOrder)],
+                  },
+                },
+              },
+            },
           },
           blindLevels: {
             orderBy: (levels, { asc }) => [asc(levels.level)],
@@ -123,7 +135,7 @@ export const tournamentRouter = createTRPCRouter({
     }),
 
   /**
-   * Create a new tournament with optional prize and blind levels.
+   * Create a new tournament with optional prize structures and blind levels.
    */
   create: protectedProcedure
     .input(createTournamentSchema)
@@ -168,16 +180,47 @@ export const tournamentRouter = createTRPCRouter({
         })
       }
 
-      // Create prize levels if provided
-      if (input.prizeLevels && input.prizeLevels.length > 0) {
-        await ctx.db.insert(tournamentPrizeLevels).values(
-          input.prizeLevels.map((level) => ({
-            tournamentId: newTournament.id,
-            position: level.position,
-            percentage: level.percentage?.toString(),
-            fixedAmount: level.fixedAmount,
-          })),
-        )
+      // Create prize structures if provided (hierarchical)
+      if (input.prizeStructures && input.prizeStructures.length > 0) {
+        for (const [sIdx, structure] of input.prizeStructures.entries()) {
+          const [newStructure] = await ctx.db
+            .insert(tournamentPrizeStructures)
+            .values({
+              tournamentId: newTournament.id,
+              minEntrants: structure.minEntrants,
+              maxEntrants: structure.maxEntrants ?? null,
+              sortOrder: structure.sortOrder ?? sIdx,
+            })
+            .returning()
+
+          if (newStructure && structure.prizeLevels.length > 0) {
+            for (const [lIdx, level] of structure.prizeLevels.entries()) {
+              const [newLevel] = await ctx.db
+                .insert(tournamentPrizeLevels)
+                .values({
+                  prizeStructureId: newStructure.id,
+                  minPosition: level.minPosition,
+                  maxPosition: level.maxPosition,
+                  sortOrder: level.sortOrder ?? lIdx,
+                })
+                .returning()
+
+              if (newLevel && level.prizeItems.length > 0) {
+                await ctx.db.insert(tournamentPrizeItems).values(
+                  level.prizeItems.map((item, iIdx) => ({
+                    prizeLevelId: newLevel.id,
+                    prizeType: item.prizeType,
+                    percentage: item.percentage?.toString() ?? null,
+                    fixedAmount: item.fixedAmount ?? null,
+                    customPrizeLabel: item.customPrizeLabel ?? null,
+                    customPrizeValue: item.customPrizeValue ?? null,
+                    sortOrder: item.sortOrder ?? iIdx,
+                  })),
+                )
+              }
+            }
+          }
+        }
       }
 
       // Create blind levels if provided
@@ -186,9 +229,10 @@ export const tournamentRouter = createTRPCRouter({
           input.blindLevels.map((level) => ({
             tournamentId: newTournament.id,
             level: level.level,
-            smallBlind: level.smallBlind,
-            bigBlind: level.bigBlind,
-            ante: level.ante,
+            isBreak: level.isBreak ?? false,
+            smallBlind: level.smallBlind ?? null,
+            bigBlind: level.bigBlind ?? null,
+            ante: level.ante ?? null,
             durationMinutes: level.durationMinutes,
           })),
         )
@@ -307,14 +351,15 @@ export const tournamentRouter = createTRPCRouter({
     }),
 
   // ============================================================================
-  // Prize Level Management
+  // Prize Structure Management (Hierarchical)
   // ============================================================================
 
   /**
-   * Set prize levels for a tournament (replaces all existing).
+   * Set prize structures for a tournament (replaces all existing).
+   * Hierarchical: Structure -> Level -> Item
    */
-  setPrizeLevels: protectedProcedure
-    .input(setPrizeLevelsSchema)
+  setPrizeStructures: protectedProcedure
+    .input(setPrizeStructuresSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id
 
@@ -334,21 +379,50 @@ export const tournamentRouter = createTRPCRouter({
         })
       }
 
-      // Delete existing prize levels
+      // Delete existing prize structures (cascades to levels and items)
       await ctx.db
-        .delete(tournamentPrizeLevels)
-        .where(eq(tournamentPrizeLevels.tournamentId, input.tournamentId))
+        .delete(tournamentPrizeStructures)
+        .where(eq(tournamentPrizeStructures.tournamentId, input.tournamentId))
 
-      // Insert new prize levels
-      if (input.levels.length > 0) {
-        await ctx.db.insert(tournamentPrizeLevels).values(
-          input.levels.map((level) => ({
+      // Insert new prize structures (hierarchical)
+      for (const [sIdx, structure] of input.structures.entries()) {
+        const [newStructure] = await ctx.db
+          .insert(tournamentPrizeStructures)
+          .values({
             tournamentId: input.tournamentId,
-            position: level.position,
-            percentage: level.percentage?.toString(),
-            fixedAmount: level.fixedAmount,
-          })),
-        )
+            minEntrants: structure.minEntrants,
+            maxEntrants: structure.maxEntrants ?? null,
+            sortOrder: structure.sortOrder ?? sIdx,
+          })
+          .returning()
+
+        if (newStructure && structure.prizeLevels.length > 0) {
+          for (const [lIdx, level] of structure.prizeLevels.entries()) {
+            const [newLevel] = await ctx.db
+              .insert(tournamentPrizeLevels)
+              .values({
+                prizeStructureId: newStructure.id,
+                minPosition: level.minPosition,
+                maxPosition: level.maxPosition,
+                sortOrder: level.sortOrder ?? lIdx,
+              })
+              .returning()
+
+            if (newLevel && level.prizeItems.length > 0) {
+              await ctx.db.insert(tournamentPrizeItems).values(
+                level.prizeItems.map((item, iIdx) => ({
+                  prizeLevelId: newLevel.id,
+                  prizeType: item.prizeType,
+                  percentage: item.percentage?.toString() ?? null,
+                  fixedAmount: item.fixedAmount ?? null,
+                  customPrizeLabel: item.customPrizeLabel ?? null,
+                  customPrizeValue: item.customPrizeValue ?? null,
+                  sortOrder: item.sortOrder ?? iIdx,
+                })),
+              )
+            }
+          }
+        }
       }
 
       return { success: true }
@@ -393,9 +467,10 @@ export const tournamentRouter = createTRPCRouter({
           input.levels.map((level) => ({
             tournamentId: input.tournamentId,
             level: level.level,
-            smallBlind: level.smallBlind,
-            bigBlind: level.bigBlind,
-            ante: level.ante,
+            isBreak: level.isBreak ?? false,
+            smallBlind: level.smallBlind ?? null,
+            bigBlind: level.bigBlind ?? null,
+            ante: level.ante ?? null,
             durationMinutes: level.durationMinutes,
           })),
         )

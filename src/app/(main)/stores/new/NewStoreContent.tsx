@@ -5,7 +5,7 @@ import {
   Container,
   Paper,
   Stack,
-  Textarea,
+  Text,
   TextInput,
   Title,
 } from '@mantine/core'
@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import { z } from 'zod'
 
+import { RichTextEditor } from '~/components/ui/RichTextEditor'
 import { createStore } from '../actions'
 
 // Schema for form
@@ -30,6 +31,11 @@ const createStoreSchema = z.object({
     .string()
     .max(500, '住所は500文字以下で入力してください')
     .optional(),
+  customMapUrl: z
+    .string()
+    .url('有効なURLを入力してください')
+    .optional()
+    .or(z.literal('')),
   notes: z.string().optional(),
 })
 
@@ -47,6 +53,7 @@ export function NewStoreContent() {
     initialValues: {
       name: '',
       address: '',
+      customMapUrl: '',
       notes: '',
     },
     validate: zodResolver(createStoreSchema),
@@ -57,6 +64,7 @@ export function NewStoreContent() {
       const result = await createStore({
         name: values.name,
         address: values.address || undefined,
+        customMapUrl: values.customMapUrl || undefined,
         notes: values.notes || undefined,
       })
 
@@ -106,12 +114,21 @@ export function NewStoreContent() {
                 placeholder="例: 東京都渋谷区..."
                 {...form.getInputProps('address')}
               />
-              <Textarea
-                label="メモ"
-                minRows={3}
-                placeholder="店舗に関するメモを入力"
-                {...form.getInputProps('notes')}
+              <TextInput
+                description="店舗のGoogle Mapsリンクをカスタム設定できます"
+                label="Google Maps URL"
+                placeholder="https://maps.google.com/..."
+                {...form.getInputProps('customMapUrl')}
               />
+              <Stack gap="xs">
+                <Text fw={500} size="sm">
+                  メモ
+                </Text>
+                <RichTextEditor
+                  content={form.getValues().notes ?? ''}
+                  onChange={(value) => form.setFieldValue('notes', value)}
+                />
+              </Stack>
               <Button fullWidth loading={isCreating} mt="md" type="submit">
                 店舗を作成
               </Button>

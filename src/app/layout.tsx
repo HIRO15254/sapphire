@@ -43,12 +43,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ja" {...mantineHtmlProps}>
+    <html lang="ja" {...mantineHtmlProps} suppressHydrationWarning>
       <head>
-        <ColorSchemeScript />
+        <ColorSchemeScript defaultColorScheme="auto" />
       </head>
       <body className={notoSansJP.variable}>
-        <MantineProvider theme={theme}>
+        <MantineProvider defaultColorScheme="auto" theme={theme}>
           <Notifications position="top-right" />
           <TRPCReactProvider>{children}</TRPCReactProvider>
         </MantineProvider>

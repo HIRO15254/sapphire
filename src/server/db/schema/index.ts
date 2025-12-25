@@ -44,12 +44,20 @@ export {
 export {
   type NewTournament,
   type NewTournamentBlindLevel,
+  type NewTournamentPrizeItem,
   type NewTournamentPrizeLevel,
+  type NewTournamentPrizeStructure,
+  PRIZE_TYPES,
+  type PrizeType,
   type Tournament,
   type TournamentBlindLevel,
+  type TournamentPrizeItem,
   type TournamentPrizeLevel,
+  type TournamentPrizeStructure,
   tournamentBlindLevels,
+  tournamentPrizeItems,
   tournamentPrizeLevels,
+  tournamentPrizeStructures,
   tournaments,
 } from './tournament'
 // Export tables
@@ -69,7 +77,9 @@ import { purchaseTransactions } from './purchaseTransaction'
 import { stores } from './store'
 import {
   tournamentBlindLevels,
+  tournamentPrizeItems,
   tournamentPrizeLevels,
+  tournamentPrizeStructures,
   tournaments,
 } from './tournament'
 import { users } from './user'
@@ -168,7 +178,7 @@ export const cashGamesRelations = relations(cashGames, ({ one }) => ({
 }))
 
 /**
- * Tournament relations to store, user, currency, prize levels, and blind levels.
+ * Tournament relations to store, user, currency, prize structures, and blind levels.
  */
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   store: one(stores, {
@@ -183,19 +193,47 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
     fields: [tournaments.currencyId],
     references: [currencies.id],
   }),
-  prizeLevels: many(tournamentPrizeLevels),
+  prizeStructures: many(tournamentPrizeStructures),
   blindLevels: many(tournamentBlindLevels),
 }))
 
 /**
- * TournamentPrizeLevel relations to tournament.
+ * TournamentPrizeStructure relations to tournament and prize levels.
+ */
+export const tournamentPrizeStructuresRelations = relations(
+  tournamentPrizeStructures,
+  ({ one, many }) => ({
+    tournament: one(tournaments, {
+      fields: [tournamentPrizeStructures.tournamentId],
+      references: [tournaments.id],
+    }),
+    prizeLevels: many(tournamentPrizeLevels),
+  }),
+)
+
+/**
+ * TournamentPrizeLevel relations to prize structure and prize items.
  */
 export const tournamentPrizeLevelsRelations = relations(
   tournamentPrizeLevels,
+  ({ one, many }) => ({
+    prizeStructure: one(tournamentPrizeStructures, {
+      fields: [tournamentPrizeLevels.prizeStructureId],
+      references: [tournamentPrizeStructures.id],
+    }),
+    prizeItems: many(tournamentPrizeItems),
+  }),
+)
+
+/**
+ * TournamentPrizeItem relations to prize level.
+ */
+export const tournamentPrizeItemsRelations = relations(
+  tournamentPrizeItems,
   ({ one }) => ({
-    tournament: one(tournaments, {
-      fields: [tournamentPrizeLevels.tournamentId],
-      references: [tournaments.id],
+    prizeLevel: one(tournamentPrizeLevels, {
+      fields: [tournamentPrizeItems.prizeLevelId],
+      references: [tournamentPrizeLevels.id],
     }),
   }),
 )

@@ -26,6 +26,10 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "suspicious": {
+        // 編集中の動的リストで一意IDがないためインデックスをkeyに使用することを許可
+        "noArrayIndexKey": "off"
+      },
       "nursery": {
         "useSortedClasses": {
           "level": "warn",

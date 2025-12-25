@@ -84,7 +84,15 @@ describe('OAuth Login Flow', () => {
 
     it('should include user id in JWT token', () => {
       // JWT callback should add user.id to token
-      const jwtCallback = ({ token, user }: { token: any; user?: any }) => {
+      type JwtToken = { id?: string }
+      type JwtUser = { id: string }
+      const jwtCallback = ({
+        token,
+        user,
+      }: {
+        token: JwtToken
+        user?: JwtUser
+      }) => {
         if (user) {
           token.id = user.id
         }
@@ -105,17 +113,20 @@ describe('OAuth Login Flow', () => {
 
     it('should include user id in session from token', () => {
       // Session callback should add token.id to session.user
+      type SessionUser = { email?: string; id?: string }
+      type Session = { user?: SessionUser }
+      type SessionToken = { id: string }
       const sessionCallback = ({
         session,
         token,
       }: {
-        session: any
-        token: any
+        session: Session
+        token: SessionToken
       }) => ({
         ...session,
         user: {
           ...session.user,
-          id: token.id as string,
+          id: token.id,
         },
       })
 

@@ -10,6 +10,7 @@ import {
   Container,
   Divider,
   Group,
+  Menu,
   Modal,
   NumberInput,
   Paper,
@@ -33,8 +34,11 @@ import {
   IconArrowLeft,
   IconChevronDown,
   IconChevronUp,
+  IconCoffee,
+  IconCoins,
   IconEdit,
-  IconList,
+  IconGift,
+  IconPercentage,
   IconPlus,
   IconPokerChip,
   IconTrash,
@@ -60,7 +64,7 @@ import {
   deleteStore,
   deleteTournament,
   setTournamentBlindLevels,
-  setTournamentPrizeLevels,
+  setTournamentPrizeStructures,
   unarchiveStore,
   updateCashGame,
   updateStore,
@@ -205,27 +209,40 @@ export function StoreDetailContent({
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(
     null,
   )
-  const [editingStructureTournament, setEditingStructureTournament] =
-    useState<Tournament | null>(null)
   const [blindLevels, setBlindLevels] = useState<
     Array<{
       level: number
-      smallBlind: number
-      bigBlind: number
-      ante?: number
+      isBreak: boolean
+      smallBlind?: number | null
+      bigBlind?: number | null
+      ante?: number | null
       durationMinutes: number
     }>
   >([])
-  const [prizeLevels, setPrizeLevels] = useState<
-    Array<{
-      position: number
-      percentage?: number
-      fixedAmount?: number
-    }>
-  >([])
-  const [activeStructureTab, setActiveStructureTab] = useState<string | null>(
-    'blinds',
-  )
+  // Prize structure state - hierarchical: Structure -> Level -> Item
+  type PrizeItem = {
+    prizeType: 'percentage' | 'fixed_amount' | 'custom_prize'
+    percentage?: number | null
+    fixedAmount?: number | null
+    customPrizeLabel?: string | null
+    customPrizeValue?: number | null
+    sortOrder: number
+  }
+  type PrizeLevel = {
+    minPosition: number
+    maxPosition: number
+    sortOrder: number
+    prizeItems: PrizeItem[]
+  }
+  type PrizeStructure = {
+    minEntrants: number
+    maxEntrants?: number | null
+    sortOrder: number
+    prizeLevels: PrizeLevel[]
+  }
+  const [prizeStructures, setPrizeStructures] = useState<PrizeStructure[]>([])
+  const [activePrizeTab, setActivePrizeTab] = useState<string | null>('0')
+  const [tournamentTab, setTournamentTab] = useState<string | null>('basic')
 
   // Modal states
   const [editMode, { toggle: toggleEditMode, close: closeEditMode }] =
@@ -242,10 +259,6 @@ export function StoreDetailContent({
     tournamentModalOpened,
     { open: openTournamentModal, close: closeTournamentModal },
   ] = useDisclosure(false)
-  const [
-    structureModalOpened,
-    { open: openStructureModal, close: closeStructureModal },
-  ] = useDisclosure(false)
 
   // Transition states for Server Actions
   const [isUpdating, startUpdateTransition] = useTransition()
@@ -253,7 +266,6 @@ export function StoreDetailContent({
   const [isDeleting, startDeleteTransition] = useTransition()
   const [isSavingCashGame, startSaveCashGameTransition] = useTransition()
   const [isSavingTournament, startSaveTournamentTransition] = useTransition()
-  const [isSavingStructure, startSaveStructureTransition] = useTransition()
 
   // Forms
   const editForm = useForm({
@@ -306,9 +318,7 @@ export function StoreDetailContent({
   const openCashGameForEdit = (game: CashGame) => {
     setEditingCashGame(game)
     // Auto-expand if straddle or ante exists
-    setShowCashGameAdvanced(
-      !!(game.straddle1 || game.straddle2 || game.ante),
-    )
+    setShowCashGameAdvanced(!!(game.straddle1 || game.straddle2 || game.ante))
     cashGameForm.setValues({
       currencyId: game.currencyId ?? '',
       smallBlind: game.smallBlind,
@@ -326,10 +336,17 @@ export function StoreDetailContent({
   const openTournamentForCreate = () => {
     setEditingTournament(null)
     tournamentForm.reset()
+    setBlindLevels([])
+    setPrizeStructures([])
+    setActivePrizeTab('0')
+    setTournamentTab('basic')
     openTournamentModal()
   }
 
-  const openTournamentForEdit = (tournament: Tournament) => {
+  const openTournamentForEdit = (
+    tournament: Tournament,
+    initialTab: 'basic' | 'blind' | 'prize' = 'basic',
+  ) => {
     setEditingTournament(tournament)
     tournamentForm.setValues({
       currencyId: tournament.currencyId ?? '',
@@ -339,49 +356,84 @@ export function StoreDetailContent({
       startingStack: tournament.startingStack,
       notes: tournament.notes ?? '',
     })
-    openTournamentModal()
-  }
-
-  // Open structure modal for editing blind/prize levels
-  const openStructureForEdit = (tournament: Tournament) => {
-    setEditingStructureTournament(tournament)
+    // Load blind levels
     setBlindLevels(
       tournament.blindLevels.map((bl) => ({
         level: bl.level,
+        isBreak: bl.isBreak ?? false,
         smallBlind: bl.smallBlind,
         bigBlind: bl.bigBlind,
         ante: bl.ante ?? undefined,
         durationMinutes: bl.durationMinutes,
       })),
     )
-    setPrizeLevels(
-      tournament.prizeLevels.map((pl) => ({
-        position: pl.position,
-        percentage: pl.percentage ? Number(pl.percentage) : undefined,
-        fixedAmount: pl.fixedAmount ?? undefined,
+    // Load prize structures
+    setPrizeStructures(
+      tournament.prizeStructures.map((ps, sIdx) => ({
+        minEntrants: ps.minEntrants,
+        maxEntrants: ps.maxEntrants,
+        sortOrder: ps.sortOrder ?? sIdx,
+        prizeLevels: ps.prizeLevels.map((pl, lIdx) => ({
+          minPosition: pl.minPosition,
+          maxPosition: pl.maxPosition,
+          sortOrder: pl.sortOrder ?? lIdx,
+          prizeItems: pl.prizeItems.map((pi, iIdx) => ({
+            prizeType: pi.prizeType as
+              | 'percentage'
+              | 'fixed_amount'
+              | 'custom_prize',
+            percentage: pi.percentage ? Number(pi.percentage) : null,
+            fixedAmount: pi.fixedAmount ?? null,
+            customPrizeLabel: pi.customPrizeLabel ?? null,
+            customPrizeValue: pi.customPrizeValue ?? null,
+            sortOrder: pi.sortOrder ?? iIdx,
+          })),
+        })),
       })),
     )
-    setActiveStructureTab('blinds')
-    openStructureModal()
+    setActivePrizeTab('0')
+    setTournamentTab(initialTab)
+    openTournamentModal()
   }
 
   // Add blind level
-  const addBlindLevel = () => {
+  const addBlindLevel = (isBreak = false) => {
     const nextLevel =
       blindLevels.length > 0
         ? Math.max(...blindLevels.map((l) => l.level)) + 1
         : 1
     const prevLevel = blindLevels[blindLevels.length - 1]
-    setBlindLevels([
-      ...blindLevels,
-      {
-        level: nextLevel,
-        smallBlind: prevLevel ? prevLevel.smallBlind * 2 : 100,
-        bigBlind: prevLevel ? prevLevel.bigBlind * 2 : 200,
-        ante: prevLevel?.ante ? prevLevel.ante * 2 : undefined,
-        durationMinutes: prevLevel?.durationMinutes ?? 20,
-      },
-    ])
+    if (isBreak) {
+      setBlindLevels([
+        ...blindLevels,
+        {
+          level: nextLevel,
+          isBreak: true,
+          smallBlind: null,
+          bigBlind: null,
+          ante: null,
+          durationMinutes: 10,
+        },
+      ])
+    } else {
+      setBlindLevels([
+        ...blindLevels,
+        {
+          level: nextLevel,
+          isBreak: false,
+          smallBlind:
+            prevLevel && !prevLevel.isBreak
+              ? (prevLevel.smallBlind ?? 100) * 2
+              : 100,
+          bigBlind:
+            prevLevel && !prevLevel.isBreak
+              ? (prevLevel.bigBlind ?? 200) * 2
+              : 200,
+          ante: prevLevel?.ante ? prevLevel.ante * 2 : undefined,
+          durationMinutes: prevLevel?.durationMinutes ?? 20,
+        },
+      ])
+    }
   }
 
   // Remove blind level
@@ -389,49 +441,205 @@ export function StoreDetailContent({
     setBlindLevels(blindLevels.filter((_, i) => i !== index))
   }
 
-  // Update blind level
+  // Update blind level (auto-fill SB and Ante when BB is changed)
   const updateBlindLevel = (
     index: number,
     field: keyof (typeof blindLevels)[number],
     value: number | undefined,
   ) => {
     setBlindLevels((prev) =>
-      prev.map((level, i) =>
-        i === index ? { ...level, [field]: value } : level,
-      ),
+      prev.map((level, i) => {
+        if (i !== index) return level
+        // Auto-fill SB = BB/2 and Ante = BB when BB is changed
+        if (field === 'bigBlind' && typeof value === 'number') {
+          return {
+            ...level,
+            bigBlind: value,
+            smallBlind: Math.floor(value / 2),
+            ante: value,
+          }
+        }
+        return { ...level, [field]: value }
+      }),
     )
   }
 
-  // Add prize level
-  const addPrizeLevel = () => {
-    const nextPosition =
-      prizeLevels.length > 0
-        ? Math.max(...prizeLevels.map((l) => l.position)) + 1
-        : 1
-    setPrizeLevels([
-      ...prizeLevels,
+  // Add prize structure (entry count range)
+  const addPrizeStructure = () => {
+    const prevStructure = prizeStructures[prizeStructures.length - 1]
+    const nextSortOrder = prizeStructures.length
+    setPrizeStructures([
+      ...prizeStructures,
       {
-        position: nextPosition,
-        percentage: undefined,
-        fixedAmount: undefined,
+        minEntrants: prevStructure
+          ? (prevStructure.maxEntrants ?? prevStructure.minEntrants) + 1
+          : 1,
+        maxEntrants: null,
+        sortOrder: nextSortOrder,
+        prizeLevels: [],
       },
     ])
   }
 
-  // Remove prize level
-  const removePrizeLevel = (index: number) => {
-    setPrizeLevels(prizeLevels.filter((_, i) => i !== index))
+  // Remove prize structure
+  const removePrizeStructure = (sIdx: number) => {
+    setPrizeStructures(prizeStructures.filter((_, i) => i !== sIdx))
+  }
+
+  // Update prize structure
+  const updatePrizeStructure = (
+    sIdx: number,
+    field: 'minEntrants' | 'maxEntrants',
+    value: number | null,
+  ) => {
+    setPrizeStructures((prev) =>
+      prev.map((s, i) => (i === sIdx ? { ...s, [field]: value } : s)),
+    )
+  }
+
+  // Add prize level to a structure (copy prizes from previous level)
+  const addPrizeLevel = (sIdx: number) => {
+    setPrizeStructures((prev) =>
+      prev.map((s, i) => {
+        if (i !== sIdx) return s
+        const prevLevel = s.prizeLevels[s.prizeLevels.length - 1]
+        const nextMinPosition = prevLevel ? prevLevel.maxPosition + 1 : 1
+        // Copy prize items from previous level
+        const copiedPrizeItems = prevLevel
+          ? prevLevel.prizeItems.map((item, idx) => ({
+              ...item,
+              sortOrder: idx,
+            }))
+          : []
+        return {
+          ...s,
+          prizeLevels: [
+            ...s.prizeLevels,
+            {
+              minPosition: nextMinPosition,
+              maxPosition: nextMinPosition,
+              sortOrder: s.prizeLevels.length,
+              prizeItems: copiedPrizeItems,
+            },
+          ],
+        }
+      }),
+    )
+  }
+
+  // Remove prize level from a structure
+  const removePrizeLevel = (sIdx: number, lIdx: number) => {
+    setPrizeStructures((prev) =>
+      prev.map((s, i) =>
+        i === sIdx
+          ? { ...s, prizeLevels: s.prizeLevels.filter((_, j) => j !== lIdx) }
+          : s,
+      ),
+    )
   }
 
   // Update prize level
   const updatePrizeLevel = (
-    index: number,
-    field: keyof (typeof prizeLevels)[number],
-    value: number | undefined,
+    sIdx: number,
+    lIdx: number,
+    field: 'minPosition' | 'maxPosition',
+    value: number,
   ) => {
-    setPrizeLevels((prev) =>
-      prev.map((level, i) =>
-        i === index ? { ...level, [field]: value } : level,
+    setPrizeStructures((prev) =>
+      prev.map((s, i) =>
+        i === sIdx
+          ? {
+              ...s,
+              prizeLevels: s.prizeLevels.map((l, j) =>
+                j === lIdx ? { ...l, [field]: value } : l,
+              ),
+            }
+          : s,
+      ),
+    )
+  }
+
+  // Add prize item to a level
+  const addPrizeItem = (
+    sIdx: number,
+    lIdx: number,
+    prizeType: 'percentage' | 'fixed_amount' | 'custom_prize',
+  ) => {
+    setPrizeStructures((prev) =>
+      prev.map((s, i) =>
+        i === sIdx
+          ? {
+              ...s,
+              prizeLevels: s.prizeLevels.map((l, j) =>
+                j === lIdx
+                  ? {
+                      ...l,
+                      prizeItems: [
+                        ...l.prizeItems,
+                        {
+                          prizeType,
+                          percentage: null,
+                          fixedAmount: null,
+                          customPrizeLabel: null,
+                          customPrizeValue: null,
+                          sortOrder: l.prizeItems.length,
+                        },
+                      ],
+                    }
+                  : l,
+              ),
+            }
+          : s,
+      ),
+    )
+  }
+
+  // Remove prize item
+  const removePrizeItem = (sIdx: number, lIdx: number, iIdx: number) => {
+    setPrizeStructures((prev) =>
+      prev.map((s, i) =>
+        i === sIdx
+          ? {
+              ...s,
+              prizeLevels: s.prizeLevels.map((l, j) =>
+                j === lIdx
+                  ? {
+                      ...l,
+                      prizeItems: l.prizeItems.filter((_, k) => k !== iIdx),
+                    }
+                  : l,
+              ),
+            }
+          : s,
+      ),
+    )
+  }
+
+  // Update prize item
+  const updatePrizeItem = (
+    sIdx: number,
+    lIdx: number,
+    iIdx: number,
+    field: keyof PrizeItem,
+    value: number | string | null,
+  ) => {
+    setPrizeStructures((prev) =>
+      prev.map((s, i) =>
+        i === sIdx
+          ? {
+              ...s,
+              prizeLevels: s.prizeLevels.map((l, j) =>
+                j === lIdx
+                  ? {
+                      ...l,
+                      prizeItems: l.prizeItems.map((p, k) =>
+                        k === iIdx ? { ...p, [field]: value } : p,
+                      ),
+                    }
+                  : l,
+              ),
+            }
+          : s,
       ),
     )
   }
@@ -593,9 +801,25 @@ export function StoreDetailContent({
   })
 
   const handleTournamentSubmit = tournamentForm.onSubmit((values) => {
+    // Validate prize structure before saving
+    if (prizeStructures.length > 0) {
+      const prizeValidationError = validatePrizeStructure()
+      if (prizeValidationError) {
+        notifications.show({
+          title: 'プライズストラクチャーエラー',
+          message: prizeValidationError,
+          color: 'red',
+        })
+        setTournamentTab('prize')
+        return
+      }
+    }
+
     startSaveTournamentTransition(async () => {
+      let tournamentId: string
+
       if (editingTournament) {
-        // Update existing
+        // Update existing tournament
         const result = await updateTournament({
           id: editingTournament.id,
           currencyId: values.currencyId || undefined,
@@ -606,25 +830,17 @@ export function StoreDetailContent({
           notes: values.notes || undefined,
         })
 
-        if (result.success) {
-          notifications.show({
-            title: '更新完了',
-            message: 'トーナメントを更新しました',
-            color: 'green',
-          })
-          closeTournamentModal()
-          tournamentForm.reset()
-          setEditingTournament(null)
-          router.refresh()
-        } else {
+        if (!result.success) {
           notifications.show({
             title: 'エラー',
             message: result.error,
             color: 'red',
           })
+          return
         }
+        tournamentId = editingTournament.id
       } else {
-        // Create new
+        // Create new tournament
         const result = await createTournament({
           storeId,
           currencyId: values.currencyId || undefined,
@@ -635,23 +851,88 @@ export function StoreDetailContent({
           notes: values.notes || undefined,
         })
 
-        if (result.success) {
-          notifications.show({
-            title: '作成完了',
-            message: 'トーナメントを追加しました',
-            color: 'green',
-          })
-          closeTournamentModal()
-          tournamentForm.reset()
-          router.refresh()
-        } else {
+        if (!result.success) {
           notifications.show({
             title: 'エラー',
             message: result.error,
             color: 'red',
           })
+          return
+        }
+        tournamentId = result.data.id
+      }
+
+      // Save blind levels if any
+      if (blindLevels.length > 0) {
+        const blindResult = await setTournamentBlindLevels({
+          tournamentId,
+          levels: blindLevels.map((bl) => ({
+            level: bl.level,
+            isBreak: bl.isBreak,
+            smallBlind: bl.isBreak ? null : bl.smallBlind,
+            bigBlind: bl.isBreak ? null : bl.bigBlind,
+            ante: bl.ante,
+            durationMinutes: bl.durationMinutes,
+          })),
+        })
+
+        if (!blindResult.success) {
+          notifications.show({
+            title: 'ブラインドストラクチャーエラー',
+            message: blindResult.error,
+            color: 'red',
+          })
+          return
         }
       }
+
+      // Save prize structures if any
+      if (prizeStructures.length > 0) {
+        const prizeResult = await setTournamentPrizeStructures({
+          tournamentId,
+          structures: prizeStructures.map((ps) => ({
+            minEntrants: ps.minEntrants,
+            maxEntrants: ps.maxEntrants,
+            sortOrder: ps.sortOrder,
+            prizeLevels: ps.prizeLevels.map((pl) => ({
+              minPosition: pl.minPosition,
+              maxPosition: pl.maxPosition,
+              sortOrder: pl.sortOrder,
+              prizeItems: pl.prizeItems.map((pi) => ({
+                prizeType: pi.prizeType,
+                percentage: pi.percentage,
+                fixedAmount: pi.fixedAmount,
+                customPrizeLabel: pi.customPrizeLabel,
+                customPrizeValue: pi.customPrizeValue,
+                sortOrder: pi.sortOrder,
+              })),
+            })),
+          })),
+        })
+
+        if (!prizeResult.success) {
+          notifications.show({
+            title: 'プライズストラクチャーエラー',
+            message: prizeResult.error,
+            color: 'red',
+          })
+          return
+        }
+      }
+
+      notifications.show({
+        title: editingTournament ? '更新完了' : '作成完了',
+        message: editingTournament
+          ? 'トーナメントを更新しました'
+          : 'トーナメントを追加しました',
+        color: 'green',
+      })
+      closeTournamentModal()
+      tournamentForm.reset()
+      setEditingTournament(null)
+      setBlindLevels([])
+      setPrizeStructures([])
+      router.refresh()
     })
   })
 
@@ -755,60 +1036,66 @@ export function StoreDetailContent({
     })
   }
 
-  // Save tournament structure (blind levels and prize levels)
-  const handleSaveStructure = () => {
-    if (!editingStructureTournament) return
+  // Validate prize structure
+  const validatePrizeStructure = (): string | null => {
+    // Check for overlapping entry count ranges
+    for (let i = 0; i < prizeStructures.length; i++) {
+      const s1 = prizeStructures[i]
+      if (!s1) continue
+      for (let j = i + 1; j < prizeStructures.length; j++) {
+        const s2 = prizeStructures[j]
+        if (!s2) continue
+        const s1Max = s1.maxEntrants ?? Infinity
+        const s2Max = s2.maxEntrants ?? Infinity
+        // Check if ranges overlap
+        if (s1.minEntrants <= s2Max && s2.minEntrants <= s1Max) {
+          return `エントリー数範囲が重複しています: ${s1.minEntrants}〜${s1.maxEntrants ?? '∞'}人 と ${s2.minEntrants}〜${s2.maxEntrants ?? '∞'}人`
+        }
+      }
+    }
 
-    startSaveStructureTransition(async () => {
-      // Save blind levels
-      const blindResult = await setTournamentBlindLevels({
-        tournamentId: editingStructureTournament.id,
-        levels: blindLevels.map((bl) => ({
-          level: bl.level,
-          smallBlind: bl.smallBlind,
-          bigBlind: bl.bigBlind,
-          ante: bl.ante,
-          durationMinutes: bl.durationMinutes,
-        })),
-      })
+    // Check each structure
+    for (const structure of prizeStructures) {
+      const entryRange = `${structure.minEntrants}〜${structure.maxEntrants ?? '∞'}人`
 
-      if (!blindResult.success) {
-        notifications.show({
-          title: 'エラー',
-          message: blindResult.error,
-          color: 'red',
-        })
-        return
+      // Check for overlapping position ranges within the same structure
+      for (let i = 0; i < structure.prizeLevels.length; i++) {
+        const l1 = structure.prizeLevels[i]
+        if (!l1) continue
+        for (let j = i + 1; j < structure.prizeLevels.length; j++) {
+          const l2 = structure.prizeLevels[j]
+          if (!l2) continue
+          // Check if position ranges overlap
+          if (
+            l1.minPosition <= l2.maxPosition &&
+            l2.minPosition <= l1.maxPosition
+          ) {
+            return `${entryRange}の順位範囲が重複しています: ${l1.minPosition}〜${l1.maxPosition}位 と ${l2.minPosition}〜${l2.maxPosition}位`
+          }
+        }
       }
 
-      // Save prize levels
-      const prizeResult = await setTournamentPrizeLevels({
-        tournamentId: editingStructureTournament.id,
-        levels: prizeLevels.map((pl) => ({
-          position: pl.position,
-          percentage: pl.percentage,
-          fixedAmount: pl.fixedAmount,
-        })),
-      })
+      // Check percentage totals for each position range
+      for (const level of structure.prizeLevels) {
+        const positionRange = `${level.minPosition}〜${level.maxPosition}位`
+        const percentageItems = level.prizeItems.filter(
+          (item) => item.prizeType === 'percentage',
+        )
 
-      if (!prizeResult.success) {
-        notifications.show({
-          title: 'エラー',
-          message: prizeResult.error,
-          color: 'red',
-        })
-        return
+        if (percentageItems.length > 0) {
+          const totalPercentage = percentageItems.reduce(
+            (sum, item) => sum + (item.percentage ?? 0),
+            0,
+          )
+          // Allow small floating point errors
+          if (Math.abs(totalPercentage - 100) > 0.01) {
+            return `${entryRange}の${positionRange}のパーセンテージ合計が100%ではありません（現在: ${totalPercentage.toFixed(2)}%）`
+          }
+        }
       }
+    }
 
-      notifications.show({
-        title: '保存完了',
-        message: 'トーナメントストラクチャーを保存しました',
-        color: 'green',
-      })
-      closeStructureModal()
-      setEditingStructureTournament(null)
-      router.refresh()
-    })
+    return null
   }
 
   // Currency options for selects
@@ -1186,7 +1473,7 @@ export function StoreDetailContent({
                           </Table.Td>
                           <Table.Td>
                             {tournament.rake
-                              ? `${tournament.buyIn.toLocaleString()} (${tournament.rake.toLocaleString()})`
+                              ? `${(tournament.buyIn - tournament.rake).toLocaleString()} + ${tournament.rake.toLocaleString()}`
                               : tournament.buyIn.toLocaleString()}
                           </Table.Td>
                           <Table.Td>
@@ -1210,13 +1497,6 @@ export function StoreDetailContent({
                                 variant="subtle"
                               >
                                 <IconEdit size={16} />
-                              </ActionIcon>
-                              <ActionIcon
-                                onClick={() => openStructureForEdit(tournament)}
-                                title="ストラクチャー"
-                                variant="subtle"
-                              >
-                                <IconList size={16} />
                               </ActionIcon>
                               <ActionIcon
                                 color={tournament.isArchived ? 'teal' : 'gray'}
@@ -1337,9 +1617,6 @@ export function StoreDetailContent({
               />
             </Group>
             <Button
-              variant="subtle"
-              size="compact-sm"
-              onClick={() => setShowCashGameAdvanced(!showCashGameAdvanced)}
               leftSection={
                 showCashGameAdvanced ? (
                   <IconChevronUp size={14} />
@@ -1347,6 +1624,9 @@ export function StoreDetailContent({
                   <IconChevronDown size={14} />
                 )
               }
+              onClick={() => setShowCashGameAdvanced(!showCashGameAdvanced)}
+              size="compact-sm"
+              variant="subtle"
             >
               追加設定
             </Button>
@@ -1418,231 +1698,260 @@ export function StoreDetailContent({
         </form>
       </Modal>
 
-      {/* Tournament Modal (Create/Edit) */}
+      {/* Tournament Modal (Create/Edit with Blind & Prize Structure) */}
       <Modal
         centered
         onClose={() => {
           closeTournamentModal()
           setEditingTournament(null)
           tournamentForm.reset()
+          setBlindLevels([])
+          setPrizeStructures([])
         }}
         opened={tournamentModalOpened}
-        size="lg"
+        size="xl"
         title={editingTournament ? 'トーナメントを編集' : 'トーナメントを追加'}
       >
         <form onSubmit={handleTournamentSubmit}>
-          <Stack>
-            <TextInput
-              label="トーナメント名"
-              placeholder="例: Sunday Million"
-              {...tournamentForm.getInputProps('name')}
-            />
-            <Select
-              clearable
-              data={currencyOptions}
-              label="通貨"
-              placeholder="選択してください"
-              {...tournamentForm.getInputProps('currencyId')}
-            />
-            <Group grow>
-              <NumberInput
-                label="バイイン"
-                min={1}
-                placeholder="10000"
-                thousandSeparator=","
-                withAsterisk
-                {...tournamentForm.getInputProps('buyIn')}
-              />
-              <NumberInput
-                description="バイイン内のレーキ額"
-                label="レーキ"
-                min={0}
-                placeholder="1000"
-                thousandSeparator=","
-                {...tournamentForm.getInputProps('rake')}
-              />
-            </Group>
-            <NumberInput
-              label="スターティングスタック"
-              min={1}
-              placeholder="30000"
-              thousandSeparator=","
-              {...tournamentForm.getInputProps('startingStack')}
-            />
-            <Stack gap="xs">
-              <Text fw={500} size="sm">
-                メモ
-              </Text>
-              <RichTextEditor
-                content={tournamentForm.getValues().notes ?? ''}
-                onChange={(value) =>
-                  tournamentForm.setFieldValue('notes', value)
-                }
-              />
-            </Stack>
-            <Group justify="flex-end">
-              <Button
-                onClick={() => {
-                  closeTournamentModal()
-                  setEditingTournament(null)
-                  tournamentForm.reset()
-                }}
-                variant="subtle"
-              >
-                キャンセル
-              </Button>
-              <Button loading={isSavingTournament} type="submit">
-                {editingTournament ? '更新' : '追加'}
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
-
-      {/* Tournament Structure Modal */}
-      <Modal
-        centered
-        onClose={() => {
-          closeStructureModal()
-          setEditingStructureTournament(null)
-          setBlindLevels([])
-          setPrizeLevels([])
-        }}
-        opened={structureModalOpened}
-        size="xl"
-        title={`ストラクチャー: ${editingStructureTournament?.name ?? 'トーナメント'}`}
-      >
-        <Stack>
-          <Tabs onChange={setActiveStructureTab} value={activeStructureTab}>
+          <Tabs onChange={setTournamentTab} value={tournamentTab}>
             <Tabs.List>
-              <Tabs.Tab value="blinds">ブラインドレベル</Tabs.Tab>
-              <Tabs.Tab value="prizes">プライズレベル</Tabs.Tab>
+              <Tabs.Tab value="basic">基本情報</Tabs.Tab>
+              <Tabs.Tab value="blind">ブラインド</Tabs.Tab>
+              <Tabs.Tab value="prize">プライズ</Tabs.Tab>
             </Tabs.List>
 
-            <Tabs.Panel pt="md" value="blinds">
+            <Tabs.Panel pt="md" value="basic">
               <Stack>
-                <Group justify="space-between">
-                  <Text c="dimmed" size="sm">
-                    ブラインドレベルを設定してください
+                <TextInput
+                  label="トーナメント名"
+                  placeholder="例: Sunday Million"
+                  {...tournamentForm.getInputProps('name')}
+                />
+                <Select
+                  clearable
+                  data={currencyOptions}
+                  label="通貨"
+                  placeholder="選択してください"
+                  {...tournamentForm.getInputProps('currencyId')}
+                />
+                <Group grow>
+                  <NumberInput
+                    label="総バイイン"
+                    min={1}
+                    placeholder="10000"
+                    thousandSeparator=","
+                    withAsterisk
+                    {...tournamentForm.getInputProps('buyIn')}
+                  />
+                  <NumberInput
+                    description="総バイイン内のレーキ額"
+                    label="レーキ"
+                    min={0}
+                    placeholder="1000"
+                    thousandSeparator=","
+                    {...tournamentForm.getInputProps('rake')}
+                  />
+                </Group>
+                <NumberInput
+                  label="スターティングスタック"
+                  min={1}
+                  placeholder="30000"
+                  thousandSeparator=","
+                  {...tournamentForm.getInputProps('startingStack')}
+                />
+                <Stack gap="xs">
+                  <Text fw={500} size="sm">
+                    メモ
                   </Text>
+                  <RichTextEditor
+                    content={tournamentForm.getValues().notes ?? ''}
+                    onChange={(value) =>
+                      tournamentForm.setFieldValue('notes', value)
+                    }
+                  />
+                </Stack>
+              </Stack>
+            </Tabs.Panel>
+
+            <Tabs.Panel pt="md" value="blind">
+              <Stack gap="xs">
+                <Group gap="xs" justify="flex-end">
                   <Button
                     leftSection={<IconPlus size={16} />}
-                    onClick={addBlindLevel}
+                    onClick={() => addBlindLevel(false)}
                     size="xs"
                     variant="light"
                   >
                     レベル追加
                   </Button>
+                  <Button
+                    color="orange"
+                    leftSection={<IconCoffee size={16} />}
+                    onClick={() => addBlindLevel(true)}
+                    size="xs"
+                    variant="light"
+                  >
+                    ブレイク追加
+                  </Button>
                 </Group>
                 {blindLevels.length === 0 ? (
-                  <Text c="dimmed" py="md" ta="center">
+                  <Text c="dimmed" py="md" size="sm" ta="center">
                     ブラインドレベルが設定されていません
                   </Text>
                 ) : (
-                  <ScrollArea h={300}>
-                    <Table>
+                  <ScrollArea h={350}>
+                    <Table
+                      horizontalSpacing={4}
+                      verticalSpacing={4}
+                      withRowBorders={false}
+                    >
                       <Table.Thead>
                         <Table.Tr>
-                          <Table.Th>Lv</Table.Th>
-                          <Table.Th>SB</Table.Th>
-                          <Table.Th>BB</Table.Th>
-                          <Table.Th>Ante</Table.Th>
-                          <Table.Th>時間(分)</Table.Th>
-                          <Table.Th></Table.Th>
+                          <Table.Th w={45}>Lv</Table.Th>
+                          <Table.Th w={75}>SB</Table.Th>
+                          <Table.Th w={75}>BB</Table.Th>
+                          <Table.Th w={65}>Ante</Table.Th>
+                          <Table.Th w={50}>分</Table.Th>
+                          <Table.Th w={30}></Table.Th>
                         </Table.Tr>
                       </Table.Thead>
                       <Table.Tbody>
-                        {blindLevels.map((level, index) => (
-                          <Table.Tr key={`blind-${level.level}-${index}`}>
-                            <Table.Td>
-                              <NumberInput
-                                min={1}
-                                onChange={(val) =>
-                                  updateBlindLevel(
-                                    index,
-                                    'level',
-                                    val as number,
-                                  )
-                                }
-                                size="xs"
-                                value={level.level}
-                                w={60}
-                              />
-                            </Table.Td>
-                            <Table.Td>
-                              <NumberInput
-                                min={1}
-                                onChange={(val) =>
-                                  updateBlindLevel(
-                                    index,
-                                    'smallBlind',
-                                    val as number,
-                                  )
-                                }
-                                size="xs"
-                                thousandSeparator=","
-                                value={level.smallBlind}
-                                w={100}
-                              />
-                            </Table.Td>
-                            <Table.Td>
-                              <NumberInput
-                                min={1}
-                                onChange={(val) =>
-                                  updateBlindLevel(
-                                    index,
-                                    'bigBlind',
-                                    val as number,
-                                  )
-                                }
-                                size="xs"
-                                thousandSeparator=","
-                                value={level.bigBlind}
-                                w={100}
-                              />
-                            </Table.Td>
-                            <Table.Td>
-                              <NumberInput
-                                min={0}
-                                onChange={(val) =>
-                                  updateBlindLevel(
-                                    index,
-                                    'ante',
-                                    val === '' ? undefined : (val as number),
-                                  )
-                                }
-                                size="xs"
-                                thousandSeparator=","
-                                value={level.ante ?? ''}
-                                w={80}
-                              />
-                            </Table.Td>
-                            <Table.Td>
-                              <NumberInput
-                                min={1}
-                                onChange={(val) =>
-                                  updateBlindLevel(
-                                    index,
-                                    'durationMinutes',
-                                    val as number,
-                                  )
-                                }
-                                size="xs"
-                                value={level.durationMinutes}
-                                w={70}
-                              />
-                            </Table.Td>
-                            <Table.Td>
-                              <ActionIcon
-                                color="red"
-                                onClick={() => removeBlindLevel(index)}
-                                variant="subtle"
+                        {blindLevels.map((level, index) =>
+                          level.isBreak ? (
+                            <Table.Tr key={`blind-break-${index}`}>
+                              <Table.Td
+                                colSpan={4}
+                                style={{ textAlign: 'center' }}
                               >
-                                <IconTrash size={16} />
-                              </ActionIcon>
-                            </Table.Td>
-                          </Table.Tr>
-                        ))}
+                                <Text c="orange" fw={500} size="sm">
+                                  Break
+                                </Text>
+                              </Table.Td>
+                              <Table.Td>
+                                <NumberInput
+                                  hideControls
+                                  min={1}
+                                  onChange={(val) =>
+                                    updateBlindLevel(
+                                      index,
+                                      'durationMinutes',
+                                      val as number,
+                                    )
+                                  }
+                                  size="xs"
+                                  styles={{ input: { padding: '2px 6px' } }}
+                                  value={level.durationMinutes}
+                                />
+                              </Table.Td>
+                              <Table.Td>
+                                <ActionIcon
+                                  color="red"
+                                  onClick={() => removeBlindLevel(index)}
+                                  size="xs"
+                                  variant="subtle"
+                                >
+                                  <IconTrash size={14} />
+                                </ActionIcon>
+                              </Table.Td>
+                            </Table.Tr>
+                          ) : (
+                            <Table.Tr key={`blind-${level.level}-${index}`}>
+                              <Table.Td>
+                                <NumberInput
+                                  hideControls
+                                  min={1}
+                                  onChange={(val) =>
+                                    updateBlindLevel(
+                                      index,
+                                      'level',
+                                      val as number,
+                                    )
+                                  }
+                                  size="xs"
+                                  styles={{ input: { padding: '2px 6px' } }}
+                                  value={level.level}
+                                />
+                              </Table.Td>
+                              <Table.Td>
+                                <NumberInput
+                                  hideControls
+                                  min={1}
+                                  onChange={(val) =>
+                                    updateBlindLevel(
+                                      index,
+                                      'smallBlind',
+                                      val as number,
+                                    )
+                                  }
+                                  size="xs"
+                                  styles={{ input: { padding: '2px 6px' } }}
+                                  thousandSeparator=","
+                                  value={level.smallBlind ?? ''}
+                                />
+                              </Table.Td>
+                              <Table.Td>
+                                <NumberInput
+                                  hideControls
+                                  min={1}
+                                  onChange={(val) =>
+                                    updateBlindLevel(
+                                      index,
+                                      'bigBlind',
+                                      val as number,
+                                    )
+                                  }
+                                  size="xs"
+                                  styles={{ input: { padding: '2px 6px' } }}
+                                  thousandSeparator=","
+                                  value={level.bigBlind ?? ''}
+                                />
+                              </Table.Td>
+                              <Table.Td>
+                                <NumberInput
+                                  hideControls
+                                  min={0}
+                                  onChange={(val) =>
+                                    updateBlindLevel(
+                                      index,
+                                      'ante',
+                                      val === '' ? undefined : (val as number),
+                                    )
+                                  }
+                                  size="xs"
+                                  styles={{ input: { padding: '2px 6px' } }}
+                                  thousandSeparator=","
+                                  value={level.ante ?? ''}
+                                />
+                              </Table.Td>
+                              <Table.Td>
+                                <NumberInput
+                                  hideControls
+                                  min={1}
+                                  onChange={(val) =>
+                                    updateBlindLevel(
+                                      index,
+                                      'durationMinutes',
+                                      val as number,
+                                    )
+                                  }
+                                  size="xs"
+                                  styles={{ input: { padding: '2px 6px' } }}
+                                  value={level.durationMinutes}
+                                />
+                              </Table.Td>
+                              <Table.Td>
+                                <ActionIcon
+                                  color="red"
+                                  onClick={() => removeBlindLevel(index)}
+                                  size="xs"
+                                  variant="subtle"
+                                >
+                                  <IconTrash size={14} />
+                                </ActionIcon>
+                              </Table.Td>
+                            </Table.Tr>
+                          ),
+                        )}
                       </Table.Tbody>
                     </Table>
                   </ScrollArea>
@@ -1650,101 +1959,424 @@ export function StoreDetailContent({
               </Stack>
             </Tabs.Panel>
 
-            <Tabs.Panel pt="md" value="prizes">
-              <Stack>
-                <Group justify="space-between">
-                  <Text c="dimmed" size="sm">
-                    プライズレベルを設定してください（%か固定額のいずれか）
-                  </Text>
+            <Tabs.Panel pt="md" value="prize">
+              <Stack gap="xs">
+                <Group justify="flex-end">
                   <Button
                     leftSection={<IconPlus size={16} />}
-                    onClick={addPrizeLevel}
+                    onClick={() => {
+                      addPrizeStructure()
+                      setActivePrizeTab(String(prizeStructures.length))
+                    }}
                     size="xs"
                     variant="light"
                   >
-                    順位追加
+                    エントリー範囲追加
                   </Button>
                 </Group>
-                {prizeLevels.length === 0 ? (
-                  <Text c="dimmed" py="md" ta="center">
-                    プライズレベルが設定されていません
+                {prizeStructures.length === 0 ? (
+                  <Text c="dimmed" py="md" size="sm" ta="center">
+                    プライズストラクチャーが設定されていません
                   </Text>
                 ) : (
-                  <ScrollArea h={300}>
-                    <Table>
-                      <Table.Thead>
-                        <Table.Tr>
-                          <Table.Th>順位</Table.Th>
-                          <Table.Th>%</Table.Th>
-                          <Table.Th>固定額</Table.Th>
-                          <Table.Th></Table.Th>
-                        </Table.Tr>
-                      </Table.Thead>
-                      <Table.Tbody>
-                        {prizeLevels.map((level, index) => (
-                          <Table.Tr key={`prize-${level.position}-${index}`}>
-                            <Table.Td>
-                              <NumberInput
-                                min={1}
-                                onChange={(val) =>
-                                  updatePrizeLevel(
-                                    index,
-                                    'position',
-                                    val as number,
+                  <Tabs onChange={setActivePrizeTab} value={activePrizeTab}>
+                    <Tabs.List>
+                      {prizeStructures.map((structure, sIdx) => (
+                        <Tabs.Tab key={`tab-${sIdx}`} value={String(sIdx)}>
+                          {structure.minEntrants}〜
+                          {structure.maxEntrants ?? '∞'}人
+                        </Tabs.Tab>
+                      ))}
+                    </Tabs.List>
+                    {prizeStructures.map((structure, sIdx) => (
+                      <Tabs.Panel
+                        key={`panel-${sIdx}`}
+                        pt="xs"
+                        value={String(sIdx)}
+                      >
+                        <Stack gap="xs">
+                          <Group gap="xs">
+                            <Text size="xs">エントリー:</Text>
+                            <NumberInput
+                              hideControls
+                              min={1}
+                              onChange={(val) =>
+                                updatePrizeStructure(
+                                  sIdx,
+                                  'minEntrants',
+                                  val as number,
+                                )
+                              }
+                              size="xs"
+                              styles={{ input: { padding: '2px 6px' } }}
+                              value={structure.minEntrants}
+                              w={55}
+                            />
+                            <Text size="xs">〜</Text>
+                            <NumberInput
+                              hideControls
+                              min={1}
+                              onChange={(val) =>
+                                updatePrizeStructure(
+                                  sIdx,
+                                  'maxEntrants',
+                                  val === '' ? null : (val as number),
+                                )
+                              }
+                              placeholder="∞"
+                              size="xs"
+                              styles={{ input: { padding: '2px 6px' } }}
+                              value={structure.maxEntrants ?? ''}
+                              w={55}
+                            />
+                            <Text size="xs">人</Text>
+                            <ActionIcon
+                              color="red"
+                              onClick={() => {
+                                removePrizeStructure(sIdx)
+                                if (
+                                  Number(activePrizeTab) >=
+                                  prizeStructures.length - 1
+                                ) {
+                                  setActivePrizeTab(
+                                    String(
+                                      Math.max(0, prizeStructures.length - 2),
+                                    ),
                                   )
                                 }
-                                size="xs"
-                                value={level.position}
-                                w={60}
-                              />
-                            </Table.Td>
-                            <Table.Td>
-                              <NumberInput
-                                max={100}
-                                min={0}
-                                onChange={(val) =>
-                                  updatePrizeLevel(
-                                    index,
-                                    'percentage',
-                                    val === '' ? undefined : (val as number),
-                                  )
-                                }
-                                size="xs"
-                                suffix="%"
-                                value={level.percentage ?? ''}
-                                w={80}
-                              />
-                            </Table.Td>
-                            <Table.Td>
-                              <NumberInput
-                                min={0}
-                                onChange={(val) =>
-                                  updatePrizeLevel(
-                                    index,
-                                    'fixedAmount',
-                                    val === '' ? undefined : (val as number),
-                                  )
-                                }
-                                size="xs"
-                                thousandSeparator=","
-                                value={level.fixedAmount ?? ''}
-                                w={120}
-                              />
-                            </Table.Td>
-                            <Table.Td>
-                              <ActionIcon
-                                color="red"
-                                onClick={() => removePrizeLevel(index)}
-                                variant="subtle"
-                              >
-                                <IconTrash size={16} />
-                              </ActionIcon>
-                            </Table.Td>
-                          </Table.Tr>
-                        ))}
-                      </Table.Tbody>
-                    </Table>
-                  </ScrollArea>
+                              }}
+                              size="xs"
+                              variant="subtle"
+                            >
+                              <IconTrash size={14} />
+                            </ActionIcon>
+                          </Group>
+                          <Divider />
+                          <Group justify="space-between">
+                            <Text c="dimmed" size="xs">
+                              順位とプライズ
+                            </Text>
+                            <Button
+                              leftSection={<IconPlus size={14} />}
+                              onClick={() => addPrizeLevel(sIdx)}
+                              size="xs"
+                              variant="subtle"
+                            >
+                              順位追加
+                            </Button>
+                          </Group>
+                          <ScrollArea h={280}>
+                            <Table
+                              horizontalSpacing={4}
+                              verticalSpacing={4}
+                              withRowBorders={false}
+                            >
+                              <Table.Tbody>
+                                {structure.prizeLevels.map((level, lIdx) => (
+                                  <Table.Tr key={`level-${sIdx}-${lIdx}`}>
+                                    <Table.Td
+                                      style={{ verticalAlign: 'middle' }}
+                                      w={110}
+                                    >
+                                      <Group gap={2} wrap="nowrap">
+                                        <NumberInput
+                                          hideControls
+                                          min={1}
+                                          onChange={(val) =>
+                                            updatePrizeLevel(
+                                              sIdx,
+                                              lIdx,
+                                              'minPosition',
+                                              val as number,
+                                            )
+                                          }
+                                          size="xs"
+                                          styles={{
+                                            input: {
+                                              padding: '2px 4px',
+                                              textAlign: 'center',
+                                            },
+                                          }}
+                                          value={level.minPosition}
+                                          w={36}
+                                        />
+                                        <Text size="xs">〜</Text>
+                                        <NumberInput
+                                          hideControls
+                                          min={1}
+                                          onChange={(val) =>
+                                            updatePrizeLevel(
+                                              sIdx,
+                                              lIdx,
+                                              'maxPosition',
+                                              val as number,
+                                            )
+                                          }
+                                          size="xs"
+                                          styles={{
+                                            input: {
+                                              padding: '2px 4px',
+                                              textAlign: 'center',
+                                            },
+                                          }}
+                                          value={level.maxPosition}
+                                          w={36}
+                                        />
+                                        <Text size="xs">位</Text>
+                                      </Group>
+                                    </Table.Td>
+                                    <Table.Td
+                                      style={{ verticalAlign: 'middle' }}
+                                    >
+                                      <Stack align="flex-end" gap={2}>
+                                        {level.prizeItems.map((item, iIdx) => (
+                                          <Group
+                                            gap={2}
+                                            key={`item-${sIdx}-${lIdx}-${iIdx}`}
+                                            wrap="nowrap"
+                                          >
+                                            <Box
+                                              c={
+                                                item.prizeType === 'percentage'
+                                                  ? 'blue'
+                                                  : item.prizeType ===
+                                                      'fixed_amount'
+                                                    ? 'green'
+                                                    : 'grape'
+                                              }
+                                              style={{ display: 'flex' }}
+                                            >
+                                              {item.prizeType ===
+                                              'percentage' ? (
+                                                <IconPercentage size={14} />
+                                              ) : item.prizeType ===
+                                                'fixed_amount' ? (
+                                                <IconCoins size={14} />
+                                              ) : (
+                                                <IconGift size={14} />
+                                              )}
+                                            </Box>
+                                            {item.prizeType ===
+                                              'percentage' && (
+                                              <NumberInput
+                                                decimalScale={2}
+                                                hideControls
+                                                max={100}
+                                                min={0}
+                                                onChange={(val) =>
+                                                  updatePrizeItem(
+                                                    sIdx,
+                                                    lIdx,
+                                                    iIdx,
+                                                    'percentage',
+                                                    val === ''
+                                                      ? null
+                                                      : (val as number),
+                                                  )
+                                                }
+                                                size="xs"
+                                                styles={{
+                                                  input: { padding: '2px 4px' },
+                                                }}
+                                                suffix="%"
+                                                value={item.percentage ?? ''}
+                                                w={65}
+                                              />
+                                            )}
+                                            {item.prizeType ===
+                                              'fixed_amount' && (
+                                              <NumberInput
+                                                hideControls
+                                                min={0}
+                                                onChange={(val) =>
+                                                  updatePrizeItem(
+                                                    sIdx,
+                                                    lIdx,
+                                                    iIdx,
+                                                    'fixedAmount',
+                                                    val === ''
+                                                      ? null
+                                                      : (val as number),
+                                                  )
+                                                }
+                                                size="xs"
+                                                styles={{
+                                                  input: { padding: '2px 4px' },
+                                                }}
+                                                thousandSeparator=","
+                                                value={item.fixedAmount ?? ''}
+                                                w={80}
+                                              />
+                                            )}
+                                            {item.prizeType ===
+                                              'custom_prize' && (
+                                              <Group gap={2} wrap="wrap">
+                                                <TextInput
+                                                  onChange={(e) =>
+                                                    updatePrizeItem(
+                                                      sIdx,
+                                                      lIdx,
+                                                      iIdx,
+                                                      'customPrizeLabel',
+                                                      e.target.value || null,
+                                                    )
+                                                  }
+                                                  placeholder="名称"
+                                                  size="xs"
+                                                  styles={{
+                                                    input: {
+                                                      padding: '2px 4px',
+                                                    },
+                                                  }}
+                                                  value={
+                                                    item.customPrizeLabel ?? ''
+                                                  }
+                                                  w={120}
+                                                />
+                                                <NumberInput
+                                                  hideControls
+                                                  min={0}
+                                                  onChange={(val) =>
+                                                    updatePrizeItem(
+                                                      sIdx,
+                                                      lIdx,
+                                                      iIdx,
+                                                      'customPrizeValue',
+                                                      val === ''
+                                                        ? null
+                                                        : (val as number),
+                                                    )
+                                                  }
+                                                  placeholder="換算値"
+                                                  size="xs"
+                                                  styles={{
+                                                    input: {
+                                                      padding: '2px 4px',
+                                                    },
+                                                  }}
+                                                  value={
+                                                    item.customPrizeValue ?? ''
+                                                  }
+                                                  w={70}
+                                                />
+                                              </Group>
+                                            )}
+                                            <ActionIcon
+                                              color="red"
+                                              onClick={() =>
+                                                removePrizeItem(sIdx, lIdx, iIdx)
+                                              }
+                                              size="xs"
+                                              variant="subtle"
+                                            >
+                                              <IconTrash size={12} />
+                                            </ActionIcon>
+                                          </Group>
+                                        ))}
+                                        {level.prizeItems.length === 0 && (
+                                          <Text c="dimmed" size="xs">
+                                            プライズなし
+                                          </Text>
+                                        )}
+                                      </Stack>
+                                    </Table.Td>
+                                    <Table.Td
+                                      style={{
+                                        verticalAlign: 'middle',
+                                        paddingLeft: 12,
+                                      }}
+                                      w={50}
+                                    >
+                                      <Menu position="bottom-end" withinPortal>
+                                        <Menu.Target>
+                                          <Button
+                                            px={6}
+                                            rightSection={
+                                              <IconChevronDown size={12} />
+                                            }
+                                            size="xs"
+                                            variant="light"
+                                          >
+                                            <IconPlus size={14} />
+                                          </Button>
+                                        </Menu.Target>
+                                        <Menu.Dropdown>
+                                          <Menu.Item
+                                            disabled={level.prizeItems.some(
+                                              (item) =>
+                                                item.prizeType === 'percentage',
+                                            )}
+                                            leftSection={
+                                              <IconPercentage size={14} />
+                                            }
+                                            onClick={() =>
+                                              addPrizeItem(
+                                                sIdx,
+                                                lIdx,
+                                                'percentage',
+                                              )
+                                            }
+                                          >
+                                            パーセンテージ
+                                          </Menu.Item>
+                                          <Menu.Item
+                                            disabled={level.prizeItems.some(
+                                              (item) =>
+                                                item.prizeType ===
+                                                'fixed_amount',
+                                            )}
+                                            leftSection={
+                                              <IconCoins size={14} />
+                                            }
+                                            onClick={() =>
+                                              addPrizeItem(
+                                                sIdx,
+                                                lIdx,
+                                                'fixed_amount',
+                                              )
+                                            }
+                                          >
+                                            固定額
+                                          </Menu.Item>
+                                          <Menu.Item
+                                            leftSection={<IconGift size={14} />}
+                                            onClick={() =>
+                                              addPrizeItem(
+                                                sIdx,
+                                                lIdx,
+                                                'custom_prize',
+                                              )
+                                            }
+                                          >
+                                            カスタム
+                                          </Menu.Item>
+                                        </Menu.Dropdown>
+                                      </Menu>
+                                    </Table.Td>
+                                    <Table.Td
+                                      style={{ verticalAlign: 'middle' }}
+                                      w={30}
+                                    >
+                                      <ActionIcon
+                                        color="red"
+                                        onClick={() =>
+                                          removePrizeLevel(sIdx, lIdx)
+                                        }
+                                        size="sm"
+                                        variant="subtle"
+                                      >
+                                        <IconTrash size={14} />
+                                      </ActionIcon>
+                                    </Table.Td>
+                                  </Table.Tr>
+                                ))}
+                              </Table.Tbody>
+                            </Table>
+                          </ScrollArea>
+                        </Stack>
+                      </Tabs.Panel>
+                    ))}
+                  </Tabs>
                 )}
               </Stack>
             </Tabs.Panel>
@@ -1753,20 +2385,21 @@ export function StoreDetailContent({
           <Group justify="flex-end" mt="md">
             <Button
               onClick={() => {
-                closeStructureModal()
-                setEditingStructureTournament(null)
+                closeTournamentModal()
+                setEditingTournament(null)
+                tournamentForm.reset()
                 setBlindLevels([])
-                setPrizeLevels([])
+                setPrizeStructures([])
               }}
               variant="subtle"
             >
               キャンセル
             </Button>
-            <Button loading={isSavingStructure} onClick={handleSaveStructure}>
-              保存
+            <Button loading={isSavingTournament} type="submit">
+              {editingTournament ? '更新' : '追加'}
             </Button>
           </Group>
-        </Stack>
+        </form>
       </Modal>
     </Container>
   )

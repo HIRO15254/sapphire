@@ -18,16 +18,83 @@ import { z } from 'zod'
 export const uuidSchema = z.string().uuid('有効なIDを指定してください')
 
 // ============================================================================
-// Prize Level Schemas
+// Prize Structure Schemas (Hierarchical: Structure -> Level -> Item)
 // ============================================================================
 
 /**
- * Schema for a single prize level
+ * Prize type enum values
+ * - percentage: プライズプールの何%が得られるか
+ * - fixed_amount: バイインと同じ仮想通貨の特定数量
+ * - custom_prize: カスタムプライズ（説明文と換算価値）
+ */
+export const prizeTypeSchema = z.enum([
+  'percentage',
+  'fixed_amount',
+  'custom_prize',
+])
+export type PrizeTypeInput = z.infer<typeof prizeTypeSchema>
+
+/**
+ * Schema for a single prize item (individual prize within a position range)
+ */
+export const prizeItemSchema = z
+  .object({
+    prizeType: prizeTypeSchema,
+    percentage: z.number().min(0).max(100).optional().nullable(),
+    fixedAmount: z.number().int().positive().optional().nullable(),
+    customPrizeLabel: z.string().min(1).optional().nullable(),
+    customPrizeValue: z.number().int().min(0).optional().nullable(),
+    sortOrder: z.number().int().min(0).default(0),
+  })
+  .refine(
+    (data) => {
+      switch (data.prizeType) {
+        case 'percentage':
+          return data.percentage != null
+        case 'fixed_amount':
+          return data.fixedAmount != null
+        case 'custom_prize':
+          return (
+            data.customPrizeLabel != null && data.customPrizeLabel.length > 0
+          )
+        default:
+          return false
+      }
+    },
+    {
+      message: 'プライズタイプに応じた値を入力してください',
+      path: ['prizeType'],
+    },
+  )
+
+/**
+ * Schema for a prize level (position range with multiple prize items)
  */
 export const prizeLevelSchema = z.object({
-  position: z.number().int().min(1, '順位は1以上で入力してください'),
-  percentage: z.number().min(0).max(100).optional(),
-  fixedAmount: z.number().int().positive().optional(),
+  minPosition: z.number().int().min(1, '順位の開始は1以上で入力してください'),
+  maxPosition: z.number().int().min(1, '順位の終了は1以上で入力してください'),
+  sortOrder: z.number().int().min(0).default(0),
+  prizeItems: z
+    .array(prizeItemSchema)
+    .min(1, '少なくとも1つのプライズを設定してください'),
+})
+
+/**
+ * Schema for a prize structure (entry count range with multiple prize levels)
+ */
+export const prizeStructureSchema = z.object({
+  minEntrants: z
+    .number()
+    .int()
+    .min(1, '参加人数の下限は1以上で入力してください'),
+  maxEntrants: z
+    .number()
+    .int()
+    .min(1, '参加人数の上限は1以上で入力してください')
+    .optional()
+    .nullable(),
+  sortOrder: z.number().int().min(0).default(0),
+  prizeLevels: z.array(prizeLevelSchema),
 })
 
 // ============================================================================
@@ -35,23 +102,59 @@ export const prizeLevelSchema = z.object({
 // ============================================================================
 
 /**
- * Schema for a single blind level
+ * Schema for a single blind level (supports breaks)
+ *
+ * When isBreak=true, smallBlind/bigBlind are optional (break time only)
  */
 export const blindLevelSchema = z
   .object({
     level: z.number().int().min(1, 'レベルは1以上で入力してください'),
-    smallBlind: z.number().int().positive('SBは正の数で入力してください'),
-    bigBlind: z.number().int().positive('BBは正の数で入力してください'),
-    ante: z.number().int().positive().optional(),
+    isBreak: z.boolean().default(false),
+    smallBlind: z
+      .number()
+      .int()
+      .positive('SBは正の数で入力してください')
+      .optional()
+      .nullable(),
+    bigBlind: z
+      .number()
+      .int()
+      .positive('BBは正の数で入力してください')
+      .optional()
+      .nullable(),
+    ante: z.number().int().positive().optional().nullable(),
     durationMinutes: z
       .number()
       .int()
       .positive('時間は正の数で入力してください'),
   })
-  .refine((data) => data.bigBlind > data.smallBlind, {
-    message: 'BBはSBより大きくしてください',
-    path: ['bigBlind'],
-  })
+  .refine(
+    (data) => {
+      // If it's a break, no need to validate SB/BB
+      if (data.isBreak) return true
+      // If not a break, SB and BB are required
+      return data.smallBlind != null && data.bigBlind != null
+    },
+    {
+      message: 'ブレイク以外ではSB/BBは必須です',
+      path: ['smallBlind'],
+    },
+  )
+  .refine(
+    (data) => {
+      // If it's a break, skip BB > SB check
+      if (data.isBreak) return true
+      // Check BB > SB only when both are present
+      if (data.smallBlind != null && data.bigBlind != null) {
+        return data.bigBlind > data.smallBlind
+      }
+      return true
+    },
+    {
+      message: 'BBはSBより大きくしてください',
+      path: ['bigBlind'],
+    },
+  )
 
 // ============================================================================
 // Tournament Schemas
@@ -74,7 +177,7 @@ export const createTournamentSchema = z.object({
     .positive('レーキは正の数で入力してください')
     .optional(),
   startingStack: z.number().int().positive().optional(),
-  prizeLevels: z.array(prizeLevelSchema).optional(),
+  prizeStructures: z.array(prizeStructureSchema).optional(),
   blindLevels: z.array(blindLevelSchema).optional(),
   notes: z.string().optional(),
 })
@@ -123,11 +226,11 @@ export const listTournamentsByStoreSchema = z.object({
 })
 
 /**
- * Schema for setting prize levels
+ * Schema for setting prize structures (hierarchical)
  */
-export const setPrizeLevelsSchema = z.object({
+export const setPrizeStructuresSchema = z.object({
   tournamentId: z.string().uuid('有効なトーナメントIDを指定してください'),
-  levels: z.array(prizeLevelSchema),
+  structures: z.array(prizeStructureSchema),
 })
 
 /**
@@ -142,7 +245,9 @@ export const setBlindLevelsSchema = z.object({
 // Type Exports
 // ============================================================================
 
+export type PrizeItemInput = z.infer<typeof prizeItemSchema>
 export type PrizeLevelInput = z.infer<typeof prizeLevelSchema>
+export type PrizeStructureInput = z.infer<typeof prizeStructureSchema>
 export type BlindLevelInput = z.infer<typeof blindLevelSchema>
 
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>
@@ -153,5 +258,5 @@ export type GetTournamentByIdInput = z.infer<typeof getTournamentByIdSchema>
 export type ListTournamentsByStoreInput = z.infer<
   typeof listTournamentsByStoreSchema
 >
-export type SetPrizeLevelsInput = z.infer<typeof setPrizeLevelsSchema>
+export type SetPrizeStructuresInput = z.infer<typeof setPrizeStructuresSchema>
 export type SetBlindLevelsInput = z.infer<typeof setBlindLevelsSchema>
