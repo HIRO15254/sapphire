@@ -74,13 +74,15 @@ export function CurrenciesContent({
       <Stack gap="lg">
         <Group justify="space-between">
           <Title order={1}>通貨管理</Title>
-          <Button
-            component={Link}
-            href="/currencies/new"
-            leftSection={<IconPlus size={16} />}
-          >
-            新しい通貨を追加
-          </Button>
+          {currencies.length > 0 && (
+            <Button
+              component={Link}
+              href="/currencies/new"
+              leftSection={<IconPlus size={16} />}
+            >
+              新しい通貨を追加
+            </Button>
+          )}
         </Group>
 
         <Checkbox

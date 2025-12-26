@@ -1255,7 +1255,7 @@ export function StoreDetailContent({
                 size="sm"
                 variant="light"
               >
-                追加
+                キャッシュゲームを追加
               </Button>
             </Group>
           </Group>
@@ -1409,7 +1409,7 @@ export function StoreDetailContent({
                 size="sm"
                 variant="light"
               >
-                追加
+                トーナメントを追加
               </Button>
             </Group>
           </Group>

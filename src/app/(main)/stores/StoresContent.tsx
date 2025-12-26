@@ -77,13 +77,15 @@ export function StoresContent({ initialStores }: StoresContentProps) {
       <Stack gap="lg">
         <Group justify="space-between">
           <Title order={1}>店舗管理</Title>
-          <Button
-            component={Link}
-            href="/stores/new"
-            leftSection={<IconPlus size={16} />}
-          >
-            新しい店舗を追加
-          </Button>
+          {stores.length > 0 && (
+            <Button
+              component={Link}
+              href="/stores/new"
+              leftSection={<IconPlus size={16} />}
+            >
+              新しい店舗を追加
+            </Button>
+          )}
         </Group>
 
         <Checkbox
