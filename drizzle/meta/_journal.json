@@ -22,6 +22,48 @@
       "when": 1765985019981,
       "tag": "0002_regular_wolfpack",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1766399526575,
+      "tag": "0003_clammy_korath",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766404453192,
+      "tag": "0004_dizzy_venus",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1766421309046,
+      "tag": "0005_gorgeous_roland_deschain",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766567810415,
+      "tag": "0006_dapper_sugar_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766572423468,
+      "tag": "0007_soft_khan",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1766587380918,
+      "tag": "0008_futuristic_master_chief",
+      "breakpoints": true
     }
   ]
 }

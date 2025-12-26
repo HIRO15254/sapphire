@@ -1,0 +1,1 @@
+ALTER TABLE "sapphire_store" ADD COLUMN "custom_map_url" text;

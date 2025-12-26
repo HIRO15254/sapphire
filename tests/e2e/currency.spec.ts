@@ -45,8 +45,7 @@ test.describe('Currency Management', () => {
   }
 
   test.describe('Currency List Page', () => {
-    // TODO: This test is flaky - investigate timing/loading issues
-    test.skip('should show empty state when no currencies exist', async ({
+    test('should show empty state when no currencies exist', async ({
       page,
     }) => {
       const { email, password } = await createTestUser(page)
@@ -171,8 +170,7 @@ test.describe('Currency Management', () => {
   })
 
   test.describe('Currency Detail Page', () => {
-    // TODO: Flaky on Mobile Chrome - investigate timing issues
-    test.skip('should display currency details with balance breakdown', async ({
+    test('should display currency details with balance breakdown', async ({
       page,
     }) => {
       const { email, password } = await createTestUser(page)
@@ -203,8 +201,7 @@ test.describe('Currency Management', () => {
       })
     })
 
-    // TODO: Flaky on Mobile Chrome - investigate timing issues
-    test.skip('should show balance breakdown components', async ({ page }) => {
+    test('should show balance breakdown components', async ({ page }) => {
       const { email, password } = await createTestUser(page)
       await loginUser(page, email, password)
 
@@ -224,8 +221,7 @@ test.describe('Currency Management', () => {
   })
 
   test.describe('Update Currency', () => {
-    // TODO: This test has cache invalidation issues - investigate tRPC cache behavior
-    test.skip('should update currency name', async ({ page }) => {
+    test('should update currency name', async ({ page }) => {
       const { email, password } = await createTestUser(page)
       await loginUser(page, email, password)
 
@@ -288,8 +284,7 @@ test.describe('Currency Management', () => {
   })
 
   test.describe('Archive Currency', () => {
-    // TODO: Flaky on Mobile Chrome - investigate timing issues
-    test.skip('should archive a currency', async ({ page }) => {
+    test('should archive a currency', async ({ page }) => {
       const { email, password } = await createTestUser(page)
       await loginUser(page, email, password)
 
@@ -332,17 +327,24 @@ test.describe('Currency Management', () => {
 
       await page.getByRole('button', { name: 'アーカイブ' }).click()
 
+      // Wait for archive success notification
+      await expect(page.getByText('通貨をアーカイブしました')).toBeVisible({
+        timeout: 10000,
+      })
+
       // Go to list
       await page.goto('/currencies')
 
-      await page.waitForTimeout(500)
+      // Wait for page to load
+      await expect(page.getByRole('heading', { name: '通貨管理' })).toBeVisible({
+        timeout: 10000,
+      })
 
       // Should not show archived currency
       await expect(page.getByText('非表示テスト通貨')).not.toBeVisible()
     })
 
-    // TODO: Flaky on Mobile Chrome - investigate timing issues
-    test.skip('should show archived currency when filter enabled', async ({
+    test('should show archived currency when filter enabled', async ({
       page,
     }) => {
       const { email, password } = await createTestUser(page)
@@ -493,7 +495,6 @@ test.describe('Currency Management', () => {
   test.describe('Data Isolation', () => {
     test('should not show other users currencies', async ({
       page,
-      context,
     }) => {
       // Create first user and add currency
       const user1 = await createTestUser(page)
@@ -508,34 +509,28 @@ test.describe('Currency Management', () => {
         timeout: 10000,
       })
 
-      // Clear all cookies to logout completely
-      await context.clearCookies()
+      // On mobile, open hamburger menu first
+      const menuButton = page.getByRole('button', { name: 'メニューを開く' })
+      if (await menuButton.isVisible()) {
+        await menuButton.click()
+      }
 
-      // Create second user - need to manually register since createTestUser expects clean state
-      const uniqueEmail2 = `currency-test-user2-${Date.now()}@example.com`
-      const password2 = 'testpassword123'
+      await page.getByRole('button', { name: 'ログアウト' }).click()
 
-      await page.goto('/auth/register')
-      await expect(
-        page.getByRole('heading', { name: '新規登録' }),
-      ).toBeVisible({ timeout: 10000 })
-
-      await page.getByLabel('名前').fill('通貨テストユーザー2')
-      await page.getByLabel('メールアドレス').fill(uniqueEmail2)
-      await page.getByPlaceholder('8文字以上').fill(password2)
-      await page.getByPlaceholder('もう一度入力').fill(password2)
-      await page.getByRole('button', { name: '登録' }).click()
-
+      // Wait for redirect to signin
       await page.waitForURL(/\/auth\/signin/, { timeout: 10000 })
 
-      // Login as second user
-      await loginUser(page, uniqueEmail2, password2)
+      // Navigate to register page
+      await page.goto('/auth/register')
+
+      const user2 = await createTestUser(page)
+      await loginUser(page, user2.email, user2.password)
 
       // Go to currency list
       await page.goto('/currencies')
 
       // Wait for page to load
-      await expect(page.getByText('通貨管理')).toBeVisible({
+      await expect(page.getByRole('heading', { name: '通貨管理' })).toBeVisible({
         timeout: 15000,
       })
 

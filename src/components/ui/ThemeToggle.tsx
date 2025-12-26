@@ -1,15 +1,23 @@
 'use client'
 
-import { ActionIcon, useMantineColorScheme } from '@mantine/core'
+import {
+  ActionIcon,
+  useComputedColorScheme,
+  useMantineColorScheme,
+} from '@mantine/core'
 import { IconMoon, IconSun } from '@tabler/icons-react'
 
 /**
  * Theme toggle button for switching between light and dark mode.
  * Uses Mantine's built-in color scheme management.
+ *
+ * Uses useComputedColorScheme with getInitialValueInEffect to prevent
+ * hydration mismatch between server and client.
  */
 export function ThemeToggle() {
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme()
-  const isDark = colorScheme === 'dark'
+  const { toggleColorScheme } = useMantineColorScheme()
+  const computedColorScheme = useComputedColorScheme('light')
+  const isDark = computedColorScheme === 'dark'
 
   return (
     <ActionIcon

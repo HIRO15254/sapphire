@@ -1,0 +1,1 @@
+ALTER TABLE "sapphire_tournament" ADD COLUMN "rake" integer;

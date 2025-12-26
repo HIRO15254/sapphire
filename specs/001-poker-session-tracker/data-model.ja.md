@@ -210,33 +210,93 @@ NextAuth.jsで管理。Credentialsプロバイダー用に`passwordHash`を拡�
 
 ---
 
-### 11. TournamentPrizeLevel（トーナメント賞金レベル）- 新規
+### 11. TournamentPrizeStructure（エントリー数範囲別プライズ構造）
+
+トーナメントのプライズストラクチャーは複数のエントリー数範囲を持つことができる。
 
 | カラム | 型 | 制約 | 説明 |
 |--------|------|------|------|
 | id | uuid | PK, default random | 一意識別子 |
 | tournamentId | uuid | FK → tournaments.id, cascade | 親トーナメント |
-| position | integer | NOT NULL | 順位（1位、2位、3位等） |
-| percentage | decimal(5,2) | nullable | 賞金プールの割合 |
-| fixedAmount | integer | nullable | 固定賞金額 |
+| minEntrants | integer | NOT NULL | 参加人数範囲の下限（a人から） |
+| maxEntrants | integer | nullable | 参加人数範囲の上限（b人まで、nullは無制限） |
+| sortOrder | integer | NOT NULL | 表示順序 |
 | createdAt | timestamptz | NOT NULL, default now | |
-
-**注意**: `percentage`または`fixedAmount`のどちらかを設定。
 
 ---
 
-### 12. TournamentBlindLevel（トーナメントブラインドレベル）- 新規
+### 11a. TournamentPrizeLevel（順位範囲別プライズレベル）
+
+各エントリー数範囲内で、順位範囲ごとのプライズ配分を定義。
+
+| カラム | 型 | 制約 | 説明 |
+|--------|------|------|------|
+| id | uuid | PK, default random | 一意識別子 |
+| prizeStructureId | uuid | FK → tournament_prize_structures.id, cascade | 親プライズ構造 |
+| minPosition | integer | NOT NULL | 順位範囲の開始（a位から） |
+| maxPosition | integer | NOT NULL | 順位範囲の終了（b位まで） |
+| sortOrder | integer | NOT NULL | 表示順序 |
+| createdAt | timestamptz | NOT NULL, default now | |
+
+---
+
+### 11b. TournamentPrizeItem（個別プライズアイテム）
+
+順位範囲に対して付与される個別のプライズ（複数可）。
+
+| カラム | 型 | 制約 | 説明 |
+|--------|------|------|------|
+| id | uuid | PK, default random | 一意識別子 |
+| prizeLevelId | uuid | FK → tournament_prize_levels.id, cascade | 親プライズレベル |
+| prizeType | varchar(20) | NOT NULL | プライズタイプ: 'percentage', 'fixed_amount', 'custom_prize' |
+| percentage | decimal(5,2) | nullable | 賞金プールの割合（prizeType='percentage'の場合） |
+| fixedAmount | integer | nullable | 固定仮想通貨額（prizeType='fixed_amount'の場合） |
+| customPrizeLabel | text | nullable | カスタムプライズの説明（prizeType='custom_prize'の場合） |
+| customPrizeValue | integer | nullable | カスタムプライズの仮想通貨換算価値（prizeType='custom_prize'の場合） |
+| sortOrder | integer | NOT NULL | 表示順序 |
+| createdAt | timestamptz | NOT NULL, default now | |
+
+**プライズタイプ**:
+- `percentage`: プライズプールの何%が得られるか
+- `fixed_amount`: バイインと同じ仮想通貨の特定数量
+- `custom_prize`: カスタムプライズ（説明文と換算価値）
+
+**階層構造の例**:
+```
+Tournament
+└── PrizeStructure (10-20人参加時)
+│   ├── PrizeLevel (1位)
+│   │   ├── PrizeItem: 50% (percentage)
+│   │   └── PrizeItem: トロフィー 5000相当 (custom_prize)
+│   ├── PrizeLevel (2位)
+│   │   └── PrizeItem: 30% (percentage)
+│   └── PrizeLevel (3-4位)
+│       └── PrizeItem: 10% (percentage)
+└── PrizeStructure (21-40人参加時)
+    ├── PrizeLevel (1位)
+    │   └── PrizeItem: 40% (percentage)
+    └── ...
+```
+
+---
+
+### 12. TournamentBlindLevel（トーナメントブラインドレベル）- ブレイク対応
+
+ブラインドレベルまたはブレイク（休憩）を定義。
 
 | カラム | 型 | 制約 | 説明 |
 |--------|------|------|------|
 | id | uuid | PK, default random | 一意識別子 |
 | tournamentId | uuid | FK → tournaments.id, cascade | 親トーナメント |
 | level | integer | NOT NULL | レベル番号（1, 2, 3等） |
-| smallBlind | integer | NOT NULL | スモールブラインド |
-| bigBlind | integer | NOT NULL | ビッグブラインド |
+| isBreak | boolean | NOT NULL, default false | ブレイク（休憩）かどうか |
+| smallBlind | integer | nullable | スモールブラインド（isBreak=falseの場合は必須） |
+| bigBlind | integer | nullable | ビッグブラインド（isBreak=falseの場合は必須） |
 | ante | integer | nullable | アンティ（存在する場合） |
-| durationMinutes | integer | NOT NULL | このレベルの継続時間（分） |
+| durationMinutes | integer | NOT NULL | このレベル/ブレイクの継続時間（分） |
 | createdAt | timestamptz | NOT NULL, default now | |
+
+**注意**: isBreak=trueの場合、smallBlind/bigBlindは不要（休憩時間のみ定義）。
 
 ---
 

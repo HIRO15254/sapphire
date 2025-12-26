@@ -2,6 +2,7 @@
 
 import {
   Alert,
+  Badge,
   Button,
   Card,
   Checkbox,
@@ -12,31 +13,35 @@ import {
   Text,
   Title,
 } from '@mantine/core'
-import { IconAlertCircle, IconPlus } from '@tabler/icons-react'
+import {
+  IconAlertCircle,
+  IconMapPin,
+  IconPlus,
+  IconPokerChip,
+  IconTrophy,
+} from '@tabler/icons-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 
-type Currency = RouterOutputs['currency']['list']['currencies'][number]
+type Store = RouterOutputs['store']['list']['stores'][number]
 
-interface CurrenciesContentProps {
-  initialCurrencies: Currency[]
+interface StoresContentProps {
+  initialStores: Store[]
 }
 
 /**
- * Currency list content client component.
+ * Store list content client component.
  *
- * Displays all currencies with balance information.
+ * Displays all stores with game counts.
  * Uses initial data from server, allows filtering on client.
  */
-export function CurrenciesContent({
-  initialCurrencies,
-}: CurrenciesContentProps) {
+export function StoresContent({ initialStores }: StoresContentProps) {
   const [includeArchived, setIncludeArchived] = useState(false)
 
   // Fetch archived data only when includeArchived is true
-  const { data, isLoading, error } = api.currency.list.useQuery(
+  const { data, isLoading, error } = api.store.list.useQuery(
     { includeArchived: true },
     {
       enabled: includeArchived,
@@ -44,9 +49,7 @@ export function CurrenciesContent({
   )
 
   // Use server data by default, switch to query data when includeArchived is true
-  const currencies = includeArchived
-    ? (data?.currencies ?? [])
-    : initialCurrencies
+  const stores = includeArchived ? (data?.stores ?? []) : initialStores
 
   if (includeArchived && isLoading) {
     return (
@@ -73,14 +76,14 @@ export function CurrenciesContent({
     <Container py="xl" size="md">
       <Stack gap="lg">
         <Group justify="space-between">
-          <Title order={1}>通貨管理</Title>
-          {currencies.length > 0 && (
+          <Title order={1}>店舗管理</Title>
+          {stores.length > 0 && (
             <Button
               component={Link}
-              href="/currencies/new"
+              href="/stores/new"
               leftSection={<IconPlus size={16} />}
             >
-              新しい通貨を追加
+              新しい店舗を追加
             </Button>
           )}
         </Group>
@@ -91,32 +94,32 @@ export function CurrenciesContent({
           onChange={(event) => setIncludeArchived(event.currentTarget.checked)}
         />
 
-        {currencies.length === 0 ? (
+        {stores.length === 0 ? (
           <Card p="xl" radius="md" shadow="sm" withBorder>
             <Stack align="center" gap="md">
               <Text c="dimmed" size="lg">
-                通貨が登録されていません
+                店舗が登録されていません
               </Text>
               <Text c="dimmed" size="sm">
-                新しい通貨を追加して、ポーカーセッションの記録を始めましょう
+                新しい店舗を追加して、ポーカーセッションの記録を始めましょう
               </Text>
               <Button
                 component={Link}
-                href="/currencies/new"
+                href="/stores/new"
                 leftSection={<IconPlus size={16} />}
                 mt="md"
               >
-                新しい通貨を追加
+                新しい店舗を追加
               </Button>
             </Stack>
           </Card>
         ) : (
           <Stack gap="md">
-            {currencies.map((currency) => (
+            {stores.map((store) => (
               <Card
                 component={Link}
-                href={`/currencies/${currency.id}`}
-                key={currency.id}
+                href={`/stores/${store.id}`}
+                key={store.id}
                 p="lg"
                 radius="md"
                 shadow="sm"
@@ -127,30 +130,47 @@ export function CurrenciesContent({
                   <Stack gap="xs">
                     <Group gap="sm">
                       <Text fw={600} size="lg">
-                        {currency.name}
+                        {store.name}
                       </Text>
-                      {currency.isArchived && (
-                        <Text c="dimmed" size="sm">
-                          （アーカイブ済み）
-                        </Text>
+                      {store.isArchived && (
+                        <Badge color="gray" size="sm">
+                          アーカイブ済み
+                        </Badge>
                       )}
                     </Group>
-                    <Text c="dimmed" size="sm">
-                      初期残高: {currency.initialBalance.toLocaleString()}
-                    </Text>
+                    {store.address && (
+                      <Group gap="xs">
+                        <IconMapPin size={14} style={{ color: 'gray' }} />
+                        <Text c="dimmed" size="sm">
+                          {store.address}
+                        </Text>
+                      </Group>
+                    )}
                   </Stack>
-                  <Stack align="flex-end" gap="xs">
-                    <Text c="dimmed" size="sm">
-                      現在残高
-                    </Text>
-                    <Text
-                      c={currency.currentBalance >= 0 ? 'teal' : 'red'}
-                      fw={700}
-                      size="xl"
-                    >
-                      {currency.currentBalance.toLocaleString()}
-                    </Text>
-                  </Stack>
+                  <Group gap="lg">
+                    <Stack align="center" gap={4}>
+                      <Group gap={4}>
+                        <IconPokerChip size={16} style={{ color: 'gray' }} />
+                        <Text c="dimmed" size="xs">
+                          キャッシュ
+                        </Text>
+                      </Group>
+                      <Text fw={600} size="lg">
+                        {store.cashGameCount}
+                      </Text>
+                    </Stack>
+                    <Stack align="center" gap={4}>
+                      <Group gap={4}>
+                        <IconTrophy size={16} style={{ color: 'gray' }} />
+                        <Text c="dimmed" size="xs">
+                          トーナメント
+                        </Text>
+                      </Group>
+                      <Text fw={600} size="lg">
+                        {store.tournamentCount}
+                      </Text>
+                    </Stack>
+                  </Group>
                 </Group>
               </Card>
             ))}

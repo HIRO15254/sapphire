@@ -174,33 +174,33 @@ tests/
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T063 [P] [US3] Write unit test for Store schema in tests/unit/server/db/schema/store.test.ts
-- [ ] T064 [P] [US3] Write unit test for CashGame schema in tests/unit/server/db/schema/cashGame.test.ts
-- [ ] T065 [P] [US3] Write unit test for Tournament schema in tests/unit/server/db/schema/tournament.test.ts
-- [ ] T066 [P] [US3] Write unit test for store router in tests/unit/server/api/routers/store.test.ts
-- [ ] T067 [P] [US3] Write unit test for cashGame router in tests/unit/server/api/routers/cashGame.test.ts
-- [ ] T068 [P] [US3] Write unit test for tournament router in tests/unit/server/api/routers/tournament.test.ts
-- [ ] T069 [P] [US3] Write E2E test for store and game management flow in tests/e2e/store.spec.ts
+- [X] T063 [P] [US3] Write unit test for Store schema in tests/unit/server/db/schema/store.test.ts
+- [X] T064 [P] [US3] Write unit test for CashGame schema in tests/unit/server/db/schema/cashGame.test.ts
+- [X] T065 [P] [US3] Write unit test for Tournament schema in tests/unit/server/db/schema/tournament.test.ts
+- [X] T066 [P] [US3] Write unit test for store router in tests/unit/server/api/routers/store.test.ts
+- [X] T067 [P] [US3] Write unit test for cashGame router in tests/unit/server/api/routers/cashGame.test.ts
+- [X] T068 [P] [US3] Write unit test for tournament router in tests/unit/server/api/routers/tournament.test.ts
+- [X] T069 [P] [US3] Write E2E test for store and game management flow in tests/e2e/store.spec.ts
 
 ### Implementation for User Story 3
 
-- [ ] T070 [US3] Create Store schema with Google Maps fields (latitude, longitude, placeId) in src/server/db/schema/store.ts
-- [ ] T071 [US3] Create CashGame schema with explicit blind/ante fields in src/server/db/schema/cashGame.ts
-- [ ] T072 [US3] Create Tournament schema in src/server/db/schema/tournament.ts
-- [ ] T073 [P] [US3] Create TournamentPrizeLevel schema in src/server/db/schema/tournamentPrizeLevel.ts
-- [ ] T074 [P] [US3] Create TournamentBlindLevel schema in src/server/db/schema/tournamentBlindLevel.ts
-- [ ] T075 [US3] Create Google Maps URL generator utility in src/lib/google-maps.ts
-- [ ] T076 [US3] Create Zod schemas for store, cashGame, tournament validation in src/server/api/schemas/store.schema.ts
-- [ ] T077 [US3] Implement store router in src/server/api/routers/store.ts
-- [ ] T078 [US3] Implement cashGame router in src/server/api/routers/cashGame.ts
-- [ ] T079 [US3] Implement tournament router (including setPrizeLevels, setBlindLevels) in src/server/api/routers/tournament.ts
-- [ ] T080 [US3] Add store, cashGame, tournament routers to root router in src/server/api/root.ts
-- [ ] T081 [P] [US3] Create StoreListPage in src/app/(auth)/stores/page.tsx
-- [ ] T082 [P] [US3] Create StoreDetailPage in src/app/(auth)/stores/[id]/page.tsx
-- [ ] T083 [P] [US3] Create StoreForm component in src/components/forms/StoreForm.tsx
-- [ ] T084 [P] [US3] Create CashGameForm component in src/components/forms/CashGameForm.tsx
-- [ ] T085 [P] [US3] Create TournamentForm component (with prize/blind level editors) in src/components/forms/TournamentForm.tsx
-- [ ] T086 [US3] Create GoogleMapsLink component in src/components/ui/GoogleMapsLink.tsx
+- [X] T070 [US3] Create Store schema with Google Maps fields (latitude, longitude, placeId) in src/server/db/schema/store.ts
+- [X] T071 [US3] Create CashGame schema with explicit blind/ante fields in src/server/db/schema/cashGame.ts
+- [X] T072 [US3] Create Tournament schema in src/server/db/schema/tournament.ts
+- [X] T073 [P] [US3] Create TournamentPrizeLevel schema in src/server/db/schema/tournament.ts (Note: Combined with Tournament schema)
+- [X] T074 [P] [US3] Create TournamentBlindLevel schema in src/server/db/schema/tournament.ts (Note: Combined with Tournament schema)
+- [X] T075 [US3] Create Google Maps URL generator utility in src/lib/google-maps.ts
+- [X] T076 [US3] Create Zod schemas for store, cashGame, tournament validation in src/server/api/schemas/{store,cashGame,tournament}.schema.ts
+- [X] T077 [US3] Implement store router in src/server/api/routers/store.ts
+- [X] T078 [US3] Implement cashGame router in src/server/api/routers/cashGame.ts
+- [X] T079 [US3] Implement tournament router (including setPrizeLevels, setBlindLevels) in src/server/api/routers/tournament.ts
+- [X] T080 [US3] Add store, cashGame, tournament routers to root router in src/server/api/root.ts
+- [X] T081 [P] [US3] Create StoreListPage in src/app/(main)/stores/page.tsx
+- [X] T082 [P] [US3] Create StoreDetailPage in src/app/(main)/stores/[id]/page.tsx
+- [X] T083 [P] [US3] Create StoreForm component in src/app/(main)/stores/new/NewStoreContent.tsx (Note: Integrated into new page)
+- [X] T084 [P] [US3] Create CashGameForm component in src/app/(main)/stores/[id]/StoreDetailContent.tsx (Note: Integrated into detail page modal)
+- [X] T085 [P] [US3] Create TournamentForm component in src/app/(main)/stores/[id]/StoreDetailContent.tsx (Note: Integrated into detail page modal)
+- [X] T086 [US3] Create GoogleMapsLink component in src/components/ui/GoogleMapsLink.tsx
 
 **Checkpoint**: Users can manage stores with location and games
 
