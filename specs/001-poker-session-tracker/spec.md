@@ -223,10 +223,11 @@ As a player, I want to install the app and have it work reliably so that I can u
 
 **Session Management - Archive**
 - **FR-040**: System MUST allow archive session creation with store, game, start time, end time, buy-in, and cashout
+- **FR-040a**: System MUST allow editing existing archive sessions (store, game, times, buy-in, cashout, notes)
 - **FR-041**: System MUST calculate and display profit/loss for each session
-- **FR-042**: System MUST allow recording individual all-in situations with pot amount, win probability (0-100%), and actual result (won/lost)
+- **FR-042**: System MUST allow recording individual all-in situations with pot amount, win probability (0-100%), actual result (won/lost), and "Run it X times" support (number of runouts and wins in runout)
 - **FR-043**: System MUST calculate All-in EV as sum of (pot amount × win probability) for all all-ins in a session
-- **FR-044**: System MUST display all-in summary: total count, total pot amount, average win rate, calculated All-in EV, actual result total, and EV差分 (difference between expected and actual)
+- **FR-044**: System MUST display main profit/loss and EV-adjusted profit on session detail. EV-adjusted profit is calculated as "actual profit - EV difference" representing skill-based profit excluding luck variance. All-in records table shows actual result and EV difference for each all-in
 - **FR-045**: System MUST allow session notes in rich text format
 
 **Session Management - Active**
@@ -276,7 +277,7 @@ As a player, I want to install the app and have it work reliably so that I can u
 - **Store**: Poker venue; has name, location, notes; contains multiple games
 - **Game**: Either cash game or tournament (NLHE only); has currency link, rate/buy-in; belongs to a store
 - **Session**: Playing session (archive or active); has store link, game link, times, buy-in, cashout, notes; contains hands and all-in records
-- **AllInRecord**: Individual all-in situation; has pot amount, win probability, actual result (won/lost); belongs to session; used to calculate All-in EV and compare against actual outcomes
+- **AllInRecord**: Individual all-in situation; has pot amount, win probability, actual result (won/lost), "Run it X times" support (runout count, wins in runout); belongs to session; used to calculate All-in EV and EV-adjusted profit
 - **Player**: Opponent profile; has name, tags, notes; linked to sessions and hands
 - **PlayerTag**: User-defined tag; has name; can be assigned to multiple players
 - **Hand**: Individual hand record; has cards, position, actions, board, notes; belongs to session; can be pinned to players

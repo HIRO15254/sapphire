@@ -405,7 +405,7 @@ Extensible event log for active session recording. Uses JSONB for event data fol
 
 ### 15. AllInRecord
 
-Individual all-in situation within a session.
+Individual all-in situation within a session. Supports "Run it X times" for split pot outcomes.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -414,11 +414,18 @@ Individual all-in situation within a session.
 | userId | uuid | FK → users.id, cascade | Owner user |
 | potAmount | integer | NOT NULL | Pot size |
 | winProbability | decimal(5,2) | NOT NULL, check 0-100 | Win probability (%, up to 2 decimal places) |
-| actualResult | boolean | NOT NULL | Won (true) or lost (false) |
+| actualResult | boolean | NOT NULL | Won (true) or lost (false) - for single runout |
+| runItTimes | integer | nullable, check 1-10 | Number of runouts (null or 1 = single runout) |
+| winsInRunout | integer | nullable, check 0-runItTimes | Number of winning runouts (for Run it X times) |
 | recordedAt | timestamptz | NOT NULL, default now | When recorded |
 | createdAt | timestamptz | NOT NULL, default now | |
 | updatedAt | timestamptz | NOT NULL, default now | |
 | deletedAt | timestamptz | nullable | Soft delete |
+
+**Run it X Times**:
+- When `runItTimes` is null or 1: Standard single runout, use `actualResult` (won/lost)
+- When `runItTimes` > 1: Multiple runouts, use `winsInRunout` to calculate partial pot win
+- Example: Run it 3 times, win 2 → receive 2/3 of pot
 
 **Indexes**: `sessionId`, `userId`
 
@@ -428,9 +435,24 @@ allInEV = Σ(potAmount × winProbability / 100)
 allInCount = count(allInRecords)
 totalPotAmount = Σ(potAmount)
 averageWinRate = avg(winProbability)
-actualResultTotal = Σ(potAmount where actualResult = true)
-evDifference = actualResultTotal - allInEV  // EV差分（実際の結果と期待値の差）
+
+// Actual result calculation (handles Run it X times)
+actualResultTotal = Σ(
+  runItTimes > 1 && winsInRunout != null
+    ? potAmount × (winsInRunout / runItTimes)  // Partial pot for multiple runouts
+    : actualResult ? potAmount : 0              // Full pot or nothing for single runout
+)
+
+evDifference = actualResultTotal - allInEV  // 実収支 - EV（正=上振れ、負=下振れ）
+
+// EV-adjusted profit (displayed next to main profit)
+evAdjustedProfit = sessionProfitLoss - evDifference  // 運要素を除いた"実力"収支
 ```
+
+**Display Notes**:
+- Main profit/loss: Show actual session result (cashOut - buyIn)
+- EV-adjusted profit: Show `profitLoss - evDifference` in smaller text as "(EV: +X,XXX)"
+- This represents "skill-based" profit excluding luck variance from all-ins
 
 ---
 
