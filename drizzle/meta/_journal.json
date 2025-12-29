@@ -64,6 +64,20 @@
       "when": 1766587380918,
       "tag": "0008_futuristic_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1766735720146,
+      "tag": "0009_right_kat_farrell",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1766917357332,
+      "tag": "0010_good_tattoo",
+      "breakpoints": true
     }
   ]
 }

@@ -334,7 +334,60 @@ Tournament
 
 ---
 
-### 15-19. その他のテーブル（AllInRecord, Player, PlayerTag, PlayerTagAssignment, PlayerNote）
+### 15. AllInRecord（オールイン記録）
+
+セッション内の個別オールイン状況。「Run it X times」（複数回ランアウト）に対応。
+
+| カラム | 型 | 制約 | 説明 |
+|--------|------|------|------|
+| id | uuid | PK, default random | 一意識別子 |
+| sessionId | uuid | FK → poker_sessions.id, cascade | 親セッション |
+| userId | uuid | FK → users.id, cascade | 所有ユーザー |
+| potAmount | integer | NOT NULL | ポットサイズ |
+| winProbability | decimal(5,2) | NOT NULL, check 0-100 | 勝率（%、小数点以下2桁まで） |
+| actualResult | boolean | NOT NULL | 勝ち(true)/負け(false) - 単一ランアウト用 |
+| runItTimes | integer | nullable, check 1-10 | ランアウト回数（nullまたは1=単一ランアウト） |
+| winsInRunout | integer | nullable, check 0-runItTimes | 勝利したランアウト数（Run it X times用） |
+| recordedAt | timestamptz | NOT NULL, default now | 記録日時 |
+| createdAt | timestamptz | NOT NULL, default now | |
+| updatedAt | timestamptz | NOT NULL, default now | |
+| deletedAt | timestamptz | nullable | 論理削除 |
+
+**Run it X Times対応**:
+- `runItTimes`がnullまたは1の場合: 通常の単一ランアウト、`actualResult`を使用
+- `runItTimes` > 1の場合: 複数ランアウト、`winsInRunout`で部分的なポット獲得を計算
+- 例: 3回実行して2回勝利 → ポットの2/3を獲得
+
+**インデックス**: `sessionId`, `userId`
+
+**計算フィールド**（セッション単位）:
+```typescript
+allInEV = Σ(potAmount × winProbability / 100)
+allInCount = count(allInRecords)
+totalPotAmount = Σ(potAmount)
+averageWinRate = avg(winProbability)
+
+// 実収支計算（Run it X times対応）
+actualResultTotal = Σ(
+  runItTimes > 1 && winsInRunout != null
+    ? potAmount × (winsInRunout / runItTimes)  // 複数ランアウトの部分ポット
+    : actualResult ? potAmount : 0              // 単一ランアウトは全額または0
+)
+
+evDifference = actualResultTotal - allInEV  // 実収支 - EV（正=上振れ、負=下振れ）
+
+// EV考慮収支（メイン収支の横に表示）
+evAdjustedProfit = sessionProfitLoss - evDifference  // 運要素を除いた"実力"収支
+```
+
+**表示仕様**:
+- メイン収支: セッションの実収支（cashOut - buyIn）を表示
+- EV考慮収支: `profitLoss - evDifference`を小さいテキストで「(EV: +X,XXX)」形式で表示
+- これは運の分散を除いた「実力」ベースの収支を表す
+
+---
+
+### 16-19. その他のテーブル（Player, PlayerTag, PlayerTagAssignment, PlayerNote）
 
 （英語版と同様）
 

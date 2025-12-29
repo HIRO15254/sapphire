@@ -216,30 +216,41 @@ tests/
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T087 [P] [US1] Write unit test for PokerSession schema in tests/unit/server/db/schema/session.test.ts
-- [ ] T088 [P] [US1] Write unit test for AllInRecord schema in tests/unit/server/db/schema/allIn.test.ts
-- [ ] T089 [P] [US1] Write unit test for session router in tests/unit/server/api/routers/session.test.ts
-- [ ] T090 [P] [US1] Write unit test for allIn router in tests/unit/server/api/routers/allIn.test.ts
-- [ ] T091 [P] [US1] Write integration test for session with all-in EV calculation in tests/integration/session/allInEv.test.ts
-- [ ] T092 [P] [US1] Write E2E test for archive session recording flow in tests/e2e/session-archive.spec.ts
+- [X] T087 [P] [US1] Write unit test for PokerSession schema in tests/unit/server/db/schema/session.test.ts
+- [X] T088 [P] [US1] Write unit test for AllInRecord schema in tests/unit/server/db/schema/allIn.test.ts
+- [X] T089 [P] [US1] Write unit test for session router in tests/unit/server/api/routers/session.test.ts
+- [X] T090 [P] [US1] Write unit test for allIn router in tests/unit/server/api/routers/allIn.test.ts
+- [X] T091 [P] [US1] Write integration test for session with all-in EV calculation in tests/integration/session/allInEv.test.ts
+- [X] T092 [P] [US1] Write E2E test for archive session recording flow in tests/e2e/session-archive.spec.ts
 
 ### Implementation for User Story 1
 
-- [ ] T093 [US1] Create PokerSession schema in src/server/db/schema/session.ts
-- [ ] T094 [US1] Create AllInRecord schema with winProbability decimal(5,2) in src/server/db/schema/allInRecord.ts
-- [ ] T095 [US1] Create Zod schemas for session validation in src/server/api/schemas/session.schema.ts
-- [ ] T096 [US1] Create Zod schemas for allIn validation in src/server/api/schemas/allIn.schema.ts
-- [ ] T097 [US1] Implement session router (list, getById, createArchive, update, delete) in src/server/api/routers/session.ts
-- [ ] T098 [US1] Implement allIn router (listBySession, create, update, delete) in src/server/api/routers/allIn.ts
-- [ ] T099 [US1] Add session and allIn routers to root router in src/server/api/root.ts
-- [ ] T100 [P] [US1] Create SessionListPage with pagination in src/app/(auth)/sessions/page.tsx
-- [ ] T101 [P] [US1] Create SessionDetailPage in src/app/(auth)/sessions/[id]/page.tsx
-- [ ] T102 [P] [US1] Create ArchiveSessionForm component in src/components/forms/ArchiveSessionForm.tsx
-- [ ] T103 [P] [US1] Create AllInRecordForm component in src/components/forms/AllInRecordForm.tsx
-- [ ] T104 [US1] Create AllInSummary component (count, pot total, avg win rate, EV, actual result, EV差分) in src/components/session/AllInSummary.tsx
-- [ ] T105 [US1] Add empty state handling in ArchiveSessionForm when no stores exist (prompt to create store first) in src/components/forms/ArchiveSessionForm.tsx
+- [X] T093 [US1] Create PokerSession schema in src/server/db/schema/session.ts
+- [X] T094 [US1] Create AllInRecord schema with winProbability decimal(5,2), runItTimes, winsInRunout in src/server/db/schema/allInRecord.ts
+- [X] T095 [US1] Create Zod schemas for session validation in src/server/api/schemas/session.schema.ts
+- [X] T096 [US1] Create Zod schemas for allIn validation (including Run it X times) in src/server/api/schemas/allIn.schema.ts
+- [X] T097 [US1] Implement session router (list, getById, createArchive, update, delete) with EV calculations in src/server/api/routers/session.ts
+- [X] T098 [US1] Implement allIn router (listBySession, create, update, delete) in src/server/api/routers/allIn.ts
+- [X] T099 [US1] Add session and allIn routers to root router in src/server/api/root.ts
+- [X] T100 [P] [US1] Create SessionListPage with pagination and EV-adjusted profit display in src/app/(main)/sessions/page.tsx
+- [X] T101 [P] [US1] Create SessionDetailPage with profit/EV-adjusted profit and all-in records table in src/app/(main)/sessions/[id]/page.tsx
+- [X] T102 [P] [US1] Create ArchiveSessionForm component with separate date/start time/end time inputs in src/app/(main)/sessions/new/NewSessionContent.tsx
+- [X] T103 [P] [US1] Create AllInRecordForm component with Run it X times support (integrated in SessionDetailContent.tsx)
+- [X] T104 [US1] Implement EV-adjusted profit display (profitLoss - evDifference) next to main profit on session detail and list pages
+- [X] T105 [US1] Add empty state handling in ArchiveSessionForm when no stores exist (prompt to create store first)
+- [X] T105a [P] [US1] Create EditSessionPage at src/app/(main)/sessions/[id]/edit/page.tsx (FR-040a)
+- [X] T105b [P] [US1] Create EditSessionContent component at src/app/(main)/sessions/[id]/edit/EditSessionContent.tsx (FR-040a)
 
-**Checkpoint**: Users can record archive sessions with full all-in EV tracking
+**Checkpoint**: Users can record archive sessions with full all-in EV tracking (including Run it X times and EV-adjusted profit display)
+
+**Implementation Notes** (Phase 6 completed 2025-12):
+- Session time input: Separate date, start time, end time fields (end time before start time = next day)
+- AllInRecord: Added `runItTimes` and `winsInRunout` columns for "Run it X times" support
+- EV calculation: actualResultTotal = Σ(potAmount × winsInRunout / runItTimes) for multiple runouts
+- EV-adjusted profit: Displayed as "(EV: +X,XXX)" next to main profit, calculated as profitLoss - evDifference
+- All-in table: Combined "実収支" column shows actual result with EV diff below in small text
+- Terminology: "買入"/"精算" → "Buy-in"/"Cash-out"
+- Session edit: Edit page at /sessions/[id]/edit with full form to modify session details (FR-040a)
 
 ---
 
@@ -504,22 +515,22 @@ tests/
 
 ---
 
-## Parallel Example: User Story 1
+## Parallel Example: User Story 1 ✅ COMPLETED
 
 ```bash
-# Launch all tests for User Story 1 together:
-Task: "Write unit test for PokerSession schema in tests/unit/server/db/schema/session.test.ts"
-Task: "Write unit test for AllInRecord schema in tests/unit/server/db/schema/allIn.test.ts"
-Task: "Write unit test for session router in tests/unit/server/api/routers/session.test.ts"
-Task: "Write unit test for allIn router in tests/unit/server/api/routers/allIn.test.ts"
-Task: "Write integration test for session with all-in EV calculation in tests/integration/session/allInEv.test.ts"
-Task: "Write E2E test for archive session recording flow in tests/e2e/session-archive.spec.ts"
+# All tests for User Story 1 have been completed:
+# - tests/unit/server/db/schema/session.test.ts ✅
+# - tests/unit/server/db/schema/allIn.test.ts ✅
+# - tests/unit/server/api/routers/session.test.ts ✅
+# - tests/unit/server/api/routers/allIn.test.ts ✅
+# - tests/integration/session/allInEv.test.ts ✅
+# - tests/e2e/session-archive.spec.ts ✅
 
-# Launch all UI components together (after router implementation):
-Task: "Create SessionListPage with pagination in src/app/(auth)/sessions/page.tsx"
-Task: "Create SessionDetailPage in src/app/(auth)/sessions/[id]/page.tsx"
-Task: "Create ArchiveSessionForm component in src/components/forms/ArchiveSessionForm.tsx"
-Task: "Create AllInRecordForm component in src/components/forms/AllInRecordForm.tsx"
+# All UI components have been completed:
+# - src/app/(main)/sessions/page.tsx ✅
+# - src/app/(main)/sessions/[id]/page.tsx ✅
+# - src/app/(main)/sessions/new/NewSessionContent.tsx ✅
+# - AllInRecordForm integrated in SessionDetailContent.tsx ✅
 ```
 
 ---

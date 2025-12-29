@@ -37,6 +37,16 @@ export {
   purchaseTransactions,
 } from './purchaseTransaction'
 export {
+  type AllInRecord,
+  allInRecords,
+  type NewAllInRecord,
+} from './allInRecord'
+export {
+  type NewPokerSession,
+  type PokerSession,
+  pokerSessions,
+} from './session'
+export {
   type NewStore,
   type Store,
   stores,
@@ -70,10 +80,12 @@ export {
 
 // Import tables for relation definitions
 import { accounts } from './account'
+import { allInRecords } from './allInRecord'
 import { bonusTransactions } from './bonusTransaction'
 import { cashGames } from './cashGame'
 import { currencies } from './currency'
 import { purchaseTransactions } from './purchaseTransaction'
+import { pokerSessions } from './session'
 import { stores } from './store'
 import {
   tournamentBlindLevels,
@@ -85,8 +97,8 @@ import {
 import { users } from './user'
 
 /**
- * User relations to accounts, currencies, stores, games, and transactions.
- * Note: sessions table removed - JWT sessions are used instead of database sessions.
+ * User relations to accounts, currencies, stores, games, transactions, sessions, and all-ins.
+ * Note: authSessions table removed - JWT sessions are used instead of database sessions.
  */
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
@@ -96,6 +108,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   stores: many(stores),
   cashGames: many(cashGames),
   tournaments: many(tournaments),
+  pokerSessions: many(pokerSessions),
+  allInRecords: many(allInRecords),
 }))
 
 /**
@@ -151,12 +165,13 @@ export const purchaseTransactionsRelations = relations(
 )
 
 /**
- * Store relations to user, cash games, and tournaments.
+ * Store relations to user, cash games, tournaments, and sessions.
  */
 export const storesRelations = relations(stores, ({ one, many }) => ({
   user: one(users, { fields: [stores.userId], references: [users.id] }),
   cashGames: many(cashGames),
   tournaments: many(tournaments),
+  pokerSessions: many(pokerSessions),
 }))
 
 /**
@@ -250,3 +265,43 @@ export const tournamentBlindLevelsRelations = relations(
     }),
   }),
 )
+
+/**
+ * PokerSession relations to user, store, cash game, tournament, and all-in records.
+ */
+export const pokerSessionsRelations = relations(
+  pokerSessions,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [pokerSessions.userId],
+      references: [users.id],
+    }),
+    store: one(stores, {
+      fields: [pokerSessions.storeId],
+      references: [stores.id],
+    }),
+    cashGame: one(cashGames, {
+      fields: [pokerSessions.cashGameId],
+      references: [cashGames.id],
+    }),
+    tournament: one(tournaments, {
+      fields: [pokerSessions.tournamentId],
+      references: [tournaments.id],
+    }),
+    allInRecords: many(allInRecords),
+  }),
+)
+
+/**
+ * AllInRecord relations to session and user.
+ */
+export const allInRecordsRelations = relations(allInRecords, ({ one }) => ({
+  session: one(pokerSessions, {
+    fields: [allInRecords.sessionId],
+    references: [pokerSessions.id],
+  }),
+  user: one(users, {
+    fields: [allInRecords.userId],
+    references: [users.id],
+  }),
+}))
