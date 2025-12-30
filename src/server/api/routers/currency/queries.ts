@@ -1,11 +1,15 @@
 import { TRPCError } from '@trpc/server'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, or } from 'drizzle-orm'
 
 import {
   bonusTransactions,
+  cashGames,
   currencies,
   isNotDeleted,
+  pokerSessions,
   purchaseTransactions,
+  stores,
+  tournaments,
 } from '~/server/db/schema'
 import {
   getCurrencyByIdSchema,
@@ -60,7 +64,7 @@ export const currencyQueries = createTRPCRouter({
     }),
 
   /**
-   * Get a single currency by ID with balance breakdown.
+   * Get a single currency by ID with balance breakdown, related games, and sessions.
    */
   getById: protectedProcedure
     .input(getCurrencyByIdSchema)
@@ -107,11 +111,97 @@ export const currencyQueries = createTRPCRouter({
         )
         .orderBy(desc(purchaseTransactions.transactionDate))
 
+      // Get related cash games with store info
+      const relatedCashGames = await ctx.db
+        .select({
+          id: cashGames.id,
+          smallBlind: cashGames.smallBlind,
+          bigBlind: cashGames.bigBlind,
+          storeId: cashGames.storeId,
+          storeName: stores.name,
+        })
+        .from(cashGames)
+        .innerJoin(stores, eq(cashGames.storeId, stores.id))
+        .where(
+          and(
+            eq(cashGames.currencyId, currency.id),
+            isNotDeleted(cashGames.deletedAt),
+            isNotDeleted(stores.deletedAt),
+          ),
+        )
+
+      // Get related tournaments with store info
+      const relatedTournaments = await ctx.db
+        .select({
+          id: tournaments.id,
+          name: tournaments.name,
+          buyIn: tournaments.buyIn,
+          storeId: tournaments.storeId,
+          storeName: stores.name,
+        })
+        .from(tournaments)
+        .innerJoin(stores, eq(tournaments.storeId, stores.id))
+        .where(
+          and(
+            eq(tournaments.currencyId, currency.id),
+            isNotDeleted(tournaments.deletedAt),
+            isNotDeleted(stores.deletedAt),
+          ),
+        )
+
+      // Get related completed sessions
+      const cashGameIds = relatedCashGames.map((cg) => cg.id)
+      const tournamentIds = relatedTournaments.map((t) => t.id)
+
+      const relatedSessions =
+        cashGameIds.length > 0 || tournamentIds.length > 0
+          ? await (async () => {
+              const sessionConditions = []
+              if (cashGameIds.length > 0) {
+                sessionConditions.push(
+                  inArray(pokerSessions.cashGameId, cashGameIds),
+                )
+              }
+              if (tournamentIds.length > 0) {
+                sessionConditions.push(
+                  inArray(pokerSessions.tournamentId, tournamentIds),
+                )
+              }
+
+              return ctx.db
+                .select({
+                  id: pokerSessions.id,
+                  gameType: pokerSessions.gameType,
+                  startTime: pokerSessions.startTime,
+                  buyIn: pokerSessions.buyIn,
+                  cashOut: pokerSessions.cashOut,
+                  cashGameId: pokerSessions.cashGameId,
+                  tournamentId: pokerSessions.tournamentId,
+                  storeId: stores.id,
+                  storeName: stores.name,
+                })
+                .from(pokerSessions)
+                .innerJoin(stores, eq(pokerSessions.storeId, stores.id))
+                .where(
+                  and(
+                    or(...sessionConditions),
+                    isNotDeleted(pokerSessions.deletedAt),
+                    isNotDeleted(stores.deletedAt),
+                    isNotNull(pokerSessions.cashOut), // Only completed sessions
+                  ),
+                )
+                .orderBy(desc(pokerSessions.startTime))
+            })()
+          : []
+
       return {
         ...currency,
         ...balance,
         bonusTransactions: bonusList,
         purchaseTransactions: purchaseList,
+        relatedCashGames,
+        relatedTournaments,
+        relatedSessions,
       }
     }),
 

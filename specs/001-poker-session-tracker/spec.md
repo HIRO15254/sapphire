@@ -59,6 +59,8 @@ As a player at Japanese amusement poker venues, I want to track my different vir
 3. **Given** I have currencies, **When** I record a purchase with amount and optional note, **Then** the purchase is logged and reflected in balance calculation
 4. **Given** I have multiple currencies, **When** I view my currencies, **Then** I see all currencies with their current balances (calculated from: initial balance + bonuses + purchases - session buy-ins + session cashouts)
 5. **Given** I have a currency with sessions, **When** I view the currency balance breakdown, **Then** I see each component (initial, bonuses, purchases, session results) contributing to the total
+6. **Given** I have a currency, **When** I view the currency detail, **Then** I see a list of related games (cash games and tournaments) that use this currency with links to their stores
+7. **Given** I have a currency with transactions, **When** I view the currency detail, **Then** I see a unified transaction history showing sessions, bonuses, and purchases in chronological order
 
 ---
 

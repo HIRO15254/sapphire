@@ -124,21 +124,16 @@ export function CurrenciesContent({
                 withBorder
               >
                 <Group justify="space-between">
-                  <Stack gap="xs">
-                    <Group gap="sm">
-                      <Text fw={600} size="lg">
-                        {currency.name}
-                      </Text>
-                      {currency.isArchived && (
-                        <Text c="dimmed" size="sm">
-                          （アーカイブ済み）
-                        </Text>
-                      )}
-                    </Group>
-                    <Text c="dimmed" size="sm">
-                      初期残高: {currency.initialBalance.toLocaleString()}
+                  <Group gap="sm">
+                    <Text fw={600} size="lg">
+                      {currency.name}
                     </Text>
-                  </Stack>
+                    {currency.isArchived && (
+                      <Text c="dimmed" size="sm">
+                        （アーカイブ済み）
+                      </Text>
+                    )}
+                  </Group>
                   <Stack align="flex-end" gap="xs">
                     <Text c="dimmed" size="sm">
                       現在残高

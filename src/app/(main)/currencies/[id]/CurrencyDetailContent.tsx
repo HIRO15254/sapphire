@@ -30,7 +30,7 @@ import {
 } from '../actions/index'
 import { BalanceBreakdown } from './BalanceBreakdown'
 import { CurrencyHeader } from './CurrencyHeader'
-import { TransactionSection } from './TransactionSection'
+import { TransactionHistorySection } from './TransactionHistorySection'
 import {
   addBonusFormSchema,
   addPurchaseFormSchema,
@@ -295,8 +295,8 @@ export function CurrencyDetailContent({
         {/* Balance Breakdown */}
         <BalanceBreakdown currency={currency} />
 
-        {/* Transaction Section */}
-        <TransactionSection
+        {/* Transaction History Section */}
+        <TransactionHistorySection
           currency={currency}
           onAddBonusClick={openBonusModal}
           onAddPurchaseClick={openPurchaseModal}
