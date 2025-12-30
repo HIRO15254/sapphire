@@ -70,6 +70,11 @@ export const tournaments = createTable(
      * Archived flag - hides from active lists but preserves data.
      */
     isArchived: d.boolean('is_archived').notNull().default(false),
+    /**
+     * Display order for drag-and-drop sorting.
+     * Lower values appear first.
+     */
+    sortOrder: d.integer('sort_order').notNull().default(0),
     ...timestampColumns(d),
   }),
   (t) => [
@@ -77,6 +82,7 @@ export const tournaments = createTable(
     index('tournament_user_id_idx').on(t.userId),
     index('tournament_currency_id_idx').on(t.currencyId),
     index('tournament_is_archived_idx').on(t.isArchived),
+    index('tournament_sort_order_idx').on(t.sortOrder),
   ],
 )
 

@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
 
 import { generateGoogleMapsUrl } from '~/lib/google-maps'
 import {
@@ -131,7 +131,7 @@ export const storeRouter = createTRPCRouter({
         with: {
           currency: true,
         },
-        orderBy: [desc(cashGames.createdAt)],
+        orderBy: [asc(cashGames.sortOrder), desc(cashGames.createdAt)],
       })
 
       // Get tournaments for this store with prize structures and blind levels
@@ -159,7 +159,7 @@ export const storeRouter = createTRPCRouter({
             orderBy: (levels, { asc }) => [asc(levels.level)],
           },
         },
-        orderBy: [desc(tournaments.createdAt)],
+        orderBy: [asc(tournaments.sortOrder), desc(tournaments.createdAt)],
       })
 
       // Use custom URL if provided, otherwise generate from location data

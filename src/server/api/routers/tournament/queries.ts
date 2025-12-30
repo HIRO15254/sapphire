@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
 
 import { isNotDeleted, stores, tournaments } from '~/server/db/schema'
 import {
@@ -50,7 +50,7 @@ export const tournamentQueries = createTRPCRouter({
         with: {
           currency: true,
         },
-        orderBy: [desc(tournaments.createdAt)],
+        orderBy: [asc(tournaments.sortOrder), desc(tournaments.createdAt)],
       })
 
       return {

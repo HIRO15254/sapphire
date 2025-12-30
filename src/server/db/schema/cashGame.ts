@@ -77,6 +77,11 @@ export const cashGames = createTable(
      * Archived flag - hides from active lists but preserves data.
      */
     isArchived: d.boolean('is_archived').notNull().default(false),
+    /**
+     * Display order for drag-and-drop sorting.
+     * Lower values appear first.
+     */
+    sortOrder: d.integer('sort_order').notNull().default(0),
     ...timestampColumns(d),
   }),
   (t) => [
@@ -84,6 +89,7 @@ export const cashGames = createTable(
     index('cash_game_user_id_idx').on(t.userId),
     index('cash_game_currency_id_idx').on(t.currencyId),
     index('cash_game_is_archived_idx').on(t.isArchived),
+    index('cash_game_sort_order_idx').on(t.sortOrder),
   ],
 )
 

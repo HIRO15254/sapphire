@@ -2,6 +2,7 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
+import { z } from 'zod'
 import {
   type ArchiveCashGameInput,
   archiveCashGameSchema,
@@ -21,6 +22,19 @@ import {
   stores,
 } from '~/server/db/schema'
 import type { ActionResult } from './store'
+
+/** Schema for reordering cash games */
+const reorderCashGamesSchema = z.object({
+  storeId: z.string(),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      sortOrder: z.number().int().min(0),
+    }),
+  ),
+})
+
+export type ReorderCashGamesInput = z.infer<typeof reorderCashGamesSchema>
 
 /**
  * Create a new cash game.
@@ -258,6 +272,66 @@ export async function deleteCashGame(
         error instanceof Error
           ? error.message
           : 'キャッシュゲームの削除に失敗しました',
+    }
+  }
+}
+
+/**
+ * Reorder cash games within a store.
+ *
+ * Revalidates: store-{storeId}
+ */
+export async function reorderCashGames(
+  input: ReorderCashGamesInput,
+): Promise<ActionResult> {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, error: '認証が必要です' }
+    }
+
+    // Validate input
+    const validated = reorderCashGamesSchema.parse(input)
+
+    // Verify store ownership
+    const store = await db.query.stores.findFirst({
+      where: and(
+        eq(stores.id, validated.storeId),
+        eq(stores.userId, session.user.id),
+        isNotDeleted(stores.deletedAt),
+      ),
+    })
+
+    if (!store) {
+      return { success: false, error: '店舗が見つかりません' }
+    }
+
+    // Update sortOrder for each cash game
+    for (const item of validated.items) {
+      await db
+        .update(cashGames)
+        .set({ sortOrder: item.sortOrder })
+        .where(
+          and(
+            eq(cashGames.id, item.id),
+            eq(cashGames.storeId, validated.storeId),
+            eq(cashGames.userId, session.user.id),
+          ),
+        )
+    }
+
+    // Revalidate store detail
+    revalidateTag(`store-${validated.storeId}`)
+
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('Failed to reorder cash games:', error)
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'キャッシュゲームの並べ替えに失敗しました',
     }
   }
 }

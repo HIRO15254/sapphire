@@ -13,6 +13,7 @@ export {
   archiveCashGame,
   createCashGame,
   deleteCashGame,
+  reorderCashGames,
   updateCashGame,
 } from './cashGame'
 
@@ -21,6 +22,7 @@ export {
   archiveTournament,
   createTournament,
   deleteTournament,
+  reorderTournaments,
   updateTournament,
 } from './tournament'
 

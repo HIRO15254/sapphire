@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
+import { z } from 'zod'
 
 import { cashGames, isNotDeleted, softDelete, stores } from '~/server/db/schema'
 import {
@@ -93,7 +94,7 @@ export const cashGameRouter = createTRPCRouter({
         with: {
           currency: true,
         },
-        orderBy: [desc(cashGames.createdAt)],
+        orderBy: [asc(cashGames.sortOrder), desc(cashGames.createdAt)],
       })
 
       return {
@@ -291,5 +292,56 @@ export const cashGameRouter = createTRPCRouter({
         .returning()
 
       return deleted
+    }),
+
+  /**
+   * Reorder cash games within a store.
+   */
+  reorder: protectedProcedure
+    .input(
+      z.object({
+        storeId: z.string(),
+        items: z.array(
+          z.object({
+            id: z.string(),
+            sortOrder: z.number().int().min(0),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify store ownership
+      const store = await ctx.db.query.stores.findFirst({
+        where: and(
+          eq(stores.id, input.storeId),
+          eq(stores.userId, userId),
+          isNotDeleted(stores.deletedAt),
+        ),
+      })
+
+      if (!store) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: '店舗が見つかりません',
+        })
+      }
+
+      // Update sortOrder for each cash game
+      for (const item of input.items) {
+        await ctx.db
+          .update(cashGames)
+          .set({ sortOrder: item.sortOrder })
+          .where(
+            and(
+              eq(cashGames.id, item.id),
+              eq(cashGames.storeId, input.storeId),
+              eq(cashGames.userId, userId),
+            ),
+          )
+      }
+
+      return { success: true }
     }),
 })

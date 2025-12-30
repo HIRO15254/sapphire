@@ -17,7 +17,7 @@ import { IconArrowLeft } from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { z } from 'zod'
 
 import { RichTextEditor } from '~/components/ui/RichTextEditor'
@@ -30,6 +30,8 @@ import {
   deleteCashGame,
   deleteStore,
   deleteTournament,
+  reorderCashGames,
+  reorderTournaments,
   setTournamentBlindLevels,
   setTournamentPrizeStructures,
   unarchiveStore,
@@ -87,6 +89,34 @@ export function StoreDetailContent({
   const router = useRouter()
   const storeId = initialStore.id
   const store = initialStore
+
+  // Local state for optimistic updates on reorder
+  const [cashGames, setCashGames] = useState<CashGame[]>(
+    initialStore.cashGames,
+  )
+  const [tournaments, setTournaments] = useState<Tournament[]>(
+    initialStore.tournaments,
+  )
+
+  // Track server data to detect actual changes (vs optimistic updates)
+  const serverCashGamesRef = useRef(initialStore.cashGames)
+  const serverTournamentsRef = useRef(initialStore.tournaments)
+
+  // Sync local state when server data actually changes (e.g., after refresh from other operations)
+  useEffect(() => {
+    // Only sync if server data has changed (different reference from what we last saw)
+    if (initialStore.cashGames !== serverCashGamesRef.current) {
+      serverCashGamesRef.current = initialStore.cashGames
+      setCashGames(initialStore.cashGames)
+    }
+  }, [initialStore.cashGames])
+
+  useEffect(() => {
+    if (initialStore.tournaments !== serverTournamentsRef.current) {
+      serverTournamentsRef.current = initialStore.tournaments
+      setTournaments(initialStore.tournaments)
+    }
+  }, [initialStore.tournaments])
 
   // State for editing games (determines which game to edit in modal)
   const [editingCashGame, setEditingCashGame] = useState<CashGame | null>(null)
@@ -562,6 +592,59 @@ export function StoreDetailContent({
     setEditingTournament(null)
   }
 
+  // Reorder handlers (optimistic update - fire and forget with rollback on error)
+  const handleCashGameReorder = (
+    items: { id: string; sortOrder: number }[],
+    newOrder: CashGame[],
+  ) => {
+    // Optimistic update: immediately update local state
+    setCashGames(newOrder)
+
+    // Fire async request without blocking UI
+    void (async () => {
+      const result = await reorderCashGames({
+        storeId,
+        items,
+      })
+
+      if (!result.success) {
+        notifications.show({
+          title: 'エラー',
+          message: result.error,
+          color: 'red',
+        })
+        // Rollback: refresh to get server state
+        router.refresh()
+      }
+    })()
+  }
+
+  const handleTournamentReorder = (
+    items: { id: string; sortOrder: number }[],
+    newOrder: Tournament[],
+  ) => {
+    // Optimistic update: immediately update local state
+    setTournaments(newOrder)
+
+    // Fire async request without blocking UI
+    void (async () => {
+      const result = await reorderTournaments({
+        storeId,
+        items,
+      })
+
+      if (!result.success) {
+        notifications.show({
+          title: 'エラー',
+          message: result.error,
+          color: 'red',
+        })
+        // Rollback: refresh to get server state
+        router.refresh()
+      }
+    })()
+  }
+
   return (
     <Container py="xl" size="md">
       <Stack gap="lg">
@@ -635,11 +718,12 @@ export function StoreDetailContent({
 
         {/* Cash Games Section */}
         <CashGameSection
-          cashGames={store.cashGames}
+          cashGames={cashGames}
           onArchiveToggle={handleCashGameArchiveToggle}
           onCreateClick={openCashGameForCreate}
           onDelete={handleCashGameDelete}
           onEditClick={openCashGameForEdit}
+          onReorder={handleCashGameReorder}
         />
 
         {/* Tournaments Section */}
@@ -648,7 +732,8 @@ export function StoreDetailContent({
           onCreateClick={openTournamentForCreate}
           onDelete={handleTournamentDelete}
           onEditClick={openTournamentForEdit}
-          tournaments={store.tournaments}
+          onReorder={handleTournamentReorder}
+          tournaments={tournaments}
         />
       </Stack>
 

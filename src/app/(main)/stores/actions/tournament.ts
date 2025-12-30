@@ -2,6 +2,7 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
+import { z } from 'zod'
 import {
   type ArchiveTournamentInput,
   archiveTournamentSchema,
@@ -16,6 +17,19 @@ import { auth } from '~/server/auth'
 import { db } from '~/server/db'
 import { isNotDeleted, softDelete, stores, tournaments } from '~/server/db/schema'
 import type { ActionResult } from './store'
+
+/** Schema for reordering tournaments */
+const reorderTournamentsSchema = z.object({
+  storeId: z.string(),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      sortOrder: z.number().int().min(0),
+    }),
+  ),
+})
+
+export type ReorderTournamentsInput = z.infer<typeof reorderTournamentsSchema>
 
 /**
  * Create a new tournament.
@@ -245,6 +259,66 @@ export async function deleteTournament(
         error instanceof Error
           ? error.message
           : 'トーナメントの削除に失敗しました',
+    }
+  }
+}
+
+/**
+ * Reorder tournaments within a store.
+ *
+ * Revalidates: store-{storeId}
+ */
+export async function reorderTournaments(
+  input: ReorderTournamentsInput,
+): Promise<ActionResult> {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, error: '認証が必要です' }
+    }
+
+    // Validate input
+    const validated = reorderTournamentsSchema.parse(input)
+
+    // Verify store ownership
+    const store = await db.query.stores.findFirst({
+      where: and(
+        eq(stores.id, validated.storeId),
+        eq(stores.userId, session.user.id),
+        isNotDeleted(stores.deletedAt),
+      ),
+    })
+
+    if (!store) {
+      return { success: false, error: '店舗が見つかりません' }
+    }
+
+    // Update sortOrder for each tournament
+    for (const item of validated.items) {
+      await db
+        .update(tournaments)
+        .set({ sortOrder: item.sortOrder })
+        .where(
+          and(
+            eq(tournaments.id, item.id),
+            eq(tournaments.storeId, validated.storeId),
+            eq(tournaments.userId, session.user.id),
+          ),
+        )
+    }
+
+    // Revalidate store detail
+    revalidateTag(`store-${validated.storeId}`)
+
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('Failed to reorder tournaments:', error)
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'トーナメントの並べ替えに失敗しました',
     }
   }
 }

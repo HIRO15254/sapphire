@@ -1,6 +1,6 @@
 # Data Model: Live Poker Session Tracker
 
-**Date**: 2025-12-12 (Updated: 2025-12-15)
+**Date**: 2025-12-12 (Updated: 2025-12-30)
 **Feature Branch**: `001-poker-session-tracker`
 
 This document defines the database schema for the poker session tracker application using Drizzle ORM with PostgreSQL.
@@ -252,11 +252,12 @@ Cash game configuration at a store (NLHE only for initial release).
 | anteType | varchar(20) | nullable | 'all_ante' or 'bb_ante' |
 | notes | text | nullable | Rich text notes (HTML) |
 | isArchived | boolean | NOT NULL, default false | Archived (hidden from active lists) |
+| sortOrder | integer | NOT NULL, default 0 | Display order for drag-and-drop sorting |
 | createdAt | timestamptz | NOT NULL, default now | |
 | updatedAt | timestamptz | NOT NULL, default now | |
 | deletedAt | timestamptz | nullable | Soft delete |
 
-**Indexes**: `storeId`, `userId`, `isArchived`
+**Indexes**: `storeId`, `userId`, `isArchived`, `sortOrder`
 
 **Ante Types**:
 - `all_ante`: All players post ante each hand
@@ -282,11 +283,12 @@ Tournament configuration at a store (NLHE only for initial release).
 | startingStack | integer | nullable | Starting chip stack |
 | notes | text | nullable | Rich text notes (HTML) |
 | isArchived | boolean | NOT NULL, default false | Archived (hidden from active lists) |
+| sortOrder | integer | NOT NULL, default 0 | Display order for drag-and-drop sorting |
 | createdAt | timestamptz | NOT NULL, default now | |
 | updatedAt | timestamptz | NOT NULL, default now | |
 | deletedAt | timestamptz | nullable | Soft delete |
 
-**Indexes**: `storeId`, `userId`, `isArchived`
+**Indexes**: `storeId`, `userId`, `isArchived`, `sortOrder`
 
 **Note**: `buyIn` is the total amount paid. `rake` is the portion that goes to the house (optional). Prize pool contribution = buyIn - rake.
 

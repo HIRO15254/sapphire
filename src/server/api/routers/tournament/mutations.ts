@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { and, eq } from 'drizzle-orm'
+import { z } from 'zod'
 
 import {
   isNotDeleted,
@@ -357,6 +358,57 @@ export const tournamentMutations = createTRPCRouter({
             durationMinutes: level.durationMinutes,
           })),
         )
+      }
+
+      return { success: true }
+    }),
+
+  /**
+   * Reorder tournaments within a store.
+   */
+  reorder: protectedProcedure
+    .input(
+      z.object({
+        storeId: z.string(),
+        items: z.array(
+          z.object({
+            id: z.string(),
+            sortOrder: z.number().int().min(0),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify store ownership
+      const store = await ctx.db.query.stores.findFirst({
+        where: and(
+          eq(stores.id, input.storeId),
+          eq(stores.userId, userId),
+          isNotDeleted(stores.deletedAt),
+        ),
+      })
+
+      if (!store) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: '店舗が見つかりません',
+        })
+      }
+
+      // Update sortOrder for each tournament
+      for (const item of input.items) {
+        await ctx.db
+          .update(tournaments)
+          .set({ sortOrder: item.sortOrder })
+          .where(
+            and(
+              eq(tournaments.id, item.id),
+              eq(tournaments.storeId, input.storeId),
+              eq(tournaments.userId, userId),
+            ),
+          )
       }
 
       return { success: true }
