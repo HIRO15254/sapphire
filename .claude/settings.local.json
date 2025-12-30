@@ -20,7 +20,8 @@
       "WebFetch(domain:github.com)",
       "Bash(npx playwright test:*)",
       "Bash(wc:*)",
-      "Bash(bun run db:generate:*)"
+      "Bash(bun run db:generate:*)",
+      "WebFetch(domain:reactcosmos.org)"
     ],
     "deny": [],
     "ask": []

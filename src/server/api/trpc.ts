@@ -79,6 +79,13 @@ export const createCallerFactory = t.createCallerFactory
 export const createTRPCRouter = t.router
 
 /**
+ * Merge multiple routers into a single router.
+ *
+ * @see https://trpc.io/docs/merging-routers
+ */
+export const mergeRouters = t.mergeRouters
+
+/**
  * Middleware for timing procedure execution and adding an artificial delay in development.
  *
  * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating

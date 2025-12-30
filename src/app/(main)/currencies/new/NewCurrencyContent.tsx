@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { z } from 'zod'
 
-import { createCurrency } from '../actions'
+import { createCurrency } from '../actions/index'
 
 const createCurrencySchema = z.object({
   name: z

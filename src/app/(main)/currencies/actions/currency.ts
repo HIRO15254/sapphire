@@ -3,11 +3,7 @@
 import { and, eq } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import {
-  type AddBonusInput,
-  type AddPurchaseInput,
   type ArchiveCurrencyInput,
-  addBonusSchema,
-  addPurchaseSchema,
   archiveCurrencySchema,
   type CreateCurrencyInput,
   createCurrencySchema,
@@ -18,17 +14,7 @@ import {
 } from '~/server/api/schemas/currency.schema'
 import { auth } from '~/server/auth'
 import { db } from '~/server/db'
-import {
-  bonusTransactions,
-  currencies,
-  isNotDeleted,
-  purchaseTransactions,
-  softDelete,
-} from '~/server/db/schema'
-
-// ============================================================================
-// Type Definitions
-// ============================================================================
+import { currencies, isNotDeleted, softDelete } from '~/server/db/schema'
 
 /**
  * Standard result type for Server Actions
@@ -36,10 +22,6 @@ import {
 export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string }
-
-// ============================================================================
-// Currency CRUD Actions
-// ============================================================================
 
 /**
  * Create a new currency.
@@ -295,122 +277,6 @@ export async function deleteCurrency(
       success: false,
       error:
         error instanceof Error ? error.message : '通貨の削除に失敗しました',
-    }
-  }
-}
-
-// ============================================================================
-// Bonus Transaction Actions
-// ============================================================================
-
-/**
- * Add a bonus transaction to a currency.
- *
- * Revalidates: currency-{currencyId}, currency-list
- */
-export async function addCurrencyBonus(
-  input: AddBonusInput,
-): Promise<ActionResult> {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return { success: false, error: '認証が必要です' }
-    }
-
-    // Validate input
-    const validated = addBonusSchema.parse(input)
-
-    // Verify currency ownership
-    const currency = await db.query.currencies.findFirst({
-      where: and(
-        eq(currencies.id, validated.currencyId),
-        eq(currencies.userId, session.user.id),
-        isNotDeleted(currencies.deletedAt),
-      ),
-    })
-
-    if (!currency) {
-      return { success: false, error: '通貨が見つかりません' }
-    }
-
-    // Add bonus transaction
-    await db.insert(bonusTransactions).values({
-      currencyId: validated.currencyId,
-      userId: session.user.id,
-      amount: validated.amount,
-      source: validated.source,
-      transactionDate: validated.transactionDate ?? new Date(),
-    })
-
-    // Revalidate currency detail and list
-    revalidateTag(`currency-${validated.currencyId}`)
-    revalidateTag('currency-list')
-
-    return { success: true, data: undefined }
-  } catch (error) {
-    console.error('Failed to add bonus:', error)
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'ボーナスの追加に失敗しました',
-    }
-  }
-}
-
-// ============================================================================
-// Purchase Transaction Actions
-// ============================================================================
-
-/**
- * Add a purchase transaction to a currency.
- *
- * Revalidates: currency-{currencyId}, currency-list
- */
-export async function addCurrencyPurchase(
-  input: AddPurchaseInput,
-): Promise<ActionResult> {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return { success: false, error: '認証が必要です' }
-    }
-
-    // Validate input
-    const validated = addPurchaseSchema.parse(input)
-
-    // Verify currency ownership
-    const currency = await db.query.currencies.findFirst({
-      where: and(
-        eq(currencies.id, validated.currencyId),
-        eq(currencies.userId, session.user.id),
-        isNotDeleted(currencies.deletedAt),
-      ),
-    })
-
-    if (!currency) {
-      return { success: false, error: '通貨が見つかりません' }
-    }
-
-    // Add purchase transaction
-    await db.insert(purchaseTransactions).values({
-      currencyId: validated.currencyId,
-      userId: session.user.id,
-      amount: validated.amount,
-      note: validated.note,
-      transactionDate: validated.transactionDate ?? new Date(),
-    })
-
-    // Revalidate currency detail and list
-    revalidateTag(`currency-${validated.currencyId}`)
-    revalidateTag('currency-list')
-
-    return { success: true, data: undefined }
-  } catch (error) {
-    console.error('Failed to add purchase:', error)
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : '購入の追加に失敗しました',
     }
   }
 }

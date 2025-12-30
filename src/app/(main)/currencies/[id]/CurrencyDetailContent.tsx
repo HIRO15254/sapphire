@@ -1,39 +1,25 @@
 'use client'
 
 import {
-  Badge,
   Button,
-  Card,
   Container,
-  Divider,
   Group,
   Modal,
   NumberInput,
   Paper,
   Stack,
-  Table,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import {
-  IconArchive,
-  IconArchiveOff,
-  IconArrowLeft,
-  IconEdit,
-  IconPlus,
-  IconTrash,
-} from '@tabler/icons-react'
+import { IconArrowLeft } from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { z } from 'zod'
 
-import type { RouterOutputs } from '~/trpc/react'
 import {
   addCurrencyBonus,
   addCurrencyPurchase,
@@ -41,40 +27,16 @@ import {
   deleteCurrency,
   unarchiveCurrency,
   updateCurrency,
-} from '../actions'
-
-type Currency = RouterOutputs['currency']['getById']
-
-// Schemas for forms
-const updateCurrencySchema = z.object({
-  name: z
-    .string()
-    .min(1, '通貨名を入力してください')
-    .max(255, '通貨名は255文字以下で入力してください'),
-  initialBalance: z
-    .number()
-    .int('初期残高は整数で入力してください')
-    .min(0, '初期残高は0以上で入力してください'),
-})
-
-const addBonusSchema = z.object({
-  amount: z
-    .number()
-    .int('金額は整数で入力してください')
-    .positive('金額は正の数で入力してください'),
-  source: z
-    .string()
-    .max(255, '取得元は255文字以下で入力してください')
-    .optional(),
-})
-
-const addPurchaseSchema = z.object({
-  amount: z
-    .number()
-    .int('金額は整数で入力してください')
-    .positive('金額は正の数で入力してください'),
-  note: z.string().optional(),
-})
+} from '../actions/index'
+import { BalanceBreakdown } from './BalanceBreakdown'
+import { CurrencyHeader } from './CurrencyHeader'
+import { TransactionSection } from './TransactionSection'
+import {
+  addBonusFormSchema,
+  addPurchaseFormSchema,
+  type Currency,
+  updateCurrencyFormSchema,
+} from './types'
 
 interface CurrencyDetailContentProps {
   initialCurrency: Currency
@@ -122,7 +84,7 @@ export function CurrencyDetailContent({
       name: currency?.name ?? '',
       initialBalance: currency?.initialBalance ?? 0,
     },
-    validate: zodResolver(updateCurrencySchema),
+    validate: zodResolver(updateCurrencyFormSchema),
   })
 
   const bonusForm = useForm({
@@ -131,7 +93,7 @@ export function CurrencyDetailContent({
       amount: 0,
       source: '',
     },
-    validate: zodResolver(addBonusSchema),
+    validate: zodResolver(addBonusFormSchema),
   })
 
   const purchaseForm = useForm({
@@ -140,7 +102,7 @@ export function CurrencyDetailContent({
       amount: 0,
       note: '',
     },
-    validate: zodResolver(addPurchaseSchema),
+    validate: zodResolver(addPurchaseFormSchema),
   })
 
   // Event handlers
@@ -292,48 +254,14 @@ export function CurrencyDetailContent({
         </Button>
 
         {/* Header */}
-        <Group justify="space-between">
-          <Group gap="sm">
-            <Title order={1}>{currency.name}</Title>
-            {currency.isArchived && (
-              <Badge color="gray" size="lg">
-                アーカイブ済み
-              </Badge>
-            )}
-          </Group>
-          <Group>
-            <Button
-              leftSection={<IconEdit size={16} />}
-              onClick={() => setEditMode(!editMode)}
-              variant="outline"
-            >
-              編集
-            </Button>
-            <Button
-              color={currency.isArchived ? 'teal' : 'gray'}
-              leftSection={
-                currency.isArchived ? (
-                  <IconArchiveOff size={16} />
-                ) : (
-                  <IconArchive size={16} />
-                )
-              }
-              loading={isArchiving}
-              onClick={handleArchiveToggle}
-              variant="outline"
-            >
-              {currency.isArchived ? 'アーカイブ解除' : 'アーカイブ'}
-            </Button>
-            <Button
-              color="red"
-              leftSection={<IconTrash size={16} />}
-              onClick={openDeleteModal}
-              variant="outline"
-            >
-              削除
-            </Button>
-          </Group>
-        </Group>
+        <CurrencyHeader
+          isArchived={currency.isArchived}
+          isArchiving={isArchiving}
+          name={currency.name}
+          onArchiveClick={handleArchiveToggle}
+          onDeleteClick={openDeleteModal}
+          onEditClick={() => setEditMode(!editMode)}
+        />
 
         {/* Edit Form */}
         {editMode && (
@@ -365,143 +293,14 @@ export function CurrencyDetailContent({
         )}
 
         {/* Balance Breakdown */}
-        <Card p="lg" radius="md" shadow="sm" withBorder>
-          <Title order={3}>残高内訳</Title>
-          <Divider my="md" />
-          <Stack gap="sm">
-            <Group justify="space-between">
-              <Text>初期残高</Text>
-              <Text fw={500}>{currency.initialBalance.toLocaleString()}</Text>
-            </Group>
-            <Group justify="space-between">
-              <Text>ボーナス合計</Text>
-              <Text c="teal" fw={500}>
-                +{currency.totalBonuses.toLocaleString()}
-              </Text>
-            </Group>
-            <Group justify="space-between">
-              <Text>購入合計</Text>
-              <Text c="teal" fw={500}>
-                +{currency.totalPurchases.toLocaleString()}
-              </Text>
-            </Group>
-            <Group justify="space-between">
-              <Text>バイイン合計</Text>
-              <Text c="red" fw={500}>
-                -{currency.totalBuyIns.toLocaleString()}
-              </Text>
-            </Group>
-            <Group justify="space-between">
-              <Text>キャッシュアウト合計</Text>
-              <Text c="teal" fw={500}>
-                +{currency.totalCashOuts.toLocaleString()}
-              </Text>
-            </Group>
-            <Divider />
-            <Group justify="space-between">
-              <Text fw={600} size="lg">
-                現在残高
-              </Text>
-              <Text
-                c={currency.currentBalance >= 0 ? 'teal' : 'red'}
-                fw={700}
-                size="xl"
-              >
-                {currency.currentBalance.toLocaleString()}
-              </Text>
-            </Group>
-          </Stack>
-        </Card>
+        <BalanceBreakdown currency={currency} />
 
-        {/* Transaction Actions */}
-        <Group>
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={openBonusModal}
-            variant="light"
-          >
-            ボーナスを追加
-          </Button>
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={openPurchaseModal}
-            variant="light"
-          >
-            購入を追加
-          </Button>
-        </Group>
-
-        {/* Bonus Transactions */}
-        <Card p="lg" radius="md" shadow="sm" withBorder>
-          <Title order={3}>ボーナス履歴</Title>
-          <Divider my="md" />
-          {currency.bonusTransactions.length === 0 ? (
-            <Text c="dimmed">ボーナス履歴はありません</Text>
-          ) : (
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>日付</Table.Th>
-                  <Table.Th>取得元</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>金額</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {currency.bonusTransactions.map((bonus) => (
-                  <Table.Tr key={bonus.id}>
-                    <Table.Td>
-                      {new Date(bonus.transactionDate).toLocaleDateString(
-                        'ja-JP',
-                      )}
-                    </Table.Td>
-                    <Table.Td>{bonus.source ?? '-'}</Table.Td>
-                    <Table.Td style={{ textAlign: 'right' }}>
-                      <Text c="teal" fw={500}>
-                        +{bonus.amount.toLocaleString()}
-                      </Text>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          )}
-        </Card>
-
-        {/* Purchase Transactions */}
-        <Card p="lg" radius="md" shadow="sm" withBorder>
-          <Title order={3}>購入履歴</Title>
-          <Divider my="md" />
-          {currency.purchaseTransactions.length === 0 ? (
-            <Text c="dimmed">購入履歴はありません</Text>
-          ) : (
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>日付</Table.Th>
-                  <Table.Th>メモ</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>金額</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {currency.purchaseTransactions.map((purchase) => (
-                  <Table.Tr key={purchase.id}>
-                    <Table.Td>
-                      {new Date(purchase.transactionDate).toLocaleDateString(
-                        'ja-JP',
-                      )}
-                    </Table.Td>
-                    <Table.Td>{purchase.note ?? '-'}</Table.Td>
-                    <Table.Td style={{ textAlign: 'right' }}>
-                      <Text c="teal" fw={500}>
-                        +{purchase.amount.toLocaleString()}
-                      </Text>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          )}
-        </Card>
+        {/* Transaction Section */}
+        <TransactionSection
+          currency={currency}
+          onAddBonusClick={openBonusModal}
+          onAddPurchaseClick={openPurchaseModal}
+        />
       </Stack>
 
       {/* Delete Confirmation Modal */}

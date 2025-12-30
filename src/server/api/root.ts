@@ -1,10 +1,10 @@
 import { allInRouter } from '~/server/api/routers/allIn'
 import { authRouter } from '~/server/api/routers/auth'
 import { cashGameRouter } from '~/server/api/routers/cashGame'
-import { currencyRouter } from '~/server/api/routers/currency'
+import { currencyRouter } from '~/server/api/routers/currency/index'
 import { sessionRouter } from '~/server/api/routers/session'
 import { storeRouter } from '~/server/api/routers/store'
-import { tournamentRouter } from '~/server/api/routers/tournament'
+import { tournamentRouter } from '~/server/api/routers/tournament/index'
 import {
   createCallerFactory,
   createTRPCRouter,

@@ -47,3 +47,6 @@ yarn-error.log*
 
 # idea files
 .idea
+
+# react-cosmos
+cosmos.imports.js
