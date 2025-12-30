@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "WebSearch",
+      "Bash(powershell -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -PathsOnly)",
+      "Bash(powershell -File:*)",
+      "Bash(bun run check:write:*)",
+      "Bash(bun run typecheck:*)",
+      "Bash(bun run test:*)",
+      "Bash(bun run build:*)",
+      "Bash(bun run lint)",
+      "Bash(git add:*)",
+      "Bash(bun add:*)",
+      "Bash(cat:*)",
+      "Bash(bun run test:e2e:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:help.mantine.dev)",
+      "WebFetch(domain:mantine.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx playwright test:*)",
+      "Bash(wc:*)",
+      "Bash(bun run db:generate:*)",
+      "WebFetch(domain:reactcosmos.org)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
