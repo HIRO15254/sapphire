@@ -390,18 +390,29 @@ Extensible event log for active session recording. Uses JSONB for event data fol
 - Type safety enforced at application layer via Zod schemas
 
 **Event Types**:
-| Event Type | Description | eventData |
-|------------|-------------|-----------|
-| `session_start` | Session begins | `{}` |
-| `session_resume` | Session resumes after pause | `{}` |
-| `session_pause` | Session paused | `{}` |
-| `session_end` | Session completed | `{ cashOut: number }` |
-| `player_seated` | Player sits at seat | `{ playerId?: string, seatNumber: number, playerName: string }` |
-| `hand_recorded` | Hand with full history | `{ handId: string }` |
-| `hands_passed` | Hands without full history | `{ count: number }` |
-| `stack_update` | Stack amount changed | `{ amount: number }` |
-| `rebuy` | Rebuy performed | `{ amount: number }` |
-| `addon` | Add-on performed | `{ amount: number }` |
+| Event Type | Description | eventData | Time Customizable |
+|------------|-------------|-----------|-------------------|
+| `session_start` | Session begins | `{}` | No |
+| `session_resume` | Session resumes after pause | `{}` | No |
+| `session_pause` | Session paused | `{}` | No |
+| `session_end` | Session completed | `{ cashOut: number }` | Yes |
+| `player_seated` | Player sits at seat | `{ playerId?: string, seatNumber: number, playerName: string }` | No |
+| `hand_recorded` | Hand with full history | `{ handId: string }` | No |
+| `hands_passed` | Hands without full history | `{ count: number }` | No |
+| `stack_update` | Stack amount changed | `{ amount: number }` | No (always current time) |
+| `rebuy` | Rebuy performed | `{ amount: number }` | Yes (after last event) |
+| `addon` | Add-on performed | `{ amount: number }` | Yes (after last event) |
+
+**Time Specification Rules**:
+- `stack_update` always records with current time (no time input UI)
+- `rebuy`, `addon`, `session_end` support custom time (default: current time)
+- Custom time must be after the last event's `recordedAt`
+
+**Profit Chart Calculation**:
+- Only `stack_update` events are plotted as data points
+- Profit at each point = `eventData.amount` - total buy-in up to that time
+- All-in adjusted profit = profit - all-in luck factor up to that time (actual result - EV)
+- Elapsed time excludes pause duration (`session_pause` to `session_resume`)
 
 ---
 

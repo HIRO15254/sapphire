@@ -283,9 +283,11 @@ test.describe('Store Management', () => {
       await page.goto('/stores')
 
       // Wait for page to load
-      await expect(page.getByRole('heading', { name: '店舗管理' })).toBeVisible({
-        timeout: 10000,
-      })
+      await expect(page.getByRole('heading', { name: '店舗管理' })).toBeVisible(
+        {
+          timeout: 10000,
+        },
+      )
 
       // Should not show archived store
       await expect(page.getByText('非表示テスト店舗')).not.toBeVisible()
@@ -500,9 +502,11 @@ test.describe('Store Management', () => {
       await page.goto('/stores')
 
       // Wait for page to load
-      await expect(page.getByRole('heading', { name: '店舗管理' })).toBeVisible({
-        timeout: 15000,
-      })
+      await expect(page.getByRole('heading', { name: '店舗管理' })).toBeVisible(
+        {
+          timeout: 15000,
+        },
+      )
 
       // Should not see user1's store
       await expect(page.getByText('ユーザー1の店舗')).not.toBeVisible()
@@ -767,10 +771,7 @@ test.describe('Store Management', () => {
       await expect(page.locator('.mantine-Modal-content')).toBeVisible()
 
       // Select currency
-      await page
-        .locator('.mantine-Modal-content')
-        .getByLabel('通貨')
-        .click()
+      await page.locator('.mantine-Modal-content').getByLabel('通貨').click()
       await page.getByRole('option', { name: '通貨関連テストチップ' }).click()
 
       // Fill blind info
@@ -813,10 +814,7 @@ test.describe('Store Management', () => {
         .fill('通貨付きトーナメント')
 
       // Select currency
-      await page
-        .locator('.mantine-Modal-content')
-        .getByLabel('通貨')
-        .click()
+      await page.locator('.mantine-Modal-content').getByLabel('通貨').click()
       await page.getByRole('option', { name: 'トナメ通貨テスト' }).click()
 
       await page
@@ -859,7 +857,9 @@ test.describe('Store Management', () => {
 
       // Wait for collapse to expand
       await expect(
-        page.locator('.mantine-Modal-content').getByLabel('アンティ', { exact: true }),
+        page
+          .locator('.mantine-Modal-content')
+          .getByLabel('アンティ', { exact: true }),
       ).toBeVisible({ timeout: 5000 })
 
       // Set ante
@@ -910,7 +910,9 @@ test.describe('Store Management', () => {
 
       // Wait for collapse to expand
       await expect(
-        page.locator('.mantine-Modal-content').getByLabel('アンティ', { exact: true }),
+        page
+          .locator('.mantine-Modal-content')
+          .getByLabel('アンティ', { exact: true }),
       ).toBeVisible({ timeout: 5000 })
 
       // Set ante

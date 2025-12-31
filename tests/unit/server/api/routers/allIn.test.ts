@@ -15,7 +15,10 @@ describe('AllIn Router', () => {
     describe('input validation', () => {
       const createAllInSchema = z.object({
         sessionId: z.string().uuid('有効なセッションIDを指定してください'),
-        potAmount: z.number().int().positive('ポット額は1以上の整数で入力してください'),
+        potAmount: z
+          .number()
+          .int()
+          .positive('ポット額は1以上の整数で入力してください'),
         winProbability: z
           .number()
           .min(0, '勝率は0〜100の範囲で入力してください')
@@ -282,7 +285,10 @@ describe('AllIn Router', () => {
       ]
 
       const count = allInRecords.length
-      const totalPotAmount = allInRecords.reduce((sum, r) => sum + r.potAmount, 0)
+      const totalPotAmount = allInRecords.reduce(
+        (sum, r) => sum + r.potAmount,
+        0,
+      )
       const averageWinRate =
         allInRecords.reduce((sum, r) => sum + r.winProbability, 0) / count
       const allInEV = allInRecords.reduce(

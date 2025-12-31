@@ -59,7 +59,10 @@ export const createAllInSchema = z
       }
       return true
     },
-    { message: '勝利回数はRun it回数以下で入力してください', path: ['winsInRunout'] },
+    {
+      message: '勝利回数はRun it回数以下で入力してください',
+      path: ['winsInRunout'],
+    },
   )
 
 /**
@@ -82,7 +85,10 @@ export const updateAllInSchema = z
       }
       return true
     },
-    { message: '勝利回数はRun it回数以下で入力してください', path: ['winsInRunout'] },
+    {
+      message: '勝利回数はRun it回数以下で入力してください',
+      path: ['winsInRunout'],
+    },
   )
 
 /**

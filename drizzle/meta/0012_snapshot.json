@@ -1,6 +1,6 @@
 {
-  "id": "850f6d2f-9018-469b-b4ff-0f7c7f38b4dc",
-  "prevId": "b78b8d02-5b66-459a-92bc-dfffb1e288b7",
+  "id": "23a62a14-2659-4562-945c-65129b868d47",
+  "prevId": "7e54153a-7b1c-4666-84ce-e1130d3fddcd",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -153,6 +153,18 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": true
+        },
+        "run_it_times": {
+          "name": "run_it_times",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wins_in_runout": {
+          "name": "wins_in_runout",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "recorded_at": {
           "name": "recorded_at",
@@ -452,6 +464,13 @@
           "notNull": true,
           "default": false
         },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -524,6 +543,21 @@
           "columns": [
             {
               "expression": "is_archived",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cash_game_sort_order_idx": {
+          "name": "cash_game_sort_order_idx",
+          "columns": [
+            {
+              "expression": "sort_order",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -716,12 +750,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "currency_id": {
-          "name": "currency_id",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
@@ -878,15 +906,6 @@
           "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
-        },
-        "sapphire_poker_session_currency_id_sapphire_currency_id_fk": {
-          "name": "sapphire_poker_session_currency_id_sapphire_currency_id_fk",
-          "tableFrom": "sapphire_poker_session",
-          "tableTo": "sapphire_currency",
-          "columnsFrom": ["currency_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1017,6 +1036,149 @@
         "sapphire_purchase_transaction_user_id_sapphire_user_id_fk": {
           "name": "sapphire_purchase_transaction_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_purchase_transaction",
+          "tableTo": "sapphire_user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sapphire_session_event": {
+      "name": "sapphire_session_event",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_data": {
+          "name": "event_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "session_event_session_id_idx": {
+          "name": "session_event_session_id_idx",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "session_event_event_type_idx": {
+          "name": "session_event_event_type_idx",
+          "columns": [
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "session_event_sequence_idx": {
+          "name": "session_event_sequence_idx",
+          "columns": [
+            {
+              "expression": "sequence",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "session_event_recorded_at_idx": {
+          "name": "session_event_recorded_at_idx",
+          "columns": [
+            {
+              "expression": "recorded_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sapphire_session_event_session_id_sapphire_poker_session_id_fk": {
+          "name": "sapphire_session_event_session_id_sapphire_poker_session_id_fk",
+          "tableFrom": "sapphire_session_event",
+          "tableTo": "sapphire_poker_session",
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sapphire_session_event_user_id_sapphire_user_id_fk": {
+          "name": "sapphire_session_event_user_id_sapphire_user_id_fk",
+          "tableFrom": "sapphire_session_event",
           "tableTo": "sapphire_user",
           "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
@@ -1634,6 +1796,13 @@
           "notNull": true,
           "default": false
         },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1706,6 +1875,21 @@
           "columns": [
             {
               "expression": "is_archived",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tournament_sort_order_idx": {
+          "name": "tournament_sort_order_idx",
+          "columns": [
+            {
+              "expression": "sort_order",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

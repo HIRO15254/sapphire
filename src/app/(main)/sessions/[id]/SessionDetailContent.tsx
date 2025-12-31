@@ -1,9 +1,26 @@
 'use client'
 
-import { Button, Container, Group, Modal, Stack, Text } from '@mantine/core'
+import {
+  Badge,
+  Button,
+  Collapse,
+  Container,
+  Group,
+  Modal,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  UnstyledButton,
+} from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import { IconArrowLeft } from '@tabler/icons-react'
+import {
+  IconArrowLeft,
+  IconChevronDown,
+  IconChevronUp,
+  IconHistory,
+} from '@tabler/icons-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
@@ -14,8 +31,9 @@ import {
   deleteAllInRecord,
   updateAllInRecord,
 } from '../actions'
-import { AllInModal, type AllInFormValues } from './AllInModal'
+import { type AllInFormValues, AllInModal } from './AllInModal'
 import { AllInSection } from './AllInSection'
+import { SessionEventTimeline } from './SessionEventTimeline'
 import { SessionHeader } from './SessionHeader'
 import { SessionInfo } from './SessionInfo'
 import type { AllInRecord, Session } from './types'
@@ -44,14 +62,15 @@ export function SessionDetailContent({
     deleteModalOpened,
     { open: openDeleteModal, close: closeDeleteModal },
   ] = useDisclosure(false)
-  const [
-    allInModalOpened,
-    { open: openAllInModal, close: closeAllInModal },
-  ] = useDisclosure(false)
+  const [allInModalOpened, { open: openAllInModal, close: closeAllInModal }] =
+    useDisclosure(false)
   const [
     deleteAllInModalOpened,
     { open: openDeleteAllInModal, close: closeDeleteAllInModal },
   ] = useDisclosure(false)
+
+  // Collapsible sections state
+  const [historyOpened, setHistoryOpened] = useState(false)
 
   // Transition states
   const [isDeleting, startDeleteTransition] = useTransition()
@@ -227,6 +246,36 @@ export function SessionDetailContent({
           onDeleteClick={handleAllInDeleteClick}
           onEditClick={openAllInForEdit}
         />
+
+        {/* Event Timeline (only for live-recorded sessions) */}
+        {session.sessionEvents.length > 0 && (
+          <Paper p="md" radius="md" shadow="sm" withBorder>
+            <UnstyledButton
+              onClick={() => setHistoryOpened((o) => !o)}
+              style={{ width: '100%' }}
+            >
+              <Group justify="space-between">
+                <Group gap="xs">
+                  <IconHistory size={20} />
+                  <Title order={4}>イベント履歴</Title>
+                  <Badge color="gray" size="sm" variant="light">
+                    {session.sessionEvents.length}
+                  </Badge>
+                </Group>
+                {historyOpened ? (
+                  <IconChevronUp size={20} />
+                ) : (
+                  <IconChevronDown size={20} />
+                )}
+              </Group>
+            </UnstyledButton>
+            <Collapse in={historyOpened}>
+              <Stack gap="md" mt="md">
+                <SessionEventTimeline events={session.sessionEvents} />
+              </Stack>
+            </Collapse>
+          </Paper>
+        )}
       </Stack>
 
       {/* Delete Session Confirmation Modal */}

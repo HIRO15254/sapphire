@@ -15,12 +15,7 @@ import {
 } from '~/server/api/schemas/cashGame.schema'
 import { auth } from '~/server/auth'
 import { db } from '~/server/db'
-import {
-  cashGames,
-  isNotDeleted,
-  softDelete,
-  stores,
-} from '~/server/db/schema'
+import { cashGames, isNotDeleted, softDelete, stores } from '~/server/db/schema'
 import type { ActionResult } from './store'
 
 /** Schema for reordering cash games */

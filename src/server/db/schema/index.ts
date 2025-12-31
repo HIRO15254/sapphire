@@ -9,6 +9,11 @@ import { relations } from 'drizzle-orm'
 
 export { type Account, accounts, type NewAccount } from './account'
 export {
+  type AllInRecord,
+  allInRecords,
+  type NewAllInRecord,
+} from './allInRecord'
+export {
   type BonusTransaction,
   bonusTransactions,
   type NewBonusTransaction,
@@ -37,15 +42,17 @@ export {
   purchaseTransactions,
 } from './purchaseTransaction'
 export {
-  type AllInRecord,
-  allInRecords,
-  type NewAllInRecord,
-} from './allInRecord'
-export {
   type NewPokerSession,
   type PokerSession,
   pokerSessions,
 } from './session'
+export {
+  type NewSessionEvent,
+  SESSION_EVENT_TYPES,
+  type SessionEvent,
+  type SessionEventType,
+  sessionEvents,
+} from './sessionEvent'
 export {
   type NewStore,
   type Store,
@@ -86,6 +93,7 @@ import { cashGames } from './cashGame'
 import { currencies } from './currency'
 import { purchaseTransactions } from './purchaseTransaction'
 import { pokerSessions } from './session'
+import { sessionEvents } from './sessionEvent'
 import { stores } from './store'
 import {
   tournamentBlindLevels,
@@ -110,6 +118,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   tournaments: many(tournaments),
   pokerSessions: many(pokerSessions),
   allInRecords: many(allInRecords),
+  sessionEvents: many(sessionEvents),
 }))
 
 /**
@@ -289,6 +298,7 @@ export const pokerSessionsRelations = relations(
       references: [tournaments.id],
     }),
     allInRecords: many(allInRecords),
+    sessionEvents: many(sessionEvents),
   }),
 )
 
@@ -302,6 +312,20 @@ export const allInRecordsRelations = relations(allInRecords, ({ one }) => ({
   }),
   user: one(users, {
     fields: [allInRecords.userId],
+    references: [users.id],
+  }),
+}))
+
+/**
+ * SessionEvent relations to session and user.
+ */
+export const sessionEventsRelations = relations(sessionEvents, ({ one }) => ({
+  session: one(pokerSessions, {
+    fields: [sessionEvents.sessionId],
+    references: [pokerSessions.id],
+  }),
+  user: one(users, {
+    fields: [sessionEvents.userId],
     references: [users.id],
   }),
 }))

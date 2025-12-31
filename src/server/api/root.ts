@@ -3,6 +3,7 @@ import { authRouter } from '~/server/api/routers/auth'
 import { cashGameRouter } from '~/server/api/routers/cashGame'
 import { currencyRouter } from '~/server/api/routers/currency/index'
 import { sessionRouter } from '~/server/api/routers/session'
+import { sessionEventRouter } from '~/server/api/routers/sessionEvent'
 import { storeRouter } from '~/server/api/routers/store'
 import { tournamentRouter } from '~/server/api/routers/tournament/index'
 import {
@@ -22,6 +23,7 @@ export const appRouter = createTRPCRouter({
   cashGame: cashGameRouter,
   currency: currencyRouter,
   session: sessionRouter,
+  sessionEvent: sessionEventRouter,
   store: storeRouter,
   tournament: tournamentRouter,
   /**

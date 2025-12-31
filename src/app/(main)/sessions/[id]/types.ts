@@ -42,6 +42,67 @@ export function formatSessionDuration(
 }
 
 /**
+ * Calculate active play time excluding pauses from session events.
+ */
+export function calculateActiveDuration(
+  startTime: Date,
+  endTime: Date | null,
+  sessionEvents: Array<{ eventType: string; recordedAt: Date }>,
+): { durationMs: number; pausedMs: number } {
+  const start = new Date(startTime)
+  const end = endTime ? new Date(endTime) : new Date()
+
+  let pausedMs = 0
+  let lastPauseTime: number | null = null
+
+  for (const event of sessionEvents) {
+    const eventTime = new Date(event.recordedAt).getTime()
+
+    if (event.eventType === 'session_pause') {
+      lastPauseTime = eventTime
+    } else if (event.eventType === 'session_resume' && lastPauseTime !== null) {
+      pausedMs += eventTime - lastPauseTime
+      lastPauseTime = null
+    }
+  }
+
+  // If session ended while paused, add remaining pause time
+  if (lastPauseTime !== null && endTime) {
+    pausedMs += end.getTime() - lastPauseTime
+  }
+
+  const totalMs = end.getTime() - start.getTime()
+  const durationMs = totalMs - pausedMs
+
+  return { durationMs, pausedMs }
+}
+
+/**
+ * Format session duration with pause consideration (e.g., "2.0h (22:30-0:30)").
+ * For live-recorded sessions, excludes paused time from the duration.
+ */
+export function formatSessionDurationWithEvents(
+  startTime: Date,
+  endTime: Date | null,
+  sessionEvents: Array<{ eventType: string; recordedAt: Date }>,
+): string {
+  const start = new Date(startTime)
+  const startStr = formatTime(start)
+
+  if (!endTime) {
+    return `(${startStr}-)`
+  }
+
+  const end = new Date(endTime)
+  const endStr = formatTime(end)
+
+  const { durationMs } = calculateActiveDuration(startTime, endTime, sessionEvents)
+  const durationHours = durationMs / (1000 * 60 * 60)
+
+  return `${durationHours.toFixed(1)}h (${startStr}-${endStr})`
+}
+
+/**
  * Format profit/loss with + or - prefix.
  */
 export function formatProfitLoss(profitLoss: number | null): string {

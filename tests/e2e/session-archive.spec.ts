@@ -84,7 +84,10 @@ test.describe('Archive Session Recording', () => {
     await page.getByRole('button', { name: 'キャッシュゲームを追加' }).click()
     await expect(page.locator('.mantine-Modal-content')).toBeVisible()
 
-    await page.locator('.mantine-Modal-content').getByLabel('SB').fill(smallBlind)
+    await page
+      .locator('.mantine-Modal-content')
+      .getByLabel('SB')
+      .fill(smallBlind)
     await page.locator('.mantine-Modal-content').getByLabel('BB').fill(bigBlind)
 
     await page
@@ -92,9 +95,7 @@ test.describe('Archive Session Recording', () => {
       .getByRole('button', { name: '追加', exact: true })
       .click()
 
-    await expect(
-      page.getByText('キャッシュゲームを追加しました'),
-    ).toBeVisible({
+    await expect(page.getByText('キャッシュゲームを追加しました')).toBeVisible({
       timeout: 10000,
     })
   }
@@ -151,7 +152,9 @@ test.describe('Archive Session Recording', () => {
   })
 
   test.describe('Create Archive Session', () => {
-    test('should show session form with stores when stores exist', async ({ page }) => {
+    test('should show session form with stores when stores exist', async ({
+      page,
+    }) => {
       const { email, password } = await createTestUser(page)
       await loginUser(page, email, password)
 
@@ -169,9 +172,7 @@ test.describe('Archive Session Recording', () => {
       })
 
       // Should have store selector
-      await expect(
-        page.getByRole('textbox', { name: '店舗' }),
-      ).toBeVisible()
+      await expect(page.getByRole('textbox', { name: '店舗' })).toBeVisible()
     })
 
     test('should create a new session with minimum fields', async ({
@@ -193,7 +194,9 @@ test.describe('Archive Session Recording', () => {
       await page.getByRole('option', { name: 'セッションテスト店舗' }).click()
 
       // Wait for cash game selector to appear and select it
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '100/200' }).click()
@@ -232,7 +235,9 @@ test.describe('Archive Session Recording', () => {
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: 'ロステスト店舗' }).click()
 
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '50/100' }).click()
@@ -266,7 +271,9 @@ test.describe('Archive Session Recording', () => {
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: 'バストテスト店舗' }).click()
 
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '200/400' }).click()
@@ -294,7 +301,9 @@ test.describe('Archive Session Recording', () => {
       await page.goto('/sessions/new')
 
       await page.getByLabel('店舗').click()
-      await page.getByRole('option', { name: 'バリデーションテスト店舗' }).click()
+      await page
+        .getByRole('option', { name: 'バリデーションテスト店舗' })
+        .click()
 
       // Fill start time but don't fill buy-in
       await page.getByLabel('開始時間').fill('20:00')
@@ -302,9 +311,9 @@ test.describe('Archive Session Recording', () => {
       await page.getByRole('button', { name: 'セッションを記録' }).click()
 
       // Should show validation error (バイイン額 or バイイン)
-      await expect(
-        page.getByText(/バイイン.*1以上/),
-      ).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText(/バイイン.*1以上/)).toBeVisible({
+        timeout: 5000,
+      })
     })
   })
 
@@ -322,7 +331,9 @@ test.describe('Archive Session Recording', () => {
       await page.goto('/sessions/new')
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: '詳細テスト店舗' }).click()
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '100/200' }).click()
@@ -359,7 +370,9 @@ test.describe('Archive Session Recording', () => {
       await page.goto('/sessions/new')
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: '負けセッション店舗' }).click()
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '100/200' }).click()
@@ -391,7 +404,9 @@ test.describe('Archive Session Recording', () => {
       await page.goto('/sessions/new')
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: 'オールインテスト店舗' }).click()
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '100/200' }).click()
@@ -426,15 +441,17 @@ test.describe('Archive Session Recording', () => {
         .getByRole('button', { name: '追加' })
         .click()
 
-      await expect(
-        page.getByText('オールイン記録を追加しました'),
-      ).toBeVisible({
+      await expect(page.getByText('オールイン記録を追加しました')).toBeVisible({
         timeout: 10000,
       })
 
       // Should show all-in in the list (use specific selector to avoid strict mode violation)
-      await expect(page.getByRole('cell', { name: '10,000', exact: true })).toBeVisible({ timeout: 10000 })
-      await expect(page.getByRole('cell', { name: '65.5%' })).toBeVisible({ timeout: 10000 })
+      await expect(
+        page.getByRole('cell', { name: '10,000', exact: true }),
+      ).toBeVisible({ timeout: 10000 })
+      await expect(page.getByRole('cell', { name: '65.5%' })).toBeVisible({
+        timeout: 10000,
+      })
     })
 
     test('should display EV summary for multiple all-ins', async ({ page }) => {
@@ -448,7 +465,9 @@ test.describe('Archive Session Recording', () => {
       await page.goto('/sessions/new')
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: 'EV計算テスト店舗' }).click()
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '200/400' }).click()
@@ -477,9 +496,7 @@ test.describe('Archive Session Recording', () => {
         .locator('.mantine-Modal-content')
         .getByRole('button', { name: '追加' })
         .click()
-      await expect(
-        page.getByText('オールイン記録を追加しました'),
-      ).toBeVisible({
+      await expect(page.getByText('オールイン記録を追加しました')).toBeVisible({
         timeout: 10000,
       })
 
@@ -499,9 +516,7 @@ test.describe('Archive Session Recording', () => {
         .locator('.mantine-Modal-content')
         .getByRole('button', { name: '追加' })
         .click()
-      await expect(
-        page.getByText('オールイン記録を追加しました'),
-      ).toBeVisible({
+      await expect(page.getByText('オールイン記録を追加しました')).toBeVisible({
         timeout: 10000,
       })
 
@@ -525,7 +540,9 @@ test.describe('Archive Session Recording', () => {
       await page.goto('/sessions/new')
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: '更新テスト店舗' }).click()
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '100/200' }).click()
@@ -575,7 +592,9 @@ test.describe('Archive Session Recording', () => {
       await page.goto('/sessions/new')
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: '削除テスト店舗' }).click()
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '100/200' }).click()
@@ -616,7 +635,9 @@ test.describe('Archive Session Recording', () => {
       await page.goto('/sessions/new')
       await page.getByLabel('店舗').click()
       await page.getByRole('option', { name: 'ユーザー1の店舗' }).click()
-      const cashGameSelect = page.getByRole('textbox', { name: 'キャッシュゲーム' })
+      const cashGameSelect = page.getByRole('textbox', {
+        name: 'キャッシュゲーム',
+      })
       await expect(cashGameSelect).toBeVisible({ timeout: 5000 })
       await cashGameSelect.click()
       await page.getByRole('option', { name: '100/200' }).click()
