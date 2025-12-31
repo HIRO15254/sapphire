@@ -83,19 +83,22 @@ As a player, I want to register the poker venues I visit and the games they offe
 
 ### User Story 4 - Active Session Recording (Priority: P2)
 
-As a serious player, I want to record sessions in real-time while playing so that I can capture every hand and track my stack progression throughout the session.
+As a serious player, I want to record sessions in real-time while playing so that I can track my stack progression and calculate all-in EV in real-time throughout the session.
 
-**Why this priority**: Real-time recording enables detailed hand analysis and stack tracking. This is valuable for players serious about improvement but requires more effort than archive recording.
+**Why this priority**: Real-time recording enables detailed stack tracking and EV analysis. This is valuable for players serious about improvement but requires more effort than archive recording.
 
-**Independent Test**: Can be fully tested by starting an active session, recording hands and stack changes, and completing the session. Delivers value by providing detailed session timeline.
+**Independent Test**: Can be fully tested by starting an active session, recording stack changes, and completing the session. Delivers value by providing detailed session timeline and profit chart.
 
 **Acceptance Scenarios**:
 
-1. **Given** I am logged in, **When** I start an active session with store and game, **Then** an active session is created with start time
-2. **Given** I have an active session, **When** I record a hand, **Then** the hand is saved to the session with timestamp
-3. **Given** I have an active session, **When** I update my stack amount, **Then** the stack history is updated
-4. **Given** I have an active session, **When** I record a rebuy or add-on, **Then** it is logged with timestamp and amount
-5. **Given** I have an active session, **When** I end the session, **Then** the session is finalized with end time and cashout
+1. **Given** I am logged in, **When** I start an active session with store and game, **Then** an active session is created with start time and a navigation link appears in the sidebar
+2. **Given** I have an active session, **When** I update my stack amount, **Then** the stack history is updated with current timestamp
+3. **Given** I have an active session, **When** I record a rebuy or add-on (with optional custom time), **Then** it is logged with specified time (default: current time) and amount. Time must be after the last event
+4. **Given** I have an active session, **When** I record an all-in (with optional custom time), **Then** pot amount, win probability, and result are recorded, and All-in EV is updated in real-time
+5. **Given** I have an active session, **When** I pause the session, **Then** elapsed time counting stops and pause status is displayed
+6. **Given** session is paused, **When** I resume the session, **Then** elapsed time counting resumes (pause duration is excluded)
+7. **Given** I have an active session, **When** I end the session (with optional custom time), **Then** the session is finalized with specified time and cashout, and added to session history
+8. **Given** I have a live-recorded session, **When** I view session details, **Then** I see event timeline (collapsible) and profit progression chart (toggleable with summary). Session duration excludes pause time
 
 ---
 
@@ -233,12 +236,16 @@ As a player, I want to install the app and have it work reliably so that I can u
 - **FR-045**: System MUST allow session notes in rich text format
 
 **Session Management - Active**
-- **FR-050**: System MUST allow starting an active session with store and game (limited to one active session per user; if existing active session, prompt to end it first)
+- **FR-050**: System MUST allow starting an active session with store and game (limited to one active session per user; if existing active session, prompt to end it first). When an active session exists, display navigation link in sidebar
 - **FR-051**: System MUST track players present at the table during active sessions
 - **FR-052**: System MUST allow recording hands during active sessions
-- **FR-053**: System MUST track stack progression during active sessions
-- **FR-054**: System MUST allow recording rebuys and add-ons with timestamps
-- **FR-055**: System MUST allow converting active sessions to completed archive sessions
+- **FR-053**: System MUST track stack progression during active sessions. Stack updates always use current timestamp
+- **FR-054**: System MUST allow recording rebuys and add-ons with timestamps. Time is customizable (default: current time), must be after the last event
+- **FR-054a**: System MUST allow recording all-ins during active sessions. Time is customizable, and All-in EV is calculated in real-time
+- **FR-055**: System MUST allow converting active sessions to completed archive sessions. Cashout time is customizable
+- **FR-056**: System MUST allow pausing and resuming active sessions. Elapsed time excludes pause duration
+- **FR-057**: System MUST display event timeline (collapsible) and profit progression chart (toggleable with summary) on session detail page for live-recorded sessions
+- **FR-058**: Profit chart displays profit (green) and all-in adjusted profit (orange), plotting at each stack_update event
 
 **Player Management**
 - **FR-060**: System MUST allow creating player profiles with name
@@ -278,7 +285,8 @@ As a player, I want to install the app and have it work reliably so that I can u
 - **PurchaseTransaction**: Record of currency purchase; has amount, note, timestamp; belongs to a currency
 - **Store**: Poker venue; has name, location, notes; contains multiple games
 - **Game**: Either cash game or tournament (NLHE only); has currency link, rate/buy-in; belongs to a store
-- **Session**: Playing session (archive or active); has store link, game link, times, buy-in, cashout, notes; contains hands and all-in records
+- **Session**: Playing session (archive or active); has store link, game link, times, buy-in, cashout, notes; contains hands, all-in records, and session events
+- **SessionEvent**: Event log for active sessions; has event type (session_start/end/pause/resume, stack_update, rebuy, addon), timestamp, event data; belongs to session; used for profit chart and event timeline display
 - **AllInRecord**: Individual all-in situation; has pot amount, win probability, actual result (won/lost), "Run it X times" support (runout count, wins in runout); belongs to session; used to calculate All-in EV and EV-adjusted profit
 - **Player**: Opponent profile; has name, tags, notes; linked to sessions and hands
 - **PlayerTag**: User-defined tag; has name; can be assigned to multiple players

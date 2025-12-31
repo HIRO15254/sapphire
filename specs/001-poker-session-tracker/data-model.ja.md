@@ -318,19 +318,43 @@ Tournament
 - JSONBインデックスによる効率的なクエリ
 - Zodスキーマによるアプリケーション層での型安全性
 
+| カラム | 型 | 制約 | 説明 |
+|--------|------|------|------|
+| id | uuid | PK, default random | 一意識別子 |
+| sessionId | uuid | FK → poker_sessions.id, cascade | 親セッション |
+| userId | uuid | FK → users.id, cascade | 所有ユーザー |
+| eventType | varchar(50) | NOT NULL | イベントタイプ |
+| eventData | jsonb | nullable | イベント固有データ |
+| sequence | integer | NOT NULL | セッション内のイベント順序 |
+| recordedAt | timestamptz | NOT NULL, default now | イベント発生時刻（過去の時刻も指定可能） |
+| createdAt | timestamptz | NOT NULL, default now | レコード作成時刻 |
+
+**インデックス**: `sessionId`, `eventType`, `sequence`, `recordedAt`
+
 **イベントタイプ**:
-| イベントタイプ | 説明 | eventData |
-|------------|------|-----------|
-| `session_start` | セッション開始 | `{}` |
-| `session_resume` | 一時停止後の再開 | `{}` |
-| `session_pause` | セッション一時停止 | `{}` |
-| `session_end` | セッション完了 | `{ cashOut: number }` |
-| `player_seated` | プレイヤー着席 | `{ playerId?, seatNumber, playerName }` |
-| `hand_recorded` | 詳細ハンド記録 | `{ handId: string }` |
-| `hands_passed` | 詳細なしでパスしたハンド | `{ count: number }` |
-| `stack_update` | スタック金額変更 | `{ amount: number }` |
-| `rebuy` | リバイ実行 | `{ amount: number }` |
-| `addon` | アドオン実行 | `{ amount: number }` |
+| イベントタイプ | 説明 | eventData | 時刻指定 |
+|------------|------|-----------|----------|
+| `session_start` | セッション開始 | `{}` | 不可 |
+| `session_resume` | 一時停止後の再開 | `{}` | 不可 |
+| `session_pause` | セッション一時停止 | `{}` | 不可 |
+| `session_end` | セッション完了 | `{ cashOut: number }` | 可能 |
+| `player_seated` | プレイヤー着席 | `{ playerId?, seatNumber, playerName }` | 不可 |
+| `hand_recorded` | 詳細ハンド記録 | `{ handId: string }` | 不可 |
+| `hands_passed` | 詳細なしでパスしたハンド | `{ count: number }` | 不可 |
+| `stack_update` | スタック金額変更 | `{ amount: number }` | 不可（常に現在時刻） |
+| `rebuy` | リバイ実行 | `{ amount: number }` | 可能（最終イベント以降） |
+| `addon` | アドオン実行 | `{ amount: number }` | 可能（最終イベント以降） |
+
+**時刻指定ルール**:
+- `stack_update`は常に現在時刻で記録（時刻入力UI無し）
+- `rebuy`, `addon`, `session_end`は時刻指定可能（デフォルトは現在時刻）
+- 指定可能な時刻は最後のイベントの`recordedAt`より後のみ
+
+**収支グラフ計算**:
+- `stack_update`イベントのみをプロットポイントとする
+- 各ポイントの収支 = `eventData.amount` - その時点までの総バイイン
+- All-in調整収支 = 収支 - その時点までのAll-in運要素（実収支 - EV）
+- 経過時間は一時停止時間（`session_pause`〜`session_resume`）を除外して計算
 
 ---
 
