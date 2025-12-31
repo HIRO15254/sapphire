@@ -1,13 +1,13 @@
 'use client'
 
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -28,9 +28,9 @@ import {
   Group,
   Switch,
   Table,
+  Text,
   Title,
   Tooltip,
-  Text,
 } from '@mantine/core'
 import {
   IconArchive,

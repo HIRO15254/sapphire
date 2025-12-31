@@ -46,7 +46,11 @@ export function CurrencyHeader({
         <Button
           color={isArchived ? 'teal' : 'gray'}
           leftSection={
-            isArchived ? <IconArchiveOff size={16} /> : <IconArchive size={16} />
+            isArchived ? (
+              <IconArchiveOff size={16} />
+            ) : (
+              <IconArchive size={16} />
+            )
           }
           loading={isArchiving}
           onClick={onArchiveClick}

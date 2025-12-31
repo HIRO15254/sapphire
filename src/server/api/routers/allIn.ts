@@ -215,8 +215,7 @@ function calculateSummary(
 
   // Parse winProbability from string to number
   const winProbabilities = records.map((r) => parseFloat(r.winProbability))
-  const averageWinRate =
-    winProbabilities.reduce((sum, p) => sum + p, 0) / count
+  const averageWinRate = winProbabilities.reduce((sum, p) => sum + p, 0) / count
 
   // Calculate EV: Σ(potAmount × winProbability / 100)
   const allInEV = records.reduce(

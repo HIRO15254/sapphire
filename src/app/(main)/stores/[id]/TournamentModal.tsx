@@ -837,9 +837,7 @@ function PrizeStructurePanel({
           onClick={() => {
             removePrizeStructure(sIdx)
             if (Number(activePrizeTab) >= prizeStructures.length - 1) {
-              setActivePrizeTab(
-                String(Math.max(0, prizeStructures.length - 2)),
-              )
+              setActivePrizeTab(String(Math.max(0, prizeStructures.length - 2)))
             }
           }}
           size="xs"

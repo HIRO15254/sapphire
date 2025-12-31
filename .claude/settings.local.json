@@ -21,7 +21,8 @@
       "Bash(npx playwright test:*)",
       "Bash(wc:*)",
       "Bash(bun run db:generate:*)",
-      "WebFetch(domain:reactcosmos.org)"
+      "WebFetch(domain:reactcosmos.org)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

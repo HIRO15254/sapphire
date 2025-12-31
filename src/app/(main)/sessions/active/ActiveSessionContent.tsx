@@ -1,0 +1,964 @@
+'use client'
+
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Collapse,
+  Container,
+  Group,
+  Loader,
+  Modal,
+  NumberInput,
+  Paper,
+  SegmentedControl,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+  UnstyledButton,
+} from '@mantine/core'
+import { LineChart } from '@mantine/charts'
+import { TimeInput } from '@mantine/dates'
+import { useDisclosure } from '@mantine/hooks'
+import {
+  IconAlertCircle,
+  IconChevronDown,
+  IconChevronUp,
+  IconClock,
+  IconCoin,
+  IconHistory,
+  IconLogout,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconPlus,
+  IconPokerChip,
+  IconRefresh,
+  IconTarget,
+  IconTrophy,
+} from '@tabler/icons-react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import type { RouterOutputs } from '~/trpc/react'
+import { api } from '~/trpc/react'
+import { type AllInFormValues, AllInModal } from '../[id]/AllInModal'
+import { SessionEventTimeline } from './SessionEventTimeline'
+import { StartSessionForm } from './StartSessionForm'
+
+type ActiveSession = RouterOutputs['sessionEvent']['getActiveSession']
+
+interface ActiveSessionContentProps {
+  initialSession: ActiveSession
+}
+
+/**
+ * Active session content client component.
+ *
+ * Shows the current active session with controls or the form to start a new one.
+ */
+export function ActiveSessionContent({
+  initialSession,
+}: ActiveSessionContentProps) {
+  const router = useRouter()
+  const utils = api.useUtils()
+
+  // Modal states
+  const [rebuyModalOpened, { open: openRebuyModal, close: closeRebuyModal }] =
+    useDisclosure(false)
+  const [addonModalOpened, { open: openAddonModal, close: closeAddonModal }] =
+    useDisclosure(false)
+  const [endModalOpened, { open: openEndModal, close: closeEndModal }] =
+    useDisclosure(false)
+  const [allInModalOpened, { open: openAllInModal, close: closeAllInModal }] =
+    useDisclosure(false)
+
+  // Query active session
+  const {
+    data: session,
+    isLoading,
+    error,
+    refetch,
+  } = api.sessionEvent.getActiveSession.useQuery(undefined, {
+    initialData: initialSession,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  })
+
+  // Mutations
+  const endSession = api.sessionEvent.endSession.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      router.push('/sessions')
+    },
+  })
+
+  const pauseSession = api.sessionEvent.pauseSession.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      void refetch()
+    },
+  })
+
+  const resumeSession = api.sessionEvent.resumeSession.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      void refetch()
+    },
+  })
+
+  const updateStack = api.sessionEvent.updateStack.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      void refetch()
+      setStackAmount(null)
+    },
+  })
+
+  const recordRebuy = api.sessionEvent.recordRebuy.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      void refetch()
+      setRebuyAmount(null)
+      setRebuyTime('')
+      closeRebuyModal()
+    },
+  })
+
+  const recordAddon = api.sessionEvent.recordAddon.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      void refetch()
+      setAddonAmount(null)
+      setAddonTime('')
+      closeAddonModal()
+    },
+  })
+
+  // All-in mutation
+  const createAllIn = api.allIn.create.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      void refetch()
+      closeAllInModal()
+    },
+  })
+
+  // Local state
+  const [cashOutAmount, setCashOutAmount] = useState<number | null>(null)
+  const [stackAmount, setStackAmount] = useState<number | null>(null)
+  const [rebuyAmount, setRebuyAmount] = useState<number | null>(null)
+  const [addonAmount, setAddonAmount] = useState<number | null>(null)
+
+  // Time state for actions
+  const [rebuyTime, setRebuyTime] = useState<string>('')
+  const [addonTime, setAddonTime] = useState<string>('')
+  const [endTime, setEndTime] = useState<string>('')
+
+  // Toggle between summary and chart view
+  const [topView, setTopView] = useState<'summary' | 'chart'>('summary')
+
+  // Collapsible sections state
+  const [historyOpened, setHistoryOpened] = useState(false)
+
+  /**
+   * Get current time as HH:MM string.
+   */
+  const getCurrentTimeString = () => {
+    const now = new Date()
+    const hours = now.getHours().toString().padStart(2, '0')
+    const minutes = now.getMinutes().toString().padStart(2, '0')
+    return `${hours}:${minutes}`
+  }
+
+  /**
+   * Parse time string to Date object.
+   */
+  const parseTimeToDate = (timeString: string): Date => {
+    const [hours, minutes] = timeString.split(':').map(Number)
+    const date = new Date()
+    date.setHours(hours ?? 0, minutes ?? 0, 0, 0)
+    return date
+  }
+
+  /**
+   * Format elapsed time to hours and minutes.
+   */
+  const formatElapsedTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    if (hours === 0) return `${mins}分`
+    return `${hours}時間${mins}分`
+  }
+
+
+  /**
+   * Handle end session.
+   */
+  const handleEndSession = () => {
+    if (!session || cashOutAmount === null) return
+    const recordedAt = endTime ? parseTimeToDate(endTime) : undefined
+    endSession.mutate({
+      sessionId: session.id,
+      cashOut: cashOutAmount,
+      recordedAt,
+    })
+  }
+
+  /**
+   * Handle pause session.
+   */
+  const handlePauseSession = () => {
+    if (!session) return
+    pauseSession.mutate({ sessionId: session.id })
+  }
+
+  /**
+   * Handle resume session.
+   */
+  const handleResumeSession = () => {
+    if (!session) return
+    resumeSession.mutate({ sessionId: session.id })
+  }
+
+  /**
+   * Handle stack update.
+   */
+  const handleUpdateStack = () => {
+    if (!session || stackAmount === null) return
+    updateStack.mutate({
+      sessionId: session.id,
+      amount: stackAmount,
+    })
+  }
+
+  /**
+   * Handle rebuy.
+   */
+  const handleRebuy = () => {
+    if (!session || rebuyAmount === null) return
+    const recordedAt = rebuyTime ? parseTimeToDate(rebuyTime) : undefined
+    recordRebuy.mutate({
+      sessionId: session.id,
+      amount: rebuyAmount,
+      recordedAt,
+    })
+  }
+
+  /**
+   * Handle addon.
+   */
+  const handleAddon = () => {
+    if (!session || addonAmount === null) return
+    const recordedAt = addonTime ? parseTimeToDate(addonTime) : undefined
+    recordAddon.mutate({
+      sessionId: session.id,
+      amount: addonAmount,
+      recordedAt,
+    })
+  }
+
+  /**
+   * Handle all-in record form submit.
+   */
+  const handleAllInSubmit = (values: AllInFormValues) => {
+    if (!session) return
+
+    const winProbability = Number.parseFloat(values.winProbability)
+
+    // Determine actual result based on useRunIt
+    const actualResult = values.useRunIt
+      ? (values.winsInRunout ?? 0) > 0
+      : values.actualResult === 'win'
+
+    // Parse recordedAt time
+    const recordedAt = values.recordedAt ? parseTimeToDate(values.recordedAt) : undefined
+
+    createAllIn.mutate({
+      sessionId: session.id,
+      potAmount: values.potAmount,
+      winProbability,
+      actualResult,
+      runItTimes: values.useRunIt ? values.runItTimes : null,
+      winsInRunout: values.useRunIt ? values.winsInRunout : null,
+      recordedAt,
+    })
+  }
+
+  /**
+   * Open end session modal with current stack as default.
+   */
+  const handleOpenEndModal = () => {
+    if (session) {
+      setCashOutAmount(session.currentStack)
+      setEndTime(getCurrentTimeString())
+    }
+    openEndModal()
+  }
+
+  if (isLoading && !session) {
+    return (
+      <Container py="xl" size="md">
+        <Stack align="center" gap="lg">
+          <Loader size="lg" />
+          <Text c="dimmed">読み込み中...</Text>
+        </Stack>
+      </Container>
+    )
+  }
+
+  if (error) {
+    return (
+      <Container py="xl" size="md">
+        <Alert color="red" icon={<IconAlertCircle size={16} />} title="エラー">
+          {error.message}
+        </Alert>
+      </Container>
+    )
+  }
+
+  // No active session - show start form
+  if (!session) {
+    return (
+      <Container py="xl" size="md">
+        <Stack gap="lg">
+          <Title order={1}>ライブセッション</Title>
+          <StartSessionForm />
+        </Stack>
+      </Container>
+    )
+  }
+
+  // Active session exists - show controls
+  const sessionIsPaused = session.isPaused
+  const isCashGame = session.gameType === 'cash'
+  const isTournament = session.gameType === 'tournament'
+
+  // Calculate profit/loss
+  const profitLoss = session.currentStack - session.buyIn
+
+  // Calculate minTime (last event time) for time input validation
+  const minTime = session.sessionEvents.length > 0
+    ? new Date(session.sessionEvents[session.sessionEvents.length - 1]?.recordedAt ?? new Date())
+    : undefined
+
+  // Format minTime for description
+  const minTimeString = minTime
+    ? `${minTime.getHours().toString().padStart(2, '0')}:${minTime.getMinutes().toString().padStart(2, '0')}`
+    : undefined
+
+  // Build game info string compactly
+  const gameInfo = (() => {
+    const parts: string[] = []
+    if (session.store) parts.push(session.store.name)
+    if (session.cashGame) {
+      parts.push(`${session.cashGame.smallBlind}/${session.cashGame.bigBlind}`)
+    }
+    if (session.tournament) {
+      parts.push(
+        session.tournament.name ??
+          `Buy-in ${session.tournament.buyIn.toLocaleString()}`,
+      )
+    }
+    return parts.join(' / ')
+  })()
+
+  // Common button style for consistency
+  const buttonHeight = 42
+
+  return (
+    <Container py="xl" size="md">
+      <Stack gap="lg">
+        <Group justify="space-between">
+          <Title order={1}>ライブセッション</Title>
+          <Button
+            leftSection={<IconRefresh size={16} />}
+            onClick={() => refetch()}
+            variant="subtle"
+          >
+            更新
+          </Button>
+        </Group>
+
+        {/* Summary / Chart Toggle */}
+        <Card p="md" radius="md" shadow="sm" withBorder>
+          <Stack gap="md">
+            {/* Header with status and toggle */}
+            <Group justify="space-between">
+              <Group gap="xs">
+                {sessionIsPaused ? (
+                  <Badge
+                    color="gray"
+                    leftSection={<IconPlayerPause size={12} />}
+                    size="lg"
+                    variant="filled"
+                  >
+                    一時停止中
+                  </Badge>
+                ) : (
+                  <Badge
+                    color="red"
+                    leftSection={
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: 'white',
+                          animation: 'pulse 1.5s infinite',
+                        }}
+                      />
+                    }
+                    size="lg"
+                    variant="filled"
+                  >
+                    LIVE
+                  </Badge>
+                )}
+                {isTournament ? (
+                  <Badge
+                    color="grape"
+                    leftSection={<IconTrophy size={10} />}
+                    size="sm"
+                    variant="light"
+                  >
+                    トーナメント
+                  </Badge>
+                ) : (
+                  <Badge
+                    color="blue"
+                    leftSection={<IconPokerChip size={10} />}
+                    size="sm"
+                    variant="light"
+                  >
+                    キャッシュ
+                  </Badge>
+                )}
+              </Group>
+              <SegmentedControl
+                data={[
+                  { label: 'サマリー', value: 'summary' },
+                  { label: 'グラフ', value: 'chart' },
+                ]}
+                onChange={(value) => setTopView(value as 'summary' | 'chart')}
+                size="xs"
+                value={topView}
+              />
+            </Group>
+
+            {/* Content area with fixed height */}
+            <Box h={180}>
+              {/* Summary View */}
+              {topView === 'summary' && (
+                <Stack h="100%" justify="space-between">
+                  {/* Game info */}
+                  {gameInfo && (
+                    <Text c="dimmed" size="sm">
+                      {gameInfo}
+                    </Text>
+                  )}
+
+                  {/* Profit/Loss - prominent display */}
+                  <Stack align="center" gap={4} style={{ flex: 1 }} justify="center">
+                    <Text c="dimmed" size="xs">
+                      現在の収支
+                    </Text>
+                    <Text
+                      c={profitLoss > 0 ? 'green' : profitLoss < 0 ? 'red' : 'dimmed'}
+                      fw={700}
+                      size="2rem"
+                    >
+                      {profitLoss >= 0 ? '+' : ''}
+                      {profitLoss.toLocaleString()}
+                    </Text>
+                  </Stack>
+
+                  {/* Buy-in and Stack row */}
+                  <SimpleGrid cols={3}>
+                    <Stack align="center" gap={0}>
+                      <Text c="dimmed" size="xs">
+                        総Buy-in
+                      </Text>
+                      <Text fw={600}>{session.buyIn.toLocaleString()}</Text>
+                    </Stack>
+                    <Stack align="center" gap={0}>
+                      <Text c="dimmed" size="xs">
+                        現在のスタック
+                      </Text>
+                      <Text fw={600}>{session.currentStack.toLocaleString()}</Text>
+                    </Stack>
+                    <Stack align="center" gap={0}>
+                      <Text c="dimmed" size="xs">
+                        経過時間
+                      </Text>
+                      <Text fw={600}>{formatElapsedTime(session.elapsedMinutes)}</Text>
+                    </Stack>
+                  </SimpleGrid>
+                </Stack>
+              )}
+
+              {/* Chart View */}
+              {topView === 'chart' &&
+              (() => {
+                  // Build chart data from events with elapsed minutes (excluding paused time)
+                  const startEvent = session.sessionEvents.find(
+                    (e) => e.eventType === 'session_start'
+                  )
+                  if (!startEvent) {
+                    return (
+                      <Text c="dimmed" size="sm" ta="center">
+                        スタック記録がありません
+                      </Text>
+                    )
+                  }
+
+                  const startTime = new Date(startEvent.recordedAt).getTime()
+                  const chartData: {
+                    elapsedMinutes: number
+                    profit: number
+                    adjustedProfit: number
+                  }[] = []
+
+                  // First pass: calculate total buy-in at each point in time
+                  const buyInEvents: { time: number; amount: number }[] = [
+                    { time: startTime, amount: session.buyIn }
+                  ]
+                  let accumulatedRebuyAddon = 0
+                  for (const event of session.sessionEvents) {
+                    const data = event.eventData as Record<string, unknown> | null
+                    if ((event.eventType === 'rebuy' || event.eventType === 'addon') && data?.amount) {
+                      accumulatedRebuyAddon += data.amount as number
+                      buyInEvents.push({
+                        time: new Date(event.recordedAt).getTime(),
+                        amount: data.amount as number,
+                      })
+                    }
+                  }
+                  const initialBuyIn = session.buyIn - accumulatedRebuyAddon
+
+                  const getTotalBuyIn = (upToTime: number) => {
+                    let total = initialBuyIn
+                    for (const buyInEvent of buyInEvents) {
+                      if (buyInEvent.time > startTime && buyInEvent.time <= upToTime) {
+                        total += buyInEvent.amount
+                      }
+                    }
+                    return total
+                  }
+
+                  let cumulativePausedMs = 0
+                  let lastPauseTime: number | null = null
+
+                  const allInRecords = session.allInRecords ?? []
+                  const sortedAllIns = [...allInRecords].sort(
+                    (a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()
+                  )
+
+                  const getCumulativeLuck = (upToTime: number) => {
+                    let luck = 0
+                    for (const allIn of sortedAllIns) {
+                      const allInTime = new Date(allIn.recordedAt).getTime()
+                      if (allInTime > upToTime) break
+                      const winProbability = parseFloat(allIn.winProbability)
+                      const expectedValue = allIn.potAmount * (winProbability / 100)
+                      const actualValue = allIn.actualResult ? allIn.potAmount : 0
+                      luck += actualValue - expectedValue
+                    }
+                    return luck
+                  }
+
+                  chartData.push({
+                    elapsedMinutes: 0,
+                    profit: 0,
+                    adjustedProfit: 0,
+                  })
+
+                  for (const event of session.sessionEvents) {
+                    const data = event.eventData as Record<string, unknown> | null
+                    const eventTime = new Date(event.recordedAt).getTime()
+
+                    if (event.eventType === 'session_pause') {
+                      lastPauseTime = eventTime
+                      continue
+                    } else if (event.eventType === 'session_resume' && lastPauseTime !== null) {
+                      cumulativePausedMs += eventTime - lastPauseTime
+                      lastPauseTime = null
+                      continue
+                    }
+
+                    if (event.eventType === 'stack_update' && data?.amount) {
+                      const rawElapsedMs = eventTime - startTime
+                      const activeElapsedMs = rawElapsedMs - cumulativePausedMs
+                      const elapsedMinutes = Math.round(activeElapsedMs / (1000 * 60))
+
+                      const stackAmount = data.amount as number
+                      const totalBuyInAtTime = getTotalBuyIn(eventTime)
+                      const profit = stackAmount - totalBuyInAtTime
+                      const luck = getCumulativeLuck(eventTime)
+
+                      chartData.push({
+                        elapsedMinutes,
+                        profit,
+                        adjustedProfit: profit - luck,
+                      })
+                    }
+                  }
+
+                  let currentPausedMs = cumulativePausedMs
+                  if (lastPauseTime !== null) {
+                    currentPausedMs += Date.now() - lastPauseTime
+                  }
+                  const nowElapsed = Math.round((Date.now() - startTime - currentPausedMs) / (1000 * 60))
+                  const currentProfit = session.currentStack - session.buyIn
+                  const currentLuck = getCumulativeLuck(Date.now())
+                  if (chartData.length === 0 || chartData[chartData.length - 1]?.elapsedMinutes !== nowElapsed) {
+                    chartData.push({
+                      elapsedMinutes: nowElapsed,
+                      profit: currentProfit,
+                      adjustedProfit: currentProfit - currentLuck,
+                    })
+                  }
+
+                  if (chartData.length < 2) {
+                    return (
+                      <Text c="dimmed" size="sm" ta="center">
+                        スタック記録がありません
+                      </Text>
+                    )
+                  }
+
+                  const formatElapsed = (minutes: number) => {
+                    const hours = Math.floor(minutes / 60)
+                    const mins = minutes % 60
+                    if (hours === 0) return `${mins}分`
+                    return `${hours}h${mins > 0 ? `${mins}m` : ''}`
+                  }
+
+                  return (
+                    <LineChart
+                      data={chartData}
+                      dataKey="elapsedMinutes"
+                      h={180}
+                      series={[
+                        { name: 'profit', color: 'green.6', label: '収支' },
+                        { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整収支' },
+                      ]}
+                      curveType="linear"
+                      withDots
+                      connectNulls
+                      referenceLines={[
+                        { y: 0, label: '±0', color: 'gray.5' },
+                      ]}
+                      valueFormatter={(value) => value.toLocaleString()}
+                      xAxisProps={{
+                        type: 'number',
+                        domain: [0, 'dataMax'],
+                        tickFormatter: formatElapsed,
+                      }}
+                    />
+                  )
+                })()}
+            </Box>
+          </Stack>
+        </Card>
+
+        {/* CSS for pulse animation */}
+        <style>
+          {`
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.4; }
+            }
+          `}
+        </style>
+
+        {/* Action Section */}
+        <Paper p="md" radius="md" shadow="sm" withBorder>
+          <Stack gap="sm">
+            <Title order={4}>アクション</Title>
+
+            {/* Row 1: Stack form with inline update button */}
+            <Group gap="xs">
+              <NumberInput
+                disabled={sessionIsPaused}
+                flex={1}
+                hideControls
+                leftSection={<IconCoin size={16} />}
+                min={0}
+                onChange={(val) =>
+                  setStackAmount(typeof val === 'number' ? val : null)
+                }
+                placeholder="スタック額"
+                size="md"
+                styles={{ input: { height: buttonHeight } }}
+                thousandSeparator=","
+                value={stackAmount ?? ''}
+              />
+              <Button
+                disabled={stackAmount === null || sessionIsPaused}
+                h={buttonHeight}
+                loading={updateStack.isPending}
+                onClick={handleUpdateStack}
+                variant="filled"
+              >
+                更新
+              </Button>
+            </Group>
+
+            {/* Row 2: Buy-in / All-in buttons */}
+            <SimpleGrid cols={2}>
+              {isCashGame && (
+                <>
+                  <Button
+                    color="orange"
+                    disabled={sessionIsPaused}
+                    h={buttonHeight}
+                    leftSection={<IconPlus size={16} />}
+                    onClick={openRebuyModal}
+                    variant="light"
+                  >
+                    追加Buy-in
+                  </Button>
+                  <Button
+                    color="pink"
+                    disabled={sessionIsPaused}
+                    h={buttonHeight}
+                    leftSection={<IconTarget size={16} />}
+                    onClick={openAllInModal}
+                    variant="light"
+                  >
+                    オールイン
+                  </Button>
+                </>
+              )}
+              {isTournament && (
+                <>
+                  <Button
+                    color="orange"
+                    disabled={sessionIsPaused}
+                    h={buttonHeight}
+                    leftSection={<IconPlus size={16} />}
+                    onClick={openRebuyModal}
+                    variant="light"
+                  >
+                    リバイ
+                  </Button>
+                  <Button
+                    color="teal"
+                    disabled={sessionIsPaused}
+                    h={buttonHeight}
+                    leftSection={<IconPlus size={16} />}
+                    onClick={openAddonModal}
+                    variant="light"
+                  >
+                    アドオン
+                  </Button>
+                </>
+              )}
+            </SimpleGrid>
+
+            {/* Row 3: Pause/Resume and Cash-out buttons */}
+            <SimpleGrid cols={2}>
+              {sessionIsPaused ? (
+                <Button
+                  color="green"
+                  h={buttonHeight}
+                  leftSection={<IconPlayerPlay size={16} />}
+                  loading={resumeSession.isPending}
+                  onClick={handleResumeSession}
+                  variant="light"
+                >
+                  再開
+                </Button>
+              ) : (
+                <Button
+                  color="gray"
+                  h={buttonHeight}
+                  leftSection={<IconPlayerPause size={16} />}
+                  loading={pauseSession.isPending}
+                  onClick={handlePauseSession}
+                  variant="light"
+                >
+                  一時停止
+                </Button>
+              )}
+              <Button
+                color="red"
+                disabled={sessionIsPaused}
+                h={buttonHeight}
+                leftSection={<IconLogout size={16} />}
+                onClick={handleOpenEndModal}
+                variant="light"
+              >
+                キャッシュアウト
+              </Button>
+            </SimpleGrid>
+          </Stack>
+        </Paper>
+
+        {/* Event Timeline (Collapsed by default) */}
+        <Paper p="md" radius="md" shadow="sm" withBorder>
+          <UnstyledButton
+            onClick={() => setHistoryOpened((o) => !o)}
+            style={{ width: '100%' }}
+          >
+            <Group justify="space-between">
+              <Group gap="xs">
+                <IconHistory size={20} />
+                <Title order={4}>イベント履歴</Title>
+                <Badge color="gray" size="sm" variant="light">
+                  {session.sessionEvents.length}
+                </Badge>
+              </Group>
+              {historyOpened ? (
+                <IconChevronUp size={20} />
+              ) : (
+                <IconChevronDown size={20} />
+              )}
+            </Group>
+          </UnstyledButton>
+          <Collapse in={historyOpened}>
+            <Stack gap="md" mt="md">
+              <SessionEventTimeline events={session.sessionEvents} />
+            </Stack>
+          </Collapse>
+        </Paper>
+      </Stack>
+
+      {/* Rebuy / Buy-in Addition Modal */}
+      <Modal
+        onClose={closeRebuyModal}
+        opened={rebuyModalOpened}
+        title={isCashGame ? '追加Buy-in' : 'リバイ'}
+      >
+        <Stack gap="md">
+          <TimeInput
+            description={minTimeString ? `${minTimeString}より後` : undefined}
+            label="発生時刻"
+            leftSection={<IconClock size={16} />}
+            onChange={(e) => setRebuyTime(e.currentTarget.value)}
+            value={rebuyTime || getCurrentTimeString()}
+          />
+          <NumberInput
+            hideControls
+            label={isCashGame ? '追加Buy-in額' : 'リバイ額'}
+            min={1}
+            onChange={(val) =>
+              setRebuyAmount(typeof val === 'number' ? val : null)
+            }
+            placeholder="金額を入力"
+            required
+            thousandSeparator=","
+            value={rebuyAmount ?? ''}
+          />
+          <Group justify="flex-end">
+            <Button onClick={closeRebuyModal} variant="subtle">
+              キャンセル
+            </Button>
+            <Button
+              color="orange"
+              disabled={!rebuyAmount}
+              loading={recordRebuy.isPending}
+              onClick={handleRebuy}
+            >
+              追加
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Addon Modal */}
+      <Modal onClose={closeAddonModal} opened={addonModalOpened} title="アドオン">
+        <Stack gap="md">
+          <TimeInput
+            description={minTimeString ? `${minTimeString}より後` : undefined}
+            label="発生時刻"
+            leftSection={<IconClock size={16} />}
+            onChange={(e) => setAddonTime(e.currentTarget.value)}
+            value={addonTime || getCurrentTimeString()}
+          />
+          <NumberInput
+            hideControls
+            label="アドオン額"
+            min={1}
+            onChange={(val) =>
+              setAddonAmount(typeof val === 'number' ? val : null)
+            }
+            placeholder="金額を入力"
+            required
+            thousandSeparator=","
+            value={addonAmount ?? ''}
+          />
+          <Group justify="flex-end">
+            <Button onClick={closeAddonModal} variant="subtle">
+              キャンセル
+            </Button>
+            <Button
+              color="teal"
+              disabled={!addonAmount}
+              loading={recordAddon.isPending}
+              onClick={handleAddon}
+            >
+              追加
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* All-in Record Modal */}
+      <AllInModal
+        editingAllIn={null}
+        isLoading={createAllIn.isPending}
+        minTime={minTime}
+        onClose={closeAllInModal}
+        onSubmit={handleAllInSubmit}
+        opened={allInModalOpened}
+      />
+
+      {/* End Session Modal */}
+      <Modal
+        onClose={closeEndModal}
+        opened={endModalOpened}
+        title="キャッシュアウト"
+      >
+        <Stack gap="md">
+          <Text c="dimmed" size="sm">
+            セッションを終了します。キャッシュアウト額を確認してください。
+          </Text>
+          <TimeInput
+            description={minTimeString ? `${minTimeString}より後` : undefined}
+            label="発生時刻"
+            leftSection={<IconClock size={16} />}
+            onChange={(e) => setEndTime(e.currentTarget.value)}
+            value={endTime || getCurrentTimeString()}
+          />
+          <NumberInput
+            hideControls
+            label="キャッシュアウト額"
+            min={0}
+            onChange={(val) =>
+              setCashOutAmount(typeof val === 'number' ? val : null)
+            }
+            placeholder="キャッシュアウト額を入力"
+            required
+            thousandSeparator=","
+            value={cashOutAmount ?? ''}
+          />
+          <Group justify="flex-end">
+            <Button onClick={closeEndModal} variant="subtle">
+              キャンセル
+            </Button>
+            <Button
+              color="red"
+              disabled={cashOutAmount === null}
+              loading={endSession.isPending}
+              onClick={handleEndSession}
+            >
+              終了
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </Container>
+  )
+}

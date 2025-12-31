@@ -70,7 +70,7 @@ function TransactionDetail({
     return (
       <Text
         component={Link}
-        href={`/stores/${transaction.storeId}`}
+        href={`/sessions/${transaction.id}`}
         size="sm"
         td="underline"
       >

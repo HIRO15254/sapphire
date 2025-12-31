@@ -1,12 +1,4 @@
 // Store actions
-export type { ActionResult } from './store'
-export {
-  archiveStore,
-  createStore,
-  deleteStore,
-  unarchiveStore,
-  updateStore,
-} from './store'
 
 // Cash game actions
 export {
@@ -16,6 +8,14 @@ export {
   reorderCashGames,
   updateCashGame,
 } from './cashGame'
+export type { ActionResult } from './store'
+export {
+  archiveStore,
+  createStore,
+  deleteStore,
+  unarchiveStore,
+  updateStore,
+} from './store'
 
 // Tournament actions
 export {

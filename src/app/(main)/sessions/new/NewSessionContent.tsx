@@ -38,7 +38,11 @@ type Store = RouterOutputs['store']['list']['stores'][number]
 
 // Form validation schema
 const formSchema = z.object({
-  storeId: z.string().uuid('店舗を選択してください').optional().or(z.literal('')),
+  storeId: z
+    .string()
+    .uuid('店舗を選択してください')
+    .optional()
+    .or(z.literal('')),
   gameType: z.enum(['cash', 'tournament']),
   cashGameId: z.string().uuid().optional().or(z.literal('')),
   tournamentId: z.string().uuid().optional().or(z.literal('')),
@@ -69,7 +73,11 @@ function combineDateAndTime(date: Date, timeStr: string): Date {
 /**
  * Combine date and end time, adjusting for next day if end time is before start time.
  */
-function combineEndDateTime(date: Date, startTimeStr: string, endTimeStr: string): Date {
+function combineEndDateTime(
+  date: Date,
+  startTimeStr: string,
+  endTimeStr: string,
+): Date {
   const startTime = combineDateAndTime(date, startTimeStr)
   const endTime = combineDateAndTime(date, endTimeStr)
 
@@ -90,9 +98,7 @@ interface NewSessionContentProps {
  *
  * Form for creating a new archive session with store/game selection.
  */
-export function NewSessionContent({
-  stores,
-}: NewSessionContentProps) {
+export function NewSessionContent({ stores }: NewSessionContentProps) {
   const router = useRouter()
   const [isCreating, startCreateTransition] = useTransition()
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
@@ -161,9 +167,16 @@ export function NewSessionContent({
   const handleSubmit = form.onSubmit((values) => {
     startCreateTransition(async () => {
       // Combine date and time (end time adjusts to next day if before start time)
-      const startDateTime = combineDateAndTime(values.sessionDate, values.startTime)
+      const startDateTime = combineDateAndTime(
+        values.sessionDate,
+        values.startTime,
+      )
       const endDateTime = values.endTime
-        ? combineEndDateTime(values.sessionDate, values.startTime, values.endTime)
+        ? combineEndDateTime(
+            values.sessionDate,
+            values.startTime,
+            values.endTime,
+          )
         : undefined
 
       const result = await createArchiveSession({

@@ -1,7 +1,12 @@
 'use client'
 
 import { Badge, Button, Group, Title } from '@mantine/core'
-import { IconEdit, IconPokerChip, IconTrash, IconTrophy } from '@tabler/icons-react'
+import {
+  IconEdit,
+  IconPokerChip,
+  IconTrash,
+  IconTrophy,
+} from '@tabler/icons-react'
 import Link from 'next/link'
 
 interface SessionHeaderProps {
@@ -20,11 +25,7 @@ export function SessionHeader({
       <Group gap="sm">
         <Title order={1}>セッション詳細</Title>
         {gameType === 'tournament' && (
-          <Badge
-            color="grape"
-            leftSection={<IconTrophy size={12} />}
-            size="lg"
-          >
+          <Badge color="grape" leftSection={<IconTrophy size={12} />} size="lg">
             トーナメント
           </Badge>
         )}

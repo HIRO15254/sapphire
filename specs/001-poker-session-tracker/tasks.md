@@ -262,25 +262,38 @@ tests/
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T106 [P] [US4] Write unit test for SessionEvent schema in tests/unit/server/db/schema/sessionEvent.test.ts
-- [ ] T107 [P] [US4] Write unit test for sessionEvent router in tests/unit/server/api/routers/sessionEvent.test.ts
-- [ ] T108 [P] [US4] Write integration test for active session state transitions in tests/integration/session/active.test.ts
-- [ ] T109 [P] [US4] Write E2E test for active session flow in tests/e2e/session-active.spec.ts
+- [X] T106 [P] [US4] Write unit test for SessionEvent schema in tests/unit/server/db/schema/sessionEvent.test.ts
+- [X] T107 [P] [US4] Write unit test for sessionEvent router in tests/unit/server/api/routers/sessionEvent.test.ts
+- [X] T108 [P] [US4] Write integration test for active session state transitions in tests/integration/session/active.test.ts
+- [X] T109 [P] [US4] Write E2E test for active session flow in tests/e2e/session-active.spec.ts
 
 ### Implementation for User Story 4
 
-- [ ] T110 [US4] Create SessionEvent schema with JSONB eventData in src/server/db/schema/sessionEvent.ts
-- [ ] T111 [US4] Create Zod schemas for each event type validation in src/server/api/schemas/sessionEvent.schema.ts
-- [ ] T112 [US4] Implement sessionEvent router (startSession, pauseSession, resumeSession, endSession, seatPlayer, recordHand, recordHandsPassed, updateStack, recordRebuy, recordAddon) in src/server/api/routers/sessionEvent.ts
-- [ ] T113 [US4] Add sessionEvent router to root router in src/server/api/root.ts
-- [ ] T114 [US4] Update session.createArchive to validate only one active session per user in src/server/api/routers/session.ts
-- [ ] T115 [P] [US4] Create ActiveSessionPage with real-time event display in src/app/(auth)/sessions/active/page.tsx
-- [ ] T116 [P] [US4] Create StartSessionForm component in src/components/forms/StartSessionForm.tsx
-- [ ] T117 [P] [US4] Create StackUpdateForm component in src/components/forms/StackUpdateForm.tsx
-- [ ] T118 [P] [US4] Create RebuyAddonForm component in src/components/forms/RebuyAddonForm.tsx
-- [ ] T119 [US4] Create SessionEventTimeline component in src/components/session/SessionEventTimeline.tsx
+- [X] T110 [US4] Create SessionEvent schema with JSONB eventData in src/server/db/schema/sessionEvent.ts
+- [X] T111 [US4] Create Zod schemas for each event type validation in src/server/api/schemas/sessionEvent.schema.ts
+- [X] T112 [US4] Implement sessionEvent router (startSession, pauseSession, resumeSession, endSession, seatPlayer, recordHand, recordHandsPassed, updateStack, recordRebuy, recordAddon) in src/server/api/routers/sessionEvent.ts
+- [X] T113 [US4] Add sessionEvent router to root router in src/server/api/root.ts
+- [X] T114 [US4] Update session.createArchive to validate only one active session per user in src/server/api/routers/session.ts
+- [X] T115 [P] [US4] Create ActiveSessionPage with real-time event display in src/app/(auth)/sessions/active/page.tsx
+- [X] T116 [P] [US4] Create StartSessionForm component in src/components/forms/StartSessionForm.tsx
+- [X] T117 [P] [US4] Create StackUpdateForm component in src/components/forms/StackUpdateForm.tsx
+- [X] T118 [P] [US4] Create RebuyAddonForm component in src/components/forms/RebuyAddonForm.tsx
+- [X] T119 [US4] Create SessionEventTimeline component in src/components/session/SessionEventTimeline.tsx
 
 **Checkpoint**: Users can record sessions in real-time with full event tracking
+
+**Implementation Notes** (Phase 7 completed 2025-12):
+- SessionEvent schema: Event sourcing pattern with JSONB eventData, sequence ordering
+- Event types: session_start, session_resume, session_pause, session_end, player_seated, hand_recorded, hands_passed, stack_update, rebuy, addon
+- Single active session constraint: Only one active session per user allowed
+- Current stack calculation: Derived from events (buyIn + rebuys + addons, updated by stack_update)
+- Elapsed time: Calculated from startTime
+- File locations (actual):
+  - Schema: src/server/db/schema/sessionEvent.ts
+  - Router: src/server/api/routers/sessionEvent.ts
+  - Zod schemas: src/server/api/schemas/sessionEvent.schema.ts
+  - Active page: src/app/(main)/sessions/active/page.tsx
+  - Components: src/app/(main)/sessions/active/ActiveSessionContent.tsx, StartSessionForm.tsx, SessionEventTimeline.tsx
 
 ---
 

@@ -196,29 +196,33 @@ export function SessionsContent({
                     )}
                     {session.cashGame && (
                       <Text c="dimmed" size="sm">
-                        {session.cashGame.smallBlind}/{session.cashGame.bigBlind}
+                        {session.cashGame.smallBlind}/
+                        {session.cashGame.bigBlind}
                       </Text>
                     )}
                     {session.tournament && (
                       <Text c="dimmed" size="sm">
-                        {session.tournament.name ?? session.tournament.buyIn.toLocaleString()}
+                        {session.tournament.name ??
+                          session.tournament.buyIn.toLocaleString()}
                       </Text>
                     )}
                   </Stack>
                   <Stack align="flex-end" gap="xs">
                     <Group gap={4}>
-                      {session.profitLoss !== null && session.profitLoss > 0 && (
-                        <IconTrendingUp
-                          size={20}
-                          style={{ color: 'var(--mantine-color-green-6)' }}
-                        />
-                      )}
-                      {session.profitLoss !== null && session.profitLoss < 0 && (
-                        <IconTrendingDown
-                          size={20}
-                          style={{ color: 'var(--mantine-color-red-6)' }}
-                        />
-                      )}
+                      {session.profitLoss !== null &&
+                        session.profitLoss > 0 && (
+                          <IconTrendingUp
+                            size={20}
+                            style={{ color: 'var(--mantine-color-green-6)' }}
+                          />
+                        )}
+                      {session.profitLoss !== null &&
+                        session.profitLoss < 0 && (
+                          <IconTrendingDown
+                            size={20}
+                            style={{ color: 'var(--mantine-color-red-6)' }}
+                          />
+                        )}
                       <Stack align="flex-end" gap={0}>
                         <Text
                           c={getProfitLossColor(session.profitLoss)}
@@ -232,13 +236,17 @@ export function SessionsContent({
                           session.profitLoss !== null && (
                             <Text
                               c={getProfitLossColor(
-                                session.profitLoss - session.allInSummary.evDifference,
+                                session.profitLoss -
+                                  session.allInSummary.evDifference,
                               )}
                               size="xs"
                             >
-                              (EV: {formatProfitLoss(
-                                session.profitLoss - session.allInSummary.evDifference,
-                              )})
+                              (EV:{' '}
+                              {formatProfitLoss(
+                                session.profitLoss -
+                                  session.allInSummary.evDifference,
+                              )}
+                              )
                             </Text>
                           )}
                       </Stack>

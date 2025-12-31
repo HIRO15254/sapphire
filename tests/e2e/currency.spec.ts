@@ -336,9 +336,11 @@ test.describe('Currency Management', () => {
       await page.goto('/currencies')
 
       // Wait for page to load
-      await expect(page.getByRole('heading', { name: '通貨管理' })).toBeVisible({
-        timeout: 10000,
-      })
+      await expect(page.getByRole('heading', { name: '通貨管理' })).toBeVisible(
+        {
+          timeout: 10000,
+        },
+      )
 
       // Should not show archived currency
       await expect(page.getByText('非表示テスト通貨')).not.toBeVisible()
@@ -493,9 +495,7 @@ test.describe('Currency Management', () => {
   })
 
   test.describe('Data Isolation', () => {
-    test('should not show other users currencies', async ({
-      page,
-    }) => {
+    test('should not show other users currencies', async ({ page }) => {
       // Create first user and add currency
       const user1 = await createTestUser(page)
       await loginUser(page, user1.email, user1.password)
@@ -530,9 +530,11 @@ test.describe('Currency Management', () => {
       await page.goto('/currencies')
 
       // Wait for page to load
-      await expect(page.getByRole('heading', { name: '通貨管理' })).toBeVisible({
-        timeout: 15000,
-      })
+      await expect(page.getByRole('heading', { name: '通貨管理' })).toBeVisible(
+        {
+          timeout: 15000,
+        },
+      )
 
       // Should not see user1's currency
       await expect(page.getByText('ユーザー1の通貨')).not.toBeVisible()

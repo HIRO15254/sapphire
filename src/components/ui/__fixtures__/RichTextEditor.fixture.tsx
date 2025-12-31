@@ -18,7 +18,11 @@ function RichTextEditorDemo() {
         <Text fw={500} size="xs">
           HTML出力:
         </Text>
-        <Text c="dimmed" size="xs" style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+        <Text
+          c="dimmed"
+          size="xs"
+          style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}
+        >
           {content}
         </Text>
       </Paper>

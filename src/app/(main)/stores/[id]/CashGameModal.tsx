@@ -103,7 +103,10 @@ export function CashGameModal({
           straddle1: editingCashGame.straddle1,
           straddle2: editingCashGame.straddle2,
           ante: editingCashGame.ante,
-          anteType: (editingCashGame.anteType ?? '') as '' | 'bb_ante' | 'all_ante',
+          anteType: (editingCashGame.anteType ?? '') as
+            | ''
+            | 'bb_ante'
+            | 'all_ante',
           notes: editingCashGame.notes ?? '',
         })
       } else {
