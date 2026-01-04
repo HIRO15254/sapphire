@@ -84,6 +84,31 @@ export {
   type VerificationToken,
   verificationTokens,
 } from './verificationToken'
+export {
+  type NewPlayer,
+  type Player,
+  players,
+} from './player'
+export {
+  type NewPlayerTag,
+  type PlayerTag,
+  playerTags,
+} from './playerTag'
+export {
+  type NewPlayerTagAssignment,
+  type PlayerTagAssignment,
+  playerTagAssignments,
+} from './playerTagAssignment'
+export {
+  type NewPlayerNote,
+  type PlayerNote,
+  playerNotes,
+} from './playerNote'
+export {
+  type NewSessionTablemate,
+  type SessionTablemate,
+  sessionTablemates,
+} from './sessionTablemate'
 
 // Import tables for relation definitions
 import { accounts } from './account'
@@ -103,9 +128,14 @@ import {
   tournaments,
 } from './tournament'
 import { users } from './user'
+import { players } from './player'
+import { playerTags } from './playerTag'
+import { playerTagAssignments } from './playerTagAssignment'
+import { playerNotes } from './playerNote'
+import { sessionTablemates } from './sessionTablemate'
 
 /**
- * User relations to accounts, currencies, stores, games, transactions, sessions, and all-ins.
+ * User relations to accounts, currencies, stores, games, transactions, sessions, all-ins, and players.
  * Note: authSessions table removed - JWT sessions are used instead of database sessions.
  */
 export const usersRelations = relations(users, ({ many }) => ({
@@ -119,6 +149,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   pokerSessions: many(pokerSessions),
   allInRecords: many(allInRecords),
   sessionEvents: many(sessionEvents),
+  players: many(players),
+  playerTags: many(playerTags),
+  playerNotes: many(playerNotes),
+  sessionTablemates: many(sessionTablemates),
 }))
 
 /**
@@ -299,6 +333,7 @@ export const pokerSessionsRelations = relations(
     }),
     allInRecords: many(allInRecords),
     sessionEvents: many(sessionEvents),
+    tablemates: many(sessionTablemates),
   }),
 )
 
@@ -329,3 +364,72 @@ export const sessionEventsRelations = relations(sessionEvents, ({ one }) => ({
     references: [users.id],
   }),
 }))
+
+/**
+ * Player relations to user, tags, and notes.
+ */
+export const playersRelations = relations(players, ({ one, many }) => ({
+  user: one(users, { fields: [players.userId], references: [users.id] }),
+  tagAssignments: many(playerTagAssignments),
+  notes: many(playerNotes),
+}))
+
+/**
+ * PlayerTag relations to user and assignments.
+ */
+export const playerTagsRelations = relations(playerTags, ({ one, many }) => ({
+  user: one(users, { fields: [playerTags.userId], references: [users.id] }),
+  assignments: many(playerTagAssignments),
+}))
+
+/**
+ * PlayerTagAssignment relations to player and tag.
+ */
+export const playerTagAssignmentsRelations = relations(
+  playerTagAssignments,
+  ({ one }) => ({
+    player: one(players, {
+      fields: [playerTagAssignments.playerId],
+      references: [players.id],
+    }),
+    tag: one(playerTags, {
+      fields: [playerTagAssignments.tagId],
+      references: [playerTags.id],
+    }),
+  }),
+)
+
+/**
+ * PlayerNote relations to player and user.
+ */
+export const playerNotesRelations = relations(playerNotes, ({ one }) => ({
+  player: one(players, {
+    fields: [playerNotes.playerId],
+    references: [players.id],
+  }),
+  user: one(users, {
+    fields: [playerNotes.userId],
+    references: [users.id],
+  }),
+}))
+
+/**
+ * SessionTablemate relations to session, player, and user.
+ */
+export const sessionTablematesRelations = relations(
+  sessionTablemates,
+  ({ one }) => ({
+    session: one(pokerSessions, {
+      fields: [sessionTablemates.sessionId],
+      references: [pokerSessions.id],
+    }),
+    player: one(players, {
+      fields: [sessionTablemates.playerId],
+      references: [players.id],
+    }),
+    user: one(users, {
+      fields: [sessionTablemates.userId],
+      references: [users.id],
+    }),
+  }),
+)

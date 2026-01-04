@@ -303,31 +303,48 @@ tests/
 
 **Independent Test**: Create player profiles, add tags and notes, view player history
 
-### Tests for User Story 5 ⚠️
+### Tests for User Story 5 ✅
 
-- [ ] T120 [P] [US5] Write unit test for Player schema in tests/unit/server/db/schema/player.test.ts
-- [ ] T121 [P] [US5] Write unit test for PlayerTag schema in tests/unit/server/db/schema/playerTag.test.ts
-- [ ] T122 [P] [US5] Write unit test for player router in tests/unit/server/api/routers/player.test.ts
-- [ ] T123 [P] [US5] Write unit test for playerTag router in tests/unit/server/api/routers/playerTag.test.ts
-- [ ] T124 [P] [US5] Write E2E test for player management flow in tests/e2e/player.spec.ts
+- [X] T120 [P] [US5] Write unit test for Player schema in tests/unit/server/db/schema/player.test.ts
+- [X] T121 [P] [US5] Write unit test for PlayerTag schema in tests/unit/server/db/schema/playerTag.test.ts
+- [X] T122 [P] [US5] Write unit test for player router in tests/unit/server/api/routers/player.test.ts
+- [X] T123 [P] [US5] Write unit test for playerTag router in tests/unit/server/api/routers/playerTag.test.ts
+- [X] T124 [P] [US5] Write E2E test for player management flow in tests/e2e/player.spec.ts
 
 ### Implementation for User Story 5
 
-- [ ] T125 [US5] Create Player schema in src/server/db/schema/player.ts
-- [ ] T126 [P] [US5] Create PlayerTag schema in src/server/db/schema/playerTag.ts
-- [ ] T127 [P] [US5] Create PlayerTagAssignment junction schema in src/server/db/schema/playerTagAssignment.ts
-- [ ] T128 [P] [US5] Create PlayerNote schema in src/server/db/schema/playerNote.ts
-- [ ] T129 [US5] Create Zod schemas for player/tag validation in src/server/api/schemas/player.schema.ts
-- [ ] T130 [US5] Implement player router in src/server/api/routers/player.ts
-- [ ] T131 [US5] Implement playerTag router in src/server/api/routers/playerTag.ts
-- [ ] T132 [US5] Add player, playerTag routers to root router in src/server/api/root.ts
-- [ ] T133 [P] [US5] Create PlayerListPage with search and tag filter in src/app/(auth)/players/page.tsx
-- [ ] T134 [P] [US5] Create PlayerDetailPage in src/app/(auth)/players/[id]/page.tsx
-- [ ] T135 [P] [US5] Create PlayerForm component in src/components/forms/PlayerForm.tsx
-- [ ] T136 [P] [US5] Create PlayerTagManager component in src/components/player/PlayerTagManager.tsx
-- [ ] T137 [US5] Create PlayerNoteForm component in src/components/forms/PlayerNoteForm.tsx
+- [X] T125 [US5] Create Player schema in src/server/db/schema/player.ts
+- [X] T126 [P] [US5] Create PlayerTag schema in src/server/db/schema/playerTag.ts
+- [X] T127 [P] [US5] Create PlayerTagAssignment junction schema in src/server/db/schema/playerTagAssignment.ts
+- [X] T128 [P] [US5] Create PlayerNote schema in src/server/db/schema/playerNote.ts
+- [X] T129 [US5] Create Zod schemas for player/tag validation in src/server/api/schemas/player.schema.ts
+- [X] T130 [US5] Implement player router in src/server/api/routers/player.ts
+- [X] T131 [US5] Implement playerTag router in src/server/api/routers/playerTag.ts
+- [X] T132 [US5] Add player, playerTag routers to root router in src/server/api/root.ts
+- [X] T133 [P] [US5] Create PlayerListPage with search and tag filter in src/app/(main)/players/page.tsx
+- [X] T134 [P] [US5] Create PlayerDetailPage in src/app/(main)/players/[id]/page.tsx
+- [X] T135 [P] [US5] Create PlayerForm component (integrated into NewPlayerContent and PlayerDetailContent)
+- [X] T136 [P] [US5] Create PlayerTagManager component in src/app/(main)/players/PlayerTagModal.tsx
+- [X] T137 [US5] Create PlayerNoteForm component in src/app/(main)/players/[id]/PlayerNoteModal.tsx
 
 **Checkpoint**: Users can track opponents with tags and notes
+
+**Implementation Notes** (Phase 8 completed 2025-01):
+- Player schema: Soft delete pattern with deletedAt, generalNotes as rich text (HTML)
+- PlayerTag schema: name (max 100 chars), color (hex code, nullable)
+- PlayerTagAssignment: Junction table with unique constraint on playerId+tagId
+- PlayerNote: Date-specific notes with noteDate (YYYY-MM-DD) and content (text)
+- Tag management: Create/update/delete tags with color picker, duplicate name detection
+- Note management: Add/edit/delete date-specific notes from player detail page
+- Search & filter: Player list supports text search and multi-tag filtering
+- File locations (actual):
+  - Schemas: src/server/db/schema/player.ts, playerTag.ts, playerTagAssignment.ts, playerNote.ts
+  - Routers: src/server/api/routers/player.ts, playerTag.ts
+  - Zod schemas: src/server/api/schemas/player.schema.ts
+  - Pages: src/app/(main)/players/ (page.tsx, PlayersContent.tsx, PlayerTagModal.tsx)
+  - Player detail: src/app/(main)/players/[id]/ (page.tsx, PlayerDetailContent.tsx, PlayerNoteModal.tsx)
+  - Create player: src/app/(main)/players/new/ (page.tsx, NewPlayerContent.tsx)
+  - Server Actions: src/app/(main)/players/actions/player.ts
 
 ---
 
