@@ -390,18 +390,21 @@ Extensible event log for active session recording. Uses JSONB for event data fol
 - Type safety enforced at application layer via Zod schemas
 
 **Event Types**:
-| Event Type | Description | eventData | Time Customizable |
-|------------|-------------|-----------|-------------------|
-| `session_start` | Session begins | `{}` | No |
-| `session_resume` | Session resumes after pause | `{}` | No |
-| `session_pause` | Session paused | `{}` | No |
-| `session_end` | Session completed | `{ cashOut: number }` | Yes |
-| `player_seated` | Player sits at seat | `{ playerId?: string, seatNumber: number, playerName: string }` | No |
-| `hand_recorded` | Hand with full history | `{ handId: string }` | No |
-| `hands_passed` | Hands without full history | `{ count: number }` | No |
-| `stack_update` | Stack amount changed | `{ amount: number }` | No (always current time) |
-| `rebuy` | Rebuy performed | `{ amount: number }` | Yes (after last event) |
-| `addon` | Add-on performed | `{ amount: number }` | Yes (after last event) |
+| Event Type | Description | eventData | Time Customizable | Show in Timeline |
+|------------|-------------|-----------|-------------------|------------------|
+| `session_start` | Session begins | `{}` | No | Yes |
+| `session_resume` | Session resumes after pause | `{}` | No | Yes |
+| `session_pause` | Session paused | `{}` | No | Yes |
+| `session_end` | Session completed | `{ cashOut: number }` | Yes | Yes |
+| `player_seated` | Player sits at seat | `{ playerId?: string, seatNumber: number, playerName: string }` | No | Yes |
+| `hand_recorded` | Hand with full history | `{ handId: string }` | No | Yes |
+| `hands_passed` | Hands without full history | `{ count: number }` | No | Yes |
+| `hand_complete` | Single hand completed (for counting) | `{}` | No | No (count only) |
+| `stack_update` | Stack amount changed | `{ amount: number }` | No (always current time) | Yes |
+| `rebuy` | Rebuy performed | `{ amount: number }` | Yes (after last event) | Yes |
+| `addon` | Add-on performed | `{ amount: number }` | Yes (after last event) | Yes |
+
+**Note on hand_complete**: This event is used for simple hand counting during live sessions. It is NOT displayed in the event timeline (to avoid clutter), but is counted and displayed in the hand counter UI. The chart X-axis can optionally use hand count instead of elapsed time.
 
 **Time Specification Rules**:
 - `stack_update` always records with current time (no time input UI)
@@ -412,7 +415,9 @@ Extensible event log for active session recording. Uses JSONB for event data fol
 - Only `stack_update` events are plotted as data points
 - Profit at each point = `eventData.amount` - total buy-in up to that time
 - All-in adjusted profit = profit - all-in luck factor up to that time (actual result - EV)
-- Elapsed time excludes pause duration (`session_pause` to `session_resume`)
+- X-axis options:
+  - Elapsed time (default): excludes pause duration (`session_pause` to `session_resume`)
+  - Hand count: number of `hand_complete` events up to each stack_update
 
 ---
 
@@ -478,12 +483,22 @@ Opponent profile for tracking.
 | id | uuid | PK, default random | Unique identifier |
 | userId | uuid | FK → users.id, cascade | Owner user |
 | name | varchar(255) | NOT NULL | Player name/nickname |
+| isTemporary | boolean | NOT NULL, default false | Temporary player flag (see below) |
 | generalNotes | text | nullable | Rich text general notes (HTML) |
 | createdAt | timestamptz | NOT NULL, default now | |
 | updatedAt | timestamptz | NOT NULL, default now | |
 | deletedAt | timestamptz | nullable | Soft delete |
 
 **Indexes**: `userId`, `name`
+
+**Temporary Players**:
+- When a tablemate is added during a session, a temporary player (`isTemporary=true`) is created
+- Temporary players can be:
+  - **Converted** to permanent players by setting `isTemporary=false`
+  - **Linked** to an existing permanent player (merge tags/notes, then delete temp player)
+  - **Deleted** when the tablemate leaves the session
+- Temporary players are excluded from the player list by default
+- Tags and notes added to temporary players are preserved when converting or linking
 
 ---
 
@@ -621,11 +636,45 @@ Many-to-many relationship between hands and review flags.
 
 ---
 
+## Session Tablemate Management
+
+### 24. SessionTablemate
+
+Tracks tablemates (opponents) during a poker session. Each tablemate is backed by a Player record.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PK, default random | Unique identifier |
+| userId | uuid | FK → users.id, cascade | Owner user |
+| sessionId | uuid | FK → poker_sessions.id, cascade | Parent session |
+| nickname | varchar(100) | NOT NULL | Display name (e.g., "Seat 3", "眼鏡") |
+| seatNumber | integer | nullable | Seat number (1-9) |
+| sessionNotes | text | nullable | Session-specific notes |
+| playerId | uuid | FK → players.id, set null | Linked player record |
+| createdAt | timestamptz | NOT NULL, default now | |
+| updatedAt | timestamptz | NOT NULL, default now | |
+
+**Indexes**: `userId`, `sessionId`, `playerId`
+
+**Workflow**:
+1. **Add Tablemate**: Creates a temporary player + sessionTablemate record
+2. **Edit Tablemate**: Can edit player name (if temp), tags, and general notes
+3. **Link to Player**: Merges temp player data into existing player, updates playerId
+4. **Convert to Player**: Sets `isTemporary=false` on the player record
+5. **Remove Tablemate**: Deletes sessionTablemate and associated temp player (if any)
+
+**UI Display**:
+- Tablemates with permanent players (non-temporary) show a visual indicator (left border)
+- Player tags are displayed inline
+- General notes are shown below the tablemate row
+
+---
+
 ## Removed Tables
 
 ### ~~SessionPlayer~~ (Removed)
 
-Replaced by SessionEvent with `player_seated` event type.
+Replaced by SessionTablemate entity (see Section 24).
 
 ### ~~GameNote~~ (Removed)
 
@@ -745,13 +794,17 @@ GROUP BY c.id, c.user_id, c.name, c.initial_balance, c.is_archived;
 1. session_start     {}
 2. player_seated     { seatNumber: 3, playerName: "田中" }
 3. player_seated     { seatNumber: 7, playerName: "鈴木", playerId: "uuid" }
-4. stack_update      { amount: 10000 }
-5. hand_recorded     { handId: "uuid" }
-6. hands_passed      { count: 5 }
-7. rebuy             { amount: 5000 }
-8. stack_update      { amount: 8000 }
-9. session_pause     {}
-10. session_resume   {}
-11. hand_recorded    { handId: "uuid" }
-12. session_end      { cashOut: 12000 }
+4. hand_complete     {}  (not shown in timeline, counted: 1)
+5. hand_complete     {}  (not shown in timeline, counted: 2)
+6. stack_update      { amount: 10000 }
+7. hand_recorded     { handId: "uuid" }
+8. hand_complete     {}  (counted: 3)
+9. hands_passed      { count: 5 }  (adds 5 to count: 8)
+10. rebuy            { amount: 5000 }
+11. hand_complete    {}  (counted: 9)
+12. stack_update     { amount: 8000 }
+13. session_pause    {}
+14. session_resume   {}
+15. hand_recorded    { handId: "uuid" }
+16. session_end      { cashOut: 12000 }
 ```

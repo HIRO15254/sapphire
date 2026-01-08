@@ -4,10 +4,12 @@ import { and, asc, desc, eq } from 'drizzle-orm'
 import { isNotDeleted, pokerSessions, sessionEvents } from '~/server/db/schema'
 import {
   deleteEventSchema,
+  deleteLatestHandCompleteSchema,
   endSessionSchema,
   listBySessionSchema,
   pauseSessionSchema,
   recordAddonSchema,
+  recordHandCompleteSchema,
   recordHandSchema,
   recordHandsPassedSchema,
   recordRebuySchema,
@@ -646,6 +648,116 @@ export const sessionEventRouter = createTRPCRouter({
         eventData: { handId: input.handId },
         sequence: nextSequence,
         recordedAt: now,
+      }
+    }),
+
+  /**
+   * Record a hand completion (for hand counting).
+   * Adds hand_complete event. This event is NOT shown in timeline.
+   */
+  recordHandComplete: protectedProcedure
+    .input(recordHandCompleteSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session ownership and active status
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+          eq(pokerSessions.isActive, true),
+          isNotDeleted(pokerSessions.deletedAt),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'アクティブなセッションが見つかりません',
+        })
+      }
+
+      const now = new Date()
+
+      // Get next sequence number
+      const lastEvent = await ctx.db.query.sessionEvents.findFirst({
+        where: eq(sessionEvents.sessionId, input.sessionId),
+        orderBy: [desc(sessionEvents.sequence)],
+      })
+      const nextSequence = (lastEvent?.sequence ?? 0) + 1
+
+      // Create hand_complete event
+      const [event] = await ctx.db
+        .insert(sessionEvents)
+        .values({
+          sessionId: input.sessionId,
+          userId,
+          eventType: 'hand_complete',
+          eventData: {},
+          sequence: nextSequence,
+          recordedAt: now,
+        })
+        .returning()
+
+      return {
+        eventId: event?.id,
+        eventType: 'hand_complete',
+        sequence: nextSequence,
+        recordedAt: now,
+      }
+    }),
+
+  /**
+   * Delete the latest hand_complete event.
+   * Used to decrement the hand counter.
+   */
+  deleteLatestHandComplete: protectedProcedure
+    .input(deleteLatestHandCompleteSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session ownership and active status
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+          eq(pokerSessions.isActive, true),
+          isNotDeleted(pokerSessions.deletedAt),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'アクティブなセッションが見つかりません',
+        })
+      }
+
+      // Find the latest hand_complete event
+      const latestHandComplete = await ctx.db.query.sessionEvents.findFirst({
+        where: and(
+          eq(sessionEvents.sessionId, input.sessionId),
+          eq(sessionEvents.userId, userId),
+          eq(sessionEvents.eventType, 'hand_complete'),
+        ),
+        orderBy: [desc(sessionEvents.sequence)],
+      })
+
+      if (!latestHandComplete) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: '削除するハンド完了イベントがありません',
+        })
+      }
+
+      // Delete the event
+      await ctx.db
+        .delete(sessionEvents)
+        .where(eq(sessionEvents.id, latestHandComplete.id))
+
+      return {
+        success: true,
+        deletedEventId: latestHandComplete.id,
       }
     }),
 
