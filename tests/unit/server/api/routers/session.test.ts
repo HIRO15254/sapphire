@@ -33,8 +33,14 @@ describe('Session Router', () => {
           .nullable(),
         startTime: z.coerce.date(),
         endTime: z.coerce.date().optional(),
-        buyIn: z.number().int().positive('バイイン額は1以上の整数で入力してください'),
-        cashOut: z.number().int().min(0, 'キャッシュアウト額は0以上で入力してください'),
+        buyIn: z
+          .number()
+          .int()
+          .positive('バイイン額は1以上の整数で入力してください'),
+        cashOut: z
+          .number()
+          .int()
+          .min(0, 'キャッシュアウト額は0以上で入力してください'),
         notes: z.string().optional(),
       })
 

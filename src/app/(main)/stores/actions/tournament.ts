@@ -15,7 +15,12 @@ import {
 } from '~/server/api/schemas/tournament.schema'
 import { auth } from '~/server/auth'
 import { db } from '~/server/db'
-import { isNotDeleted, softDelete, stores, tournaments } from '~/server/db/schema'
+import {
+  isNotDeleted,
+  softDelete,
+  stores,
+  tournaments,
+} from '~/server/db/schema'
 import type { ActionResult } from './store'
 
 /** Schema for reordering tournaments */

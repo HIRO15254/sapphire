@@ -57,7 +57,9 @@ export const allInRecords = createTable(
      * Stored as decimal(5,2) for precision up to 2 decimal places.
      * Range: 0.00 to 100.00
      */
-    winProbability: d.numeric('win_probability', { precision: 5, scale: 2 }).notNull(),
+    winProbability: d
+      .numeric('win_probability', { precision: 5, scale: 2 })
+      .notNull(),
     /**
      * Actual outcome of the all-in.
      * For simple all-in: true = won, false = lost.

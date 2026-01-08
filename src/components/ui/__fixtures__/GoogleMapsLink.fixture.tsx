@@ -17,7 +17,10 @@ export default {
   CustomLabel: (
     <Stack p="md">
       <Text size="sm">カスタムラベル:</Text>
-      <GoogleMapsLink label="店舗の場所を見る" url="https://maps.google.com/?q=Shibuya" />
+      <GoogleMapsLink
+        label="店舗の場所を見る"
+        url="https://maps.google.com/?q=Shibuya"
+      />
     </Stack>
   ),
 

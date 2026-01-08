@@ -9,6 +9,11 @@ import { relations } from 'drizzle-orm'
 
 export { type Account, accounts, type NewAccount } from './account'
 export {
+  type AllInRecord,
+  allInRecords,
+  type NewAllInRecord,
+} from './allInRecord'
+export {
   type BonusTransaction,
   bonusTransactions,
   type NewBonusTransaction,
@@ -37,15 +42,17 @@ export {
   purchaseTransactions,
 } from './purchaseTransaction'
 export {
-  type AllInRecord,
-  allInRecords,
-  type NewAllInRecord,
-} from './allInRecord'
-export {
   type NewPokerSession,
   type PokerSession,
   pokerSessions,
 } from './session'
+export {
+  type NewSessionEvent,
+  SESSION_EVENT_TYPES,
+  type SessionEvent,
+  type SessionEventType,
+  sessionEvents,
+} from './sessionEvent'
 export {
   type NewStore,
   type Store,
@@ -77,6 +84,32 @@ export {
   type VerificationToken,
   verificationTokens,
 } from './verificationToken'
+export {
+  isNotTemporary,
+  type NewPlayer,
+  type Player,
+  players,
+} from './player'
+export {
+  type NewPlayerTag,
+  type PlayerTag,
+  playerTags,
+} from './playerTag'
+export {
+  type NewPlayerTagAssignment,
+  type PlayerTagAssignment,
+  playerTagAssignments,
+} from './playerTagAssignment'
+export {
+  type NewPlayerNote,
+  type PlayerNote,
+  playerNotes,
+} from './playerNote'
+export {
+  type NewSessionTablemate,
+  type SessionTablemate,
+  sessionTablemates,
+} from './sessionTablemate'
 
 // Import tables for relation definitions
 import { accounts } from './account'
@@ -86,6 +119,7 @@ import { cashGames } from './cashGame'
 import { currencies } from './currency'
 import { purchaseTransactions } from './purchaseTransaction'
 import { pokerSessions } from './session'
+import { sessionEvents } from './sessionEvent'
 import { stores } from './store'
 import {
   tournamentBlindLevels,
@@ -95,9 +129,14 @@ import {
   tournaments,
 } from './tournament'
 import { users } from './user'
+import { players } from './player'
+import { playerTags } from './playerTag'
+import { playerTagAssignments } from './playerTagAssignment'
+import { playerNotes } from './playerNote'
+import { sessionTablemates } from './sessionTablemate'
 
 /**
- * User relations to accounts, currencies, stores, games, transactions, sessions, and all-ins.
+ * User relations to accounts, currencies, stores, games, transactions, sessions, all-ins, and players.
  * Note: authSessions table removed - JWT sessions are used instead of database sessions.
  */
 export const usersRelations = relations(users, ({ many }) => ({
@@ -110,6 +149,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   tournaments: many(tournaments),
   pokerSessions: many(pokerSessions),
   allInRecords: many(allInRecords),
+  sessionEvents: many(sessionEvents),
+  players: many(players),
+  playerTags: many(playerTags),
+  playerNotes: many(playerNotes),
+  sessionTablemates: many(sessionTablemates),
 }))
 
 /**
@@ -289,6 +333,8 @@ export const pokerSessionsRelations = relations(
       references: [tournaments.id],
     }),
     allInRecords: many(allInRecords),
+    sessionEvents: many(sessionEvents),
+    tablemates: many(sessionTablemates),
   }),
 )
 
@@ -305,3 +351,86 @@ export const allInRecordsRelations = relations(allInRecords, ({ one }) => ({
     references: [users.id],
   }),
 }))
+
+/**
+ * SessionEvent relations to session and user.
+ */
+export const sessionEventsRelations = relations(sessionEvents, ({ one }) => ({
+  session: one(pokerSessions, {
+    fields: [sessionEvents.sessionId],
+    references: [pokerSessions.id],
+  }),
+  user: one(users, {
+    fields: [sessionEvents.userId],
+    references: [users.id],
+  }),
+}))
+
+/**
+ * Player relations to user, tags, and notes.
+ */
+export const playersRelations = relations(players, ({ one, many }) => ({
+  user: one(users, { fields: [players.userId], references: [users.id] }),
+  tagAssignments: many(playerTagAssignments),
+  notes: many(playerNotes),
+}))
+
+/**
+ * PlayerTag relations to user and assignments.
+ */
+export const playerTagsRelations = relations(playerTags, ({ one, many }) => ({
+  user: one(users, { fields: [playerTags.userId], references: [users.id] }),
+  assignments: many(playerTagAssignments),
+}))
+
+/**
+ * PlayerTagAssignment relations to player and tag.
+ */
+export const playerTagAssignmentsRelations = relations(
+  playerTagAssignments,
+  ({ one }) => ({
+    player: one(players, {
+      fields: [playerTagAssignments.playerId],
+      references: [players.id],
+    }),
+    tag: one(playerTags, {
+      fields: [playerTagAssignments.tagId],
+      references: [playerTags.id],
+    }),
+  }),
+)
+
+/**
+ * PlayerNote relations to player and user.
+ */
+export const playerNotesRelations = relations(playerNotes, ({ one }) => ({
+  player: one(players, {
+    fields: [playerNotes.playerId],
+    references: [players.id],
+  }),
+  user: one(users, {
+    fields: [playerNotes.userId],
+    references: [users.id],
+  }),
+}))
+
+/**
+ * SessionTablemate relations to session, player, and user.
+ */
+export const sessionTablematesRelations = relations(
+  sessionTablemates,
+  ({ one }) => ({
+    session: one(pokerSessions, {
+      fields: [sessionTablemates.sessionId],
+      references: [pokerSessions.id],
+    }),
+    player: one(players, {
+      fields: [sessionTablemates.playerId],
+      references: [players.id],
+    }),
+    user: one(users, {
+      fields: [sessionTablemates.userId],
+      references: [users.id],
+    }),
+  }),
+)

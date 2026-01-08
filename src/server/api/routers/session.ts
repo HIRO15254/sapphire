@@ -127,6 +127,9 @@ export const sessionRouter = createTRPCRouter({
             where: isNotDeleted(allInRecords.deletedAt),
             orderBy: [desc(allInRecords.recordedAt)],
           },
+          sessionEvents: {
+            orderBy: (events, { asc }) => [asc(events.sequence)],
+          },
         },
       })
 
@@ -292,8 +295,7 @@ function calculateAllInSummary(
 
   // Parse winProbability from string (decimal) to number
   const winProbabilities = records.map((r) => parseFloat(r.winProbability))
-  const averageWinRate =
-    winProbabilities.reduce((sum, p) => sum + p, 0) / count
+  const averageWinRate = winProbabilities.reduce((sum, p) => sum + p, 0) / count
 
   // Calculate EV: Σ(potAmount × winProbability / 100)
   const allInEV = records.reduce(

@@ -45,7 +45,11 @@ type Store = RouterOutputs['store']['list']['stores'][number]
 
 // Form validation schema
 const formSchema = z.object({
-  storeId: z.string().uuid('店舗を選択してください').optional().or(z.literal('')),
+  storeId: z
+    .string()
+    .uuid('店舗を選択してください')
+    .optional()
+    .or(z.literal('')),
   gameType: z.enum(['cash', 'tournament']),
   cashGameId: z.string().uuid().optional().or(z.literal('')),
   tournamentId: z.string().uuid().optional().or(z.literal('')),
@@ -80,7 +84,7 @@ export function EditSessionContent({
   const router = useRouter()
   const [isUpdating, startUpdateTransition] = useTransition()
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(
-    initialSession.store?.id ?? null
+    initialSession.store?.id ?? null,
   )
 
   // Fetch store details when a store is selected
@@ -90,7 +94,8 @@ export function EditSessionContent({
   )
 
   // Determine initial game type
-  const initialGameType = initialSession.gameType === 'tournament' ? 'tournament' : 'cash'
+  const initialGameType =
+    initialSession.gameType === 'tournament' ? 'tournament' : 'cash'
 
   const form = useForm({
     mode: 'uncontrolled',
@@ -101,7 +106,9 @@ export function EditSessionContent({
       tournamentId: initialSession.tournament?.id ?? '',
       sessionDate: getDateOnly(new Date(initialSession.startTime)),
       startTime: extractTimeString(new Date(initialSession.startTime)),
-      endTime: initialSession.endTime ? extractTimeString(new Date(initialSession.endTime)) : '',
+      endTime: initialSession.endTime
+        ? extractTimeString(new Date(initialSession.endTime))
+        : '',
       buyIn: initialSession.buyIn,
       cashOut: initialSession.cashOut ?? 0,
       notes: initialSession.notes ?? '',
@@ -155,9 +162,16 @@ export function EditSessionContent({
   const handleSubmit = form.onSubmit((values) => {
     startUpdateTransition(async () => {
       // Combine date and time (end time adjusts to next day if before start time)
-      const startDateTime = combineDateAndTime(values.sessionDate, values.startTime)
+      const startDateTime = combineDateAndTime(
+        values.sessionDate,
+        values.startTime,
+      )
       const endDateTime = values.endTime
-        ? combineEndDateTime(values.sessionDate, values.startTime, values.endTime)
+        ? combineEndDateTime(
+            values.sessionDate,
+            values.startTime,
+            values.endTime,
+          )
         : undefined
 
       const result = await updateSession({

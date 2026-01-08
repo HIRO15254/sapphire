@@ -262,25 +262,38 @@ tests/
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T106 [P] [US4] Write unit test for SessionEvent schema in tests/unit/server/db/schema/sessionEvent.test.ts
-- [ ] T107 [P] [US4] Write unit test for sessionEvent router in tests/unit/server/api/routers/sessionEvent.test.ts
-- [ ] T108 [P] [US4] Write integration test for active session state transitions in tests/integration/session/active.test.ts
-- [ ] T109 [P] [US4] Write E2E test for active session flow in tests/e2e/session-active.spec.ts
+- [X] T106 [P] [US4] Write unit test for SessionEvent schema in tests/unit/server/db/schema/sessionEvent.test.ts
+- [X] T107 [P] [US4] Write unit test for sessionEvent router in tests/unit/server/api/routers/sessionEvent.test.ts
+- [X] T108 [P] [US4] Write integration test for active session state transitions in tests/integration/session/active.test.ts
+- [X] T109 [P] [US4] Write E2E test for active session flow in tests/e2e/session-active.spec.ts
 
 ### Implementation for User Story 4
 
-- [ ] T110 [US4] Create SessionEvent schema with JSONB eventData in src/server/db/schema/sessionEvent.ts
-- [ ] T111 [US4] Create Zod schemas for each event type validation in src/server/api/schemas/sessionEvent.schema.ts
-- [ ] T112 [US4] Implement sessionEvent router (startSession, pauseSession, resumeSession, endSession, seatPlayer, recordHand, recordHandsPassed, updateStack, recordRebuy, recordAddon) in src/server/api/routers/sessionEvent.ts
-- [ ] T113 [US4] Add sessionEvent router to root router in src/server/api/root.ts
-- [ ] T114 [US4] Update session.createArchive to validate only one active session per user in src/server/api/routers/session.ts
-- [ ] T115 [P] [US4] Create ActiveSessionPage with real-time event display in src/app/(auth)/sessions/active/page.tsx
-- [ ] T116 [P] [US4] Create StartSessionForm component in src/components/forms/StartSessionForm.tsx
-- [ ] T117 [P] [US4] Create StackUpdateForm component in src/components/forms/StackUpdateForm.tsx
-- [ ] T118 [P] [US4] Create RebuyAddonForm component in src/components/forms/RebuyAddonForm.tsx
-- [ ] T119 [US4] Create SessionEventTimeline component in src/components/session/SessionEventTimeline.tsx
+- [X] T110 [US4] Create SessionEvent schema with JSONB eventData in src/server/db/schema/sessionEvent.ts
+- [X] T111 [US4] Create Zod schemas for each event type validation in src/server/api/schemas/sessionEvent.schema.ts
+- [X] T112 [US4] Implement sessionEvent router (startSession, pauseSession, resumeSession, endSession, seatPlayer, recordHand, recordHandsPassed, updateStack, recordRebuy, recordAddon) in src/server/api/routers/sessionEvent.ts
+- [X] T113 [US4] Add sessionEvent router to root router in src/server/api/root.ts
+- [X] T114 [US4] Update session.createArchive to validate only one active session per user in src/server/api/routers/session.ts
+- [X] T115 [P] [US4] Create ActiveSessionPage with real-time event display in src/app/(auth)/sessions/active/page.tsx
+- [X] T116 [P] [US4] Create StartSessionForm component in src/components/forms/StartSessionForm.tsx
+- [X] T117 [P] [US4] Create StackUpdateForm component in src/components/forms/StackUpdateForm.tsx
+- [X] T118 [P] [US4] Create RebuyAddonForm component in src/components/forms/RebuyAddonForm.tsx
+- [X] T119 [US4] Create SessionEventTimeline component in src/components/session/SessionEventTimeline.tsx
 
 **Checkpoint**: Users can record sessions in real-time with full event tracking
+
+**Implementation Notes** (Phase 7 completed 2025-12):
+- SessionEvent schema: Event sourcing pattern with JSONB eventData, sequence ordering
+- Event types: session_start, session_resume, session_pause, session_end, player_seated, hand_recorded, hands_passed, stack_update, rebuy, addon
+- Single active session constraint: Only one active session per user allowed
+- Current stack calculation: Derived from events (buyIn + rebuys + addons, updated by stack_update)
+- Elapsed time: Calculated from startTime
+- File locations (actual):
+  - Schema: src/server/db/schema/sessionEvent.ts
+  - Router: src/server/api/routers/sessionEvent.ts
+  - Zod schemas: src/server/api/schemas/sessionEvent.schema.ts
+  - Active page: src/app/(main)/sessions/active/page.tsx
+  - Components: src/app/(main)/sessions/active/ActiveSessionContent.tsx, StartSessionForm.tsx, SessionEventTimeline.tsx
 
 ---
 
@@ -290,31 +303,48 @@ tests/
 
 **Independent Test**: Create player profiles, add tags and notes, view player history
 
-### Tests for User Story 5 ⚠️
+### Tests for User Story 5 ✅
 
-- [ ] T120 [P] [US5] Write unit test for Player schema in tests/unit/server/db/schema/player.test.ts
-- [ ] T121 [P] [US5] Write unit test for PlayerTag schema in tests/unit/server/db/schema/playerTag.test.ts
-- [ ] T122 [P] [US5] Write unit test for player router in tests/unit/server/api/routers/player.test.ts
-- [ ] T123 [P] [US5] Write unit test for playerTag router in tests/unit/server/api/routers/playerTag.test.ts
-- [ ] T124 [P] [US5] Write E2E test for player management flow in tests/e2e/player.spec.ts
+- [X] T120 [P] [US5] Write unit test for Player schema in tests/unit/server/db/schema/player.test.ts
+- [X] T121 [P] [US5] Write unit test for PlayerTag schema in tests/unit/server/db/schema/playerTag.test.ts
+- [X] T122 [P] [US5] Write unit test for player router in tests/unit/server/api/routers/player.test.ts
+- [X] T123 [P] [US5] Write unit test for playerTag router in tests/unit/server/api/routers/playerTag.test.ts
+- [X] T124 [P] [US5] Write E2E test for player management flow in tests/e2e/player.spec.ts
 
 ### Implementation for User Story 5
 
-- [ ] T125 [US5] Create Player schema in src/server/db/schema/player.ts
-- [ ] T126 [P] [US5] Create PlayerTag schema in src/server/db/schema/playerTag.ts
-- [ ] T127 [P] [US5] Create PlayerTagAssignment junction schema in src/server/db/schema/playerTagAssignment.ts
-- [ ] T128 [P] [US5] Create PlayerNote schema in src/server/db/schema/playerNote.ts
-- [ ] T129 [US5] Create Zod schemas for player/tag validation in src/server/api/schemas/player.schema.ts
-- [ ] T130 [US5] Implement player router in src/server/api/routers/player.ts
-- [ ] T131 [US5] Implement playerTag router in src/server/api/routers/playerTag.ts
-- [ ] T132 [US5] Add player, playerTag routers to root router in src/server/api/root.ts
-- [ ] T133 [P] [US5] Create PlayerListPage with search and tag filter in src/app/(auth)/players/page.tsx
-- [ ] T134 [P] [US5] Create PlayerDetailPage in src/app/(auth)/players/[id]/page.tsx
-- [ ] T135 [P] [US5] Create PlayerForm component in src/components/forms/PlayerForm.tsx
-- [ ] T136 [P] [US5] Create PlayerTagManager component in src/components/player/PlayerTagManager.tsx
-- [ ] T137 [US5] Create PlayerNoteForm component in src/components/forms/PlayerNoteForm.tsx
+- [X] T125 [US5] Create Player schema in src/server/db/schema/player.ts
+- [X] T126 [P] [US5] Create PlayerTag schema in src/server/db/schema/playerTag.ts
+- [X] T127 [P] [US5] Create PlayerTagAssignment junction schema in src/server/db/schema/playerTagAssignment.ts
+- [X] T128 [P] [US5] Create PlayerNote schema in src/server/db/schema/playerNote.ts
+- [X] T129 [US5] Create Zod schemas for player/tag validation in src/server/api/schemas/player.schema.ts
+- [X] T130 [US5] Implement player router in src/server/api/routers/player.ts
+- [X] T131 [US5] Implement playerTag router in src/server/api/routers/playerTag.ts
+- [X] T132 [US5] Add player, playerTag routers to root router in src/server/api/root.ts
+- [X] T133 [P] [US5] Create PlayerListPage with search and tag filter in src/app/(main)/players/page.tsx
+- [X] T134 [P] [US5] Create PlayerDetailPage in src/app/(main)/players/[id]/page.tsx
+- [X] T135 [P] [US5] Create PlayerForm component (integrated into NewPlayerContent and PlayerDetailContent)
+- [X] T136 [P] [US5] Create PlayerTagManager component in src/app/(main)/players/PlayerTagModal.tsx
+- [X] T137 [US5] Create PlayerNoteForm component in src/app/(main)/players/[id]/PlayerNoteModal.tsx
 
 **Checkpoint**: Users can track opponents with tags and notes
+
+**Implementation Notes** (Phase 8 completed 2025-01):
+- Player schema: Soft delete pattern with deletedAt, generalNotes as rich text (HTML)
+- PlayerTag schema: name (max 100 chars), color (hex code, nullable)
+- PlayerTagAssignment: Junction table with unique constraint on playerId+tagId
+- PlayerNote: Date-specific notes with noteDate (YYYY-MM-DD) and content (text)
+- Tag management: Create/update/delete tags with color picker, duplicate name detection
+- Note management: Add/edit/delete date-specific notes from player detail page
+- Search & filter: Player list supports text search and multi-tag filtering
+- File locations (actual):
+  - Schemas: src/server/db/schema/player.ts, playerTag.ts, playerTagAssignment.ts, playerNote.ts
+  - Routers: src/server/api/routers/player.ts, playerTag.ts
+  - Zod schemas: src/server/api/schemas/player.schema.ts
+  - Pages: src/app/(main)/players/ (page.tsx, PlayersContent.tsx, PlayerTagModal.tsx)
+  - Player detail: src/app/(main)/players/[id]/ (page.tsx, PlayerDetailContent.tsx, PlayerNoteModal.tsx)
+  - Create player: src/app/(main)/players/new/ (page.tsx, NewPlayerContent.tsx)
+  - Server Actions: src/app/(main)/players/actions/player.ts
 
 ---
 

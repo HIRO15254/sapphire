@@ -97,12 +97,8 @@
           "name": "sapphire_account_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_account",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -110,10 +106,7 @@
       "compositePrimaryKeys": {
         "sapphire_account_provider_provider_account_id_pk": {
           "name": "sapphire_account_provider_provider_account_id_pk",
-          "columns": [
-            "provider",
-            "provider_account_id"
-          ]
+          "columns": ["provider", "provider_account_id"]
         }
       },
       "uniqueConstraints": {},
@@ -226,12 +219,8 @@
           "name": "sapphire_all_in_record_session_id_sapphire_poker_session_id_fk",
           "tableFrom": "sapphire_all_in_record",
           "tableTo": "sapphire_poker_session",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -239,12 +228,8 @@
           "name": "sapphire_all_in_record_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_all_in_record",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -369,12 +354,8 @@
           "name": "sapphire_bonus_transaction_currency_id_sapphire_currency_id_fk",
           "tableFrom": "sapphire_bonus_transaction",
           "tableTo": "sapphire_currency",
-          "columnsFrom": [
-            "currency_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currency_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -382,12 +363,8 @@
           "name": "sapphire_bonus_transaction_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_bonus_transaction",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -563,12 +540,8 @@
           "name": "sapphire_cash_game_store_id_sapphire_store_id_fk",
           "tableFrom": "sapphire_cash_game",
           "tableTo": "sapphire_store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["store_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -576,12 +549,8 @@
           "name": "sapphire_cash_game_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_cash_game",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -589,12 +558,8 @@
           "name": "sapphire_cash_game_currency_id_sapphire_currency_id_fk",
           "tableFrom": "sapphire_cash_game",
           "tableTo": "sapphire_currency",
-          "columnsFrom": [
-            "currency_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currency_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -699,12 +664,8 @@
           "name": "sapphire_currency_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_currency",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -886,12 +847,8 @@
           "name": "sapphire_poker_session_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_poker_session",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -899,12 +856,8 @@
           "name": "sapphire_poker_session_store_id_sapphire_store_id_fk",
           "tableFrom": "sapphire_poker_session",
           "tableTo": "sapphire_store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["store_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -912,12 +865,8 @@
           "name": "sapphire_poker_session_cash_game_id_sapphire_cash_game_id_fk",
           "tableFrom": "sapphire_poker_session",
           "tableTo": "sapphire_cash_game",
-          "columnsFrom": [
-            "cash_game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cash_game_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -925,12 +874,8 @@
           "name": "sapphire_poker_session_tournament_id_sapphire_tournament_id_fk",
           "tableFrom": "sapphire_poker_session",
           "tableTo": "sapphire_tournament",
-          "columnsFrom": [
-            "tournament_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tournament_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -938,12 +883,8 @@
           "name": "sapphire_poker_session_currency_id_sapphire_currency_id_fk",
           "tableFrom": "sapphire_poker_session",
           "tableTo": "sapphire_currency",
-          "columnsFrom": [
-            "currency_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currency_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1068,12 +1009,8 @@
           "name": "sapphire_purchase_transaction_currency_id_sapphire_currency_id_fk",
           "tableFrom": "sapphire_purchase_transaction",
           "tableTo": "sapphire_currency",
-          "columnsFrom": [
-            "currency_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currency_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1081,12 +1018,8 @@
           "name": "sapphire_purchase_transaction_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_purchase_transaction",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1220,12 +1153,8 @@
           "name": "sapphire_store_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_store",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1334,12 +1263,8 @@
           "name": "sapphire_tournament_blind_level_tournament_id_sapphire_tournament_id_fk",
           "tableFrom": "sapphire_tournament_blind_level",
           "tableTo": "sapphire_tournament",
-          "columnsFrom": [
-            "tournament_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tournament_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1448,12 +1373,8 @@
           "name": "sapphire_tournament_prize_item_prize_level_id_sapphire_tournament_prize_level_id_fk",
           "tableFrom": "sapphire_tournament_prize_item",
           "tableTo": "sapphire_tournament_prize_level",
-          "columnsFrom": [
-            "prize_level_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["prize_level_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1544,12 +1465,8 @@
           "name": "sapphire_tournament_prize_level_prize_structure_id_sapphire_tournament_prize_structure_id_fk",
           "tableFrom": "sapphire_tournament_prize_level",
           "tableTo": "sapphire_tournament_prize_structure",
-          "columnsFrom": [
-            "prize_structure_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["prize_structure_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1640,12 +1557,8 @@
           "name": "sapphire_tournament_prize_structure_tournament_id_sapphire_tournament_id_fk",
           "tableFrom": "sapphire_tournament_prize_structure",
           "tableTo": "sapphire_tournament",
-          "columnsFrom": [
-            "tournament_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tournament_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1809,12 +1722,8 @@
           "name": "sapphire_tournament_store_id_sapphire_store_id_fk",
           "tableFrom": "sapphire_tournament",
           "tableTo": "sapphire_store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["store_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1822,12 +1731,8 @@
           "name": "sapphire_tournament_user_id_sapphire_user_id_fk",
           "tableFrom": "sapphire_tournament",
           "tableTo": "sapphire_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1835,12 +1740,8 @@
           "name": "sapphire_tournament_currency_id_sapphire_currency_id_fk",
           "tableFrom": "sapphire_tournament",
           "tableTo": "sapphire_currency",
-          "columnsFrom": [
-            "currency_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currency_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1964,10 +1865,7 @@
       "compositePrimaryKeys": {
         "sapphire_verification_token_identifier_token_pk": {
           "name": "sapphire_verification_token_identifier_token_pk",
-          "columns": [
-            "identifier",
-            "token"
-          ]
+          "columns": ["identifier", "token"]
         }
       },
       "uniqueConstraints": {},

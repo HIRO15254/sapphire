@@ -1,3 +1,4 @@
+export { addCurrencyBonus } from './bonus'
 export type { ActionResult } from './currency'
 export {
   archiveCurrency,
@@ -6,5 +7,4 @@ export {
   unarchiveCurrency,
   updateCurrency,
 } from './currency'
-export { addCurrencyBonus } from './bonus'
 export { addCurrencyPurchase } from './purchase'

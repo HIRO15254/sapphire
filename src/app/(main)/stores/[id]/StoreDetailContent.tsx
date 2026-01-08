@@ -43,7 +43,7 @@ import { CashGameModal } from './CashGameModal'
 import { CashGameSection } from './CashGameSection'
 import { StoreHeader } from './StoreHeader'
 import { StoreInfo } from './StoreInfo'
-import { TournamentModal, type TournamentFormValues } from './TournamentModal'
+import { type TournamentFormValues, TournamentModal } from './TournamentModal'
 import { TournamentSection } from './TournamentSection'
 import type {
   BlindLevel,
@@ -91,9 +91,7 @@ export function StoreDetailContent({
   const store = initialStore
 
   // Local state for optimistic updates on reorder
-  const [cashGames, setCashGames] = useState<CashGame[]>(
-    initialStore.cashGames,
-  )
+  const [cashGames, setCashGames] = useState<CashGame[]>(initialStore.cashGames)
   const [tournaments, setTournaments] = useState<Tournament[]>(
     initialStore.tournaments,
   )
@@ -786,7 +784,9 @@ export function StoreDetailContent({
 /**
  * Validate prize structure for overlapping ranges and percentage totals
  */
-function validatePrizeStructure(prizeStructures: PrizeStructure[]): string | null {
+function validatePrizeStructure(
+  prizeStructures: PrizeStructure[],
+): string | null {
   // Check for overlapping entry count ranges
   for (let i = 0; i < prizeStructures.length; i++) {
     const s1 = prizeStructures[i]

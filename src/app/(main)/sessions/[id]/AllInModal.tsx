@@ -11,16 +11,38 @@ import {
   Text,
   TextInput,
 } from '@mantine/core'
+import { TimeInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
+import { IconClock } from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
 import { useEffect } from 'react'
 import { z } from 'zod'
 
 import type { AllInRecord } from './types'
 
+/**
+ * Get current time as HH:MM string.
+ */
+const getCurrentTimeString = () => {
+  const now = new Date()
+  const hours = now.getHours().toString().padStart(2, '0')
+  const minutes = now.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+/**
+ * Format Date to HH:MM string.
+ */
+const formatTimeString = (date: Date) => {
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
 // All-in record form validation schema
 const allInFormSchema = z
   .object({
+    recordedAt: z.string().min(1, '発生時刻を入力してください'),
     potAmount: z
       .number({ required_error: 'ポット額を入力してください' })
       .int('ポット額は整数で入力してください')
@@ -42,7 +64,11 @@ const allInFormSchema = z
   })
   .refine(
     (data) => {
-      if (data.useRunIt && data.runItTimes != null && data.winsInRunout != null) {
+      if (
+        data.useRunIt &&
+        data.runItTimes != null &&
+        data.winsInRunout != null
+      ) {
         return data.winsInRunout <= data.runItTimes
       }
       return true
@@ -61,6 +87,7 @@ interface AllInModalProps {
   editingAllIn: AllInRecord | null
   onSubmit: (values: AllInFormValues) => void
   isLoading: boolean
+  minTime?: Date
 }
 
 export function AllInModal({
@@ -69,10 +96,12 @@ export function AllInModal({
   editingAllIn,
   onSubmit,
   isLoading,
+  minTime,
 }: AllInModalProps) {
   const form = useForm({
     mode: 'uncontrolled',
     initialValues: {
+      recordedAt: getCurrentTimeString(),
       potAmount: 0,
       winProbability: '50',
       actualResult: 'win' as 'win' | 'lose',
@@ -91,6 +120,7 @@ export function AllInModal({
         const hasRunIt =
           editingAllIn.runItTimes != null && editingAllIn.runItTimes > 1
         form.setValues({
+          recordedAt: formatTimeString(new Date(editingAllIn.recordedAt)),
           potAmount: editingAllIn.potAmount,
           winProbability: editingAllIn.winProbability,
           actualResult: editingAllIn.actualResult ? 'win' : 'lose',
@@ -99,7 +129,15 @@ export function AllInModal({
           winsInRunout: editingAllIn.winsInRunout ?? 1,
         })
       } else {
-        form.reset()
+        form.setValues({
+          recordedAt: getCurrentTimeString(),
+          potAmount: 0,
+          winProbability: '50',
+          actualResult: 'win',
+          useRunIt: false,
+          runItTimes: 2,
+          winsInRunout: 1,
+        })
       }
     }
   }, [opened, editingAllIn])
@@ -126,6 +164,13 @@ export function AllInModal({
     >
       <form onSubmit={handleSubmit}>
         <Stack>
+          <TimeInput
+            description={minTime ? `${formatTimeString(minTime)}より後` : undefined}
+            label="発生時刻"
+            leftSection={<IconClock size={16} />}
+            withAsterisk
+            {...form.getInputProps('recordedAt')}
+          />
           <NumberInput
             label="ポット額"
             min={1}

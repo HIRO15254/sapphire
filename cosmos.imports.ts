@@ -2,39 +2,53 @@
 // It imports all fixture and decorator modules, making them available to the
 // React Cosmos renderer along with the renderer config.
 
-import type { RendererConfig, UserModuleWrappers } from 'react-cosmos-core';
+import type { RendererConfig, UserModuleWrappers } from 'react-cosmos-core'
 
-import * as fixture0 from './src/components/auth/__fixtures__/SignOutButton.fixture';
-import * as fixture1 from './src/components/layouts/__fixtures__/AppShell.fixture';
-import * as fixture2 from './src/components/ui/__fixtures__/ErrorBoundary.fixture';
-import * as fixture3 from './src/components/ui/__fixtures__/GoogleMapsLink.fixture';
-import * as fixture4 from './src/components/ui/__fixtures__/LoadingOverlay.fixture';
-import * as fixture5 from './src/components/ui/__fixtures__/RichTextEditor.fixture';
-import * as fixture6 from './src/components/ui/__fixtures__/ThemeToggle.fixture';
+import * as fixture0 from './src/components/auth/__fixtures__/SignOutButton.fixture'
+import * as fixture1 from './src/components/layouts/__fixtures__/AppShell.fixture'
+import * as fixture2 from './src/components/ui/__fixtures__/ErrorBoundary.fixture'
+import * as fixture3 from './src/components/ui/__fixtures__/GoogleMapsLink.fixture'
+import * as fixture4 from './src/components/ui/__fixtures__/LoadingOverlay.fixture'
+import * as fixture5 from './src/components/ui/__fixtures__/RichTextEditor.fixture'
+import * as fixture6 from './src/components/ui/__fixtures__/ThemeToggle.fixture'
 
-import * as decorator0 from './src/cosmos.decorator';
+import * as decorator0 from './src/cosmos.decorator'
 
 export const rendererConfig: RendererConfig = {
-  "webSocketUrl": "ws://172.31.192.1:5000",
-  "rendererUrl": "http://localhost:3000/cosmos/<fixture>"
-};
+  webSocketUrl: 'ws://172.31.192.1:5000',
+  rendererUrl: 'http://localhost:3000/cosmos/<fixture>',
+}
 
 const fixtures = {
-  'src/components/auth/__fixtures__/SignOutButton.fixture.tsx': { module: fixture0 },
-  'src/components/layouts/__fixtures__/AppShell.fixture.tsx': { module: fixture1 },
-  'src/components/ui/__fixtures__/ErrorBoundary.fixture.tsx': { module: fixture2 },
-  'src/components/ui/__fixtures__/GoogleMapsLink.fixture.tsx': { module: fixture3 },
-  'src/components/ui/__fixtures__/LoadingOverlay.fixture.tsx': { module: fixture4 },
-  'src/components/ui/__fixtures__/RichTextEditor.fixture.tsx': { module: fixture5 },
-  'src/components/ui/__fixtures__/ThemeToggle.fixture.tsx': { module: fixture6 }
-};
+  'src/components/auth/__fixtures__/SignOutButton.fixture.tsx': {
+    module: fixture0,
+  },
+  'src/components/layouts/__fixtures__/AppShell.fixture.tsx': {
+    module: fixture1,
+  },
+  'src/components/ui/__fixtures__/ErrorBoundary.fixture.tsx': {
+    module: fixture2,
+  },
+  'src/components/ui/__fixtures__/GoogleMapsLink.fixture.tsx': {
+    module: fixture3,
+  },
+  'src/components/ui/__fixtures__/LoadingOverlay.fixture.tsx': {
+    module: fixture4,
+  },
+  'src/components/ui/__fixtures__/RichTextEditor.fixture.tsx': {
+    module: fixture5,
+  },
+  'src/components/ui/__fixtures__/ThemeToggle.fixture.tsx': {
+    module: fixture6,
+  },
+}
 
 const decorators = {
-  'src/cosmos.decorator.tsx': { module: decorator0 }
-};
+  'src/cosmos.decorator.tsx': { module: decorator0 },
+}
 
 export const moduleWrappers: UserModuleWrappers = {
   lazy: false,
   fixtures,
-  decorators
-};
+  decorators,
+}

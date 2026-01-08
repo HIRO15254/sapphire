@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Button,
   Burger,
   Divider,
   Group,
@@ -8,6 +9,7 @@ import {
   NavLink,
   ScrollArea,
   Title,
+  Tooltip,
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
@@ -18,6 +20,8 @@ import {
   IconHelp,
   IconHome,
   IconLogout,
+  IconPlayerPause,
+  IconPlayerPlay,
   IconUsers,
 } from '@tabler/icons-react'
 import Link from 'next/link'
@@ -26,6 +30,7 @@ import type { ReactNode } from 'react'
 
 import { SignOutButton } from '~/components/auth/SignOutButton'
 import { ThemeToggle } from '~/components/ui/ThemeToggle'
+import { api } from '~/trpc/react'
 
 interface AppShellProps {
   children: ReactNode
@@ -51,6 +56,15 @@ const navItems = [
 export function AppShell({ children }: AppShellProps) {
   const [opened, { toggle }] = useDisclosure()
   const pathname = usePathname()
+
+  // Query active session for header indicator
+  const { data: activeSession } = api.sessionEvent.getActiveSession.useQuery(
+    undefined,
+    {
+      refetchInterval: 60000, // Check every minute
+      retry: false,
+    },
+  )
 
   return (
     <MantineAppShell
@@ -79,7 +93,66 @@ export function AppShell({ children }: AppShellProps) {
               <Title order={3}>Sapphire</Title>
             </Link>
           </Group>
-          <ThemeToggle />
+          <Group gap="sm">
+            {/* Active Session Indicator / Start Session Button */}
+            {activeSession ? (
+              <Tooltip
+                label={
+                  activeSession.isPaused
+                    ? '一時停止中のセッションを表示'
+                    : '進行中のセッションを表示'
+                }
+              >
+                <Button
+                  color={activeSession.isPaused ? 'gray' : 'red'}
+                  component={Link}
+                  href="/sessions/active"
+                  leftSection={
+                    activeSession.isPaused ? (
+                      <IconPlayerPause size={16} />
+                    ) : (
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: 'white',
+                          animation: 'pulse 1.5s infinite',
+                        }}
+                      />
+                    )
+                  }
+                  size="compact-sm"
+                  variant="filled"
+                >
+                  {activeSession.isPaused ? '一時停止中' : 'LIVE'}
+                </Button>
+              </Tooltip>
+            ) : (
+              <Tooltip label="ライブセッションを開始">
+                <Button
+                  color="gray"
+                  component={Link}
+                  href="/sessions/active"
+                  leftSection={<IconPlayerPlay size={16} />}
+                  size="compact-sm"
+                  variant="light"
+                >
+                  セッション
+                </Button>
+              </Tooltip>
+            )}
+            <ThemeToggle />
+            {/* CSS for pulse animation */}
+            <style>
+              {`
+                @keyframes pulse {
+                  0%, 100% { opacity: 1; }
+                  50% { opacity: 0.4; }
+                }
+              `}
+            </style>
+          </Group>
         </Group>
       </MantineAppShell.Header>
 

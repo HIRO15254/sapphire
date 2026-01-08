@@ -1,0 +1,1 @@
+ALTER TABLE "sapphire_player" ADD COLUMN "is_temporary" boolean DEFAULT false NOT NULL;
