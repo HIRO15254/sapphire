@@ -5,6 +5,23 @@
 import './src/env.js'
 
 /** @type {import("next").NextConfig} */
-const config = {}
+const config = {
+  headers: async () => [
+    {
+      // Service worker should not be cached aggressively
+      source: '/sw.js',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-cache, no-store, must-revalidate',
+        },
+        {
+          key: 'Content-Type',
+          value: 'application/javascript; charset=utf-8',
+        },
+      ],
+    },
+  ],
+}
 
 export default config
