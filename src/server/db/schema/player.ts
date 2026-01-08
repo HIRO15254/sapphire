@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { index } from 'drizzle-orm/pg-core'
 
 import { createTable, timestampColumns } from './common'
@@ -33,6 +34,14 @@ export const players = createTable(
      */
     name: d.varchar('name', { length: 255 }).notNull(),
     /**
+     * Whether this is a temporary player created during a session.
+     * Temporary players are created when adding a tablemate and can be:
+     * - Converted to a permanent player (isTemporary → false)
+     * - Merged with an existing player (data transferred, then deleted)
+     * - Deleted when the tablemate leaves
+     */
+    isTemporary: d.boolean('is_temporary').notNull().default(false),
+    /**
      * General notes about this player (HTML format for rich text).
      * For ongoing observations that aren't date-specific.
      */
@@ -48,3 +57,10 @@ export const players = createTable(
 // Type exports
 export type Player = typeof players.$inferSelect
 export type NewPlayer = typeof players.$inferInsert
+
+/**
+ * Helper to filter out temporary players.
+ * Use in queries: where: and(..., isNotTemporary(players.isTemporary))
+ */
+export const isNotTemporary = (isTemporaryColumn: typeof players.isTemporary) =>
+  eq(isTemporaryColumn, false)

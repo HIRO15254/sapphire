@@ -47,6 +47,8 @@ const AMOUNT_EDITABLE_EVENTS = ['stack_update', 'rebuy', 'addon', 'all_in']
 const TIME_EDITABLE_EVENTS_EXCLUDE = ['session_start', 'session_end']
 // Deletable event types (all except session_start, session_end)
 const NON_DELETABLE_EVENTS = ['session_start', 'session_end']
+// Events hidden from timeline (too many to display)
+const HIDDEN_FROM_TIMELINE_EVENTS = ['hand_complete']
 
 /**
  * Session event timeline component.
@@ -346,7 +348,12 @@ export function SessionEventTimeline({ events }: SessionEventTimelineProps) {
     })
   }
 
-  if (events.length === 0) {
+  // Filter out events that shouldn't be shown in timeline
+  const visibleEvents = events.filter(
+    (e) => !HIDDEN_FROM_TIMELINE_EVENTS.includes(e.eventType)
+  )
+
+  if (visibleEvents.length === 0) {
     return (
       <Text c="dimmed" ta="center">
         イベントがありません
@@ -355,7 +362,7 @@ export function SessionEventTimeline({ events }: SessionEventTimelineProps) {
   }
 
   // Sort events by sequence (newest first for display)
-  const sortedEvents = [...events].reverse()
+  const sortedEvents = [...visibleEvents].reverse()
 
   return (
     <>

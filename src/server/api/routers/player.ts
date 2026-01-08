@@ -3,6 +3,7 @@ import { and, desc, eq, ilike, inArray, sql } from 'drizzle-orm'
 
 import {
   isNotDeleted,
+  isNotTemporary,
   playerNotes,
   players,
   playerTagAssignments,
@@ -44,10 +45,11 @@ export const playerRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id
 
-      // Base conditions
+      // Base conditions: exclude deleted and temporary players
       const conditions = [
         eq(players.userId, userId),
         isNotDeleted(players.deletedAt),
+        isNotTemporary(players.isTemporary),
       ]
 
       // Search by name if provided

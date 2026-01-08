@@ -17,6 +17,7 @@ export const SESSION_EVENT_TYPES = [
   'player_seated',
   'hand_recorded',
   'hands_passed',
+  'hand_complete',
   'stack_update',
   'rebuy',
   'addon',
@@ -42,6 +43,7 @@ export type SessionEventType = (typeof SESSION_EVENT_TYPES)[number]
  * - player_seated: Player sits at seat - eventData: { playerId?: string, seatNumber: number, playerName: string }
  * - hand_recorded: Hand with full history - eventData: { handId: string }
  * - hands_passed: Hands without full history - eventData: { count: number }
+ * - hand_complete: Single hand completed (for counting) - eventData: {} (NOT shown in timeline)
  * - stack_update: Stack amount changed - eventData: { amount: number }
  * - rebuy: Rebuy performed - eventData: { amount: number }
  * - addon: Add-on performed - eventData: { amount: number }

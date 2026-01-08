@@ -2,16 +2,11 @@ import { z } from 'zod'
 
 /**
  * Schema for creating a session tablemate.
+ * Creates a temporary player automatically.
  */
 export const createSessionTablemateSchema = z.object({
   sessionId: z.string().min(1, 'セッションIDは必須です'),
-  nickname: z
-    .string()
-    .min(1, 'ニックネームを入力してください')
-    .max(100, 'ニックネームは100文字以下で入力してください'),
-  seatNumber: z.number().int().min(1).max(10).optional(),
-  sessionNotes: z.string().optional(),
-  playerId: z.string().optional(),
+  seatNumber: z.number().int().min(1).max(10),
 })
 
 export type CreateSessionTablemateInput = z.infer<
@@ -23,14 +18,7 @@ export type CreateSessionTablemateInput = z.infer<
  */
 export const updateSessionTablemateSchema = z.object({
   id: z.string().min(1, 'IDは必須です'),
-  nickname: z
-    .string()
-    .min(1, 'ニックネームを入力してください')
-    .max(100, 'ニックネームは100文字以下で入力してください')
-    .optional(),
-  seatNumber: z.number().int().min(1).max(10).nullable().optional(),
   sessionNotes: z.string().nullable().optional(),
-  playerId: z.string().nullable().optional(),
 })
 
 export type UpdateSessionTablemateInput = z.infer<
@@ -39,6 +27,7 @@ export type UpdateSessionTablemateInput = z.infer<
 
 /**
  * Schema for deleting a session tablemate.
+ * Also deletes the associated temporary player.
  */
 export const deleteSessionTablemateSchema = z.object({
   id: z.string().min(1, 'IDは必須です'),
@@ -60,7 +49,8 @@ export type ListSessionTablematesInput = z.infer<
 >
 
 /**
- * Schema for linking a tablemate to a player.
+ * Schema for linking (merging) a tablemate's temp player with an existing player.
+ * The temp player data is merged into the target player, then the temp player is deleted.
  */
 export const linkTablemateToPlayerSchema = z.object({
   id: z.string().min(1, 'IDは必須です'),
@@ -72,15 +62,16 @@ export type LinkTablemateToPlayerInput = z.infer<
 >
 
 /**
- * Schema for converting a tablemate to a new player.
+ * Schema for converting a temporary player to a permanent player.
+ * Just removes the isTemporary flag.
  */
 export const convertToPlayerSchema = z.object({
   id: z.string().min(1, 'IDは必須です'),
   playerName: z
     .string()
     .min(1, 'プレイヤー名を入力してください')
-    .max(255, 'プレイヤー名は255文字以下で入力してください'),
-  generalNotes: z.string().optional(),
+    .max(255, 'プレイヤー名は255文字以下で入力してください')
+    .optional(),
 })
 
 export type ConvertToPlayerInput = z.infer<typeof convertToPlayerSchema>

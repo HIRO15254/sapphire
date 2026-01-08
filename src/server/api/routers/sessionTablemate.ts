@@ -3,7 +3,10 @@ import { and, eq } from 'drizzle-orm'
 
 import {
   isNotDeleted,
+  isNotTemporary,
+  playerNotes,
   players,
+  playerTagAssignments,
   pokerSessions,
   sessionTablemates,
 } from '~/server/db/schema'
@@ -19,6 +22,9 @@ import { createTRPCRouter, protectedProcedure } from '../trpc'
 
 /**
  * SessionTablemate router for managing tablemates during sessions.
+ *
+ * Tablemates are now backed by temporary players (isTemporary=true).
+ * This allows full player features (tags, notes) to be used during sessions.
  *
  * All procedures require authentication (protectedProcedure).
  * Data isolation is enforced by filtering on userId.
@@ -57,6 +63,16 @@ export const sessionTablemateRouter = createTRPCRouter({
             columns: {
               id: true,
               name: true,
+              isTemporary: true,
+              generalNotes: true,
+            },
+            with: {
+              tagAssignments: {
+                with: {
+                  tag: true,
+                },
+              },
+              notes: true,
             },
           },
         },
@@ -68,6 +84,7 @@ export const sessionTablemateRouter = createTRPCRouter({
 
   /**
    * Create a new tablemate for a session.
+   * Automatically creates a temporary player with default name "Seat X".
    */
   create: protectedProcedure
     .input(createSessionTablemateSchema)
@@ -89,41 +106,57 @@ export const sessionTablemateRouter = createTRPCRouter({
         })
       }
 
-      // If playerId is provided, verify it belongs to user
-      if (input.playerId) {
-        const player = await ctx.db.query.players.findFirst({
-          where: and(
-            eq(players.id, input.playerId),
-            eq(players.userId, userId),
-            isNotDeleted(players.deletedAt),
-          ),
-        })
+      // Check if seat is already taken
+      const existingTablemate = await ctx.db.query.sessionTablemates.findFirst({
+        where: and(
+          eq(sessionTablemates.sessionId, input.sessionId),
+          eq(sessionTablemates.seatNumber, input.seatNumber),
+        ),
+      })
 
-        if (!player) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'プレイヤーが見つかりません',
-          })
-        }
+      if (existingTablemate) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'この席は既に使用されています',
+        })
       }
 
+      // Create temporary player
+      const playerName = `Seat ${input.seatNumber}`
+      const [player] = await ctx.db
+        .insert(players)
+        .values({
+          userId,
+          name: playerName,
+          isTemporary: true,
+        })
+        .returning()
+
+      if (!player) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: '仮プレイヤーの作成に失敗しました',
+        })
+      }
+
+      // Create tablemate linked to the temporary player
       const [tablemate] = await ctx.db
         .insert(sessionTablemates)
         .values({
           userId,
           sessionId: input.sessionId,
-          nickname: input.nickname,
+          nickname: playerName,
           seatNumber: input.seatNumber,
-          sessionNotes: input.sessionNotes,
-          playerId: input.playerId,
+          playerId: player.id,
         })
         .returning()
 
-      return { tablemate }
+      return { tablemate, player }
     }),
 
   /**
-   * Update a tablemate.
+   * Update a tablemate's session notes.
+   * Notes are stored on the tablemate record (session-specific).
    */
   update: protectedProcedure
     .input(updateSessionTablemateSchema)
@@ -145,32 +178,10 @@ export const sessionTablemateRouter = createTRPCRouter({
         })
       }
 
-      // If playerId is provided (and not null), verify it belongs to user
-      if (input.playerId) {
-        const player = await ctx.db.query.players.findFirst({
-          where: and(
-            eq(players.id, input.playerId),
-            eq(players.userId, userId),
-            isNotDeleted(players.deletedAt),
-          ),
-        })
-
-        if (!player) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'プレイヤーが見つかりません',
-          })
-        }
-      }
-
       // Build update data
       const updateData: Partial<typeof sessionTablemates.$inferInsert> = {}
-      if (input.nickname !== undefined) updateData.nickname = input.nickname
-      if (input.seatNumber !== undefined)
-        updateData.seatNumber = input.seatNumber
       if (input.sessionNotes !== undefined)
         updateData.sessionNotes = input.sessionNotes
-      if (input.playerId !== undefined) updateData.playerId = input.playerId
 
       await ctx.db
         .update(sessionTablemates)
@@ -181,7 +192,7 @@ export const sessionTablemateRouter = createTRPCRouter({
     }),
 
   /**
-   * Delete a tablemate.
+   * Delete a tablemate and its associated temporary player.
    */
   delete: protectedProcedure
     .input(deleteSessionTablemateSchema)
@@ -194,6 +205,9 @@ export const sessionTablemateRouter = createTRPCRouter({
           eq(sessionTablemates.id, input.id),
           eq(sessionTablemates.userId, userId),
         ),
+        with: {
+          player: true,
+        },
       })
 
       if (!existing) {
@@ -203,15 +217,40 @@ export const sessionTablemateRouter = createTRPCRouter({
         })
       }
 
+      // Delete tablemate first (due to FK constraint)
       await ctx.db
         .delete(sessionTablemates)
         .where(eq(sessionTablemates.id, input.id))
+
+      // If the linked player is temporary, delete it too
+      if (existing.playerId && existing.player?.isTemporary) {
+        const tempPlayerId = existing.playerId
+
+        // Delete tag assignments first
+        await ctx.db
+          .delete(playerTagAssignments)
+          .where(eq(playerTagAssignments.playerId, tempPlayerId))
+
+        // Delete player notes
+        await ctx.db
+          .delete(playerNotes)
+          .where(eq(playerNotes.playerId, tempPlayerId))
+
+        // Delete the temporary player
+        await ctx.db
+          .delete(players)
+          .where(eq(players.id, tempPlayerId))
+      }
 
       return { success: true }
     }),
 
   /**
-   * Link a tablemate to an existing player.
+   * Link (merge) a tablemate's temporary player with an existing permanent player.
+   * - Moves tag assignments from temp player to target player
+   * - Moves notes from temp player to target player
+   * - Updates tablemate to point to target player
+   * - Deletes the temporary player
    */
   linkToPlayer: protectedProcedure
     .input(linkTablemateToPlayerSchema)
@@ -224,6 +263,9 @@ export const sessionTablemateRouter = createTRPCRouter({
           eq(sessionTablemates.id, input.id),
           eq(sessionTablemates.userId, userId),
         ),
+        with: {
+          player: true,
+        },
       })
 
       if (!tablemate) {
@@ -233,33 +275,82 @@ export const sessionTablemateRouter = createTRPCRouter({
         })
       }
 
-      // Verify player exists and belongs to user
-      const player = await ctx.db.query.players.findFirst({
+      // Verify target player exists and belongs to user (and is not temporary)
+      const targetPlayer = await ctx.db.query.players.findFirst({
         where: and(
           eq(players.id, input.playerId),
           eq(players.userId, userId),
           isNotDeleted(players.deletedAt),
+          isNotTemporary(players.isTemporary),
         ),
       })
 
-      if (!player) {
+      if (!targetPlayer) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'プレイヤーが見つかりません',
         })
       }
 
+      const tempPlayerId = tablemate.playerId
+
+      // Only merge if there's a temporary player to merge from
+      if (tempPlayerId && tablemate.player?.isTemporary) {
+        // Move tag assignments from temp player to target player
+        // (update playerId, skip if tag already exists on target)
+        const tempTagAssignments = await ctx.db.query.playerTagAssignments.findMany({
+          where: eq(playerTagAssignments.playerId, tempPlayerId),
+        })
+
+        const targetTagAssignments = await ctx.db.query.playerTagAssignments.findMany({
+          where: eq(playerTagAssignments.playerId, input.playerId),
+        })
+
+        const targetTagIds = new Set(targetTagAssignments.map(a => a.tagId))
+
+        for (const assignment of tempTagAssignments) {
+          if (!targetTagIds.has(assignment.tagId)) {
+            // Move to target player
+            await ctx.db
+              .update(playerTagAssignments)
+              .set({ playerId: input.playerId })
+              .where(eq(playerTagAssignments.id, assignment.id))
+          } else {
+            // Delete duplicate
+            await ctx.db
+              .delete(playerTagAssignments)
+              .where(eq(playerTagAssignments.id, assignment.id))
+          }
+        }
+
+        // Move notes from temp player to target player
+        await ctx.db
+          .update(playerNotes)
+          .set({ playerId: input.playerId })
+          .where(eq(playerNotes.playerId, tempPlayerId))
+
+        // Delete the temporary player
+        await ctx.db
+          .delete(players)
+          .where(eq(players.id, tempPlayerId))
+      }
+
+      // Update tablemate to point to target player
       await ctx.db
         .update(sessionTablemates)
-        .set({ playerId: input.playerId })
+        .set({
+          playerId: input.playerId,
+          nickname: targetPlayer.name,
+        })
         .where(eq(sessionTablemates.id, input.id))
 
       return { success: true }
     }),
 
   /**
-   * Convert a tablemate to a new player record.
-   * Creates a new player and links it to this tablemate.
+   * Convert a temporary player to a permanent player.
+   * Simply removes the isTemporary flag.
+   * Optionally allows renaming the player.
    */
   convertToPlayer: protectedProcedure
     .input(convertToPlayerSchema)
@@ -272,6 +363,9 @@ export const sessionTablemateRouter = createTRPCRouter({
           eq(sessionTablemates.id, input.id),
           eq(sessionTablemates.userId, userId),
         ),
+        with: {
+          player: true,
+        },
       })
 
       if (!tablemate) {
@@ -281,28 +375,38 @@ export const sessionTablemateRouter = createTRPCRouter({
         })
       }
 
-      // Create new player
-      const [player] = await ctx.db
-        .insert(players)
-        .values({
-          userId,
-          name: input.playerName,
-          generalNotes: input.generalNotes,
-        })
-        .returning()
-
-      if (!player) {
+      if (!tablemate.playerId || !tablemate.player?.isTemporary) {
         throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'プレイヤーの作成に失敗しました',
+          code: 'BAD_REQUEST',
+          message: 'この同卓者は仮プレイヤーではありません',
         })
       }
 
-      // Link tablemate to new player
+      // Update player: remove temporary flag, optionally rename
+      const updateData: Partial<typeof players.$inferInsert> = {
+        isTemporary: false,
+      }
+      if (input.playerName) {
+        updateData.name = input.playerName
+      }
+
       await ctx.db
-        .update(sessionTablemates)
-        .set({ playerId: player.id })
-        .where(eq(sessionTablemates.id, input.id))
+        .update(players)
+        .set(updateData)
+        .where(eq(players.id, tablemate.playerId))
+
+      // If renamed, also update tablemate nickname
+      if (input.playerName) {
+        await ctx.db
+          .update(sessionTablemates)
+          .set({ nickname: input.playerName })
+          .where(eq(sessionTablemates.id, input.id))
+      }
+
+      // Fetch updated player
+      const player = await ctx.db.query.players.findFirst({
+        where: eq(players.id, tablemate.playerId),
+      })
 
       return { player }
     }),

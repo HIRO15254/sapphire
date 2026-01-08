@@ -85,6 +85,7 @@ export {
   verificationTokens,
 } from './verificationToken'
 export {
+  isNotTemporary,
   type NewPlayer,
   type Player,
   players,

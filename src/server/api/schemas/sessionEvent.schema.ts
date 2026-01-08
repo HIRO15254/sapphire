@@ -232,6 +232,20 @@ export const recordHandSchema = z.object({
   handId: z.string().uuid('有効なハンドIDを指定してください'),
 })
 
+/**
+ * Schema for recording a single hand completion (for hand counting)
+ */
+export const recordHandCompleteSchema = z.object({
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+})
+
+/**
+ * Schema for deleting the latest hand_complete event
+ */
+export const deleteLatestHandCompleteSchema = z.object({
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+})
+
 // ============================================================================
 // Query Input Schemas
 // ============================================================================
@@ -293,6 +307,10 @@ export type RecordRebuyInput = z.infer<typeof recordRebuySchema>
 export type RecordAddonInput = z.infer<typeof recordAddonSchema>
 export type RecordHandsPassedInput = z.infer<typeof recordHandsPassedSchema>
 export type RecordHandInput = z.infer<typeof recordHandSchema>
+export type RecordHandCompleteInput = z.infer<typeof recordHandCompleteSchema>
+export type DeleteLatestHandCompleteInput = z.infer<
+  typeof deleteLatestHandCompleteSchema
+>
 export type GetActiveSessionInput = z.infer<typeof getActiveSessionSchema>
 export type ListBySessionInput = z.infer<typeof listBySessionSchema>
 export type DeleteEventInput = z.infer<typeof deleteEventSchema>

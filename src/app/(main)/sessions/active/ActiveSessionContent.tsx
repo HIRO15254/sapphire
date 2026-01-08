@@ -22,6 +22,7 @@ import { TimeInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import {
   IconAlertCircle,
+  IconChartLine,
   IconClock,
   IconCoin,
   IconHistory,
@@ -40,6 +41,7 @@ import { useState } from 'react'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 import { type AllInFormValues, AllInModal } from '../[id]/AllInModal'
+import { HandCounterCard } from './HandCounterCard'
 import { SessionEventTimeline } from './SessionEventTimeline'
 import { StartSessionForm } from './StartSessionForm'
 import { TablematesCard } from './TablematesCard'
@@ -53,9 +55,9 @@ interface ActiveSessionContentProps {
 /**
  * Active session content client component.
  *
- * Compact 2-card layout:
- * - Top card: Session summary with profit/loss, stats, and chart toggle
- * - Bottom card: Actions, tablemates, and event history tabs
+ * 2-card layout filling device height:
+ * - Main card with 3 tabs (Session, Tablemates, History)
+ * - Hand counter card at bottom
  */
 export function ActiveSessionContent({
   initialSession,
@@ -154,11 +156,11 @@ export function ActiveSessionContent({
   const [addonTime, setAddonTime] = useState<string>('')
   const [endTime, setEndTime] = useState<string>('')
 
-  // Toggle between summary and chart view
-  const [topView, setTopView] = useState<'summary' | 'chart'>('summary')
+  // Main card active tab
+  const [activeTab, setActiveTab] = useState<string>('session')
 
-  // Bottom card active tab
-  const [bottomTab, setBottomTab] = useState<string>('actions')
+  // Toggle between summary and chart view in session tab
+  const [sessionView, setSessionView] = useState<'summary' | 'chart'>('summary')
 
   /**
    * Get current time as HH:MM string.
@@ -189,7 +191,6 @@ export function ActiveSessionContent({
     if (hours === 0) return `${mins}分`
     return `${hours}時間${mins}分`
   }
-
 
   /**
    * Handle end session.
@@ -333,6 +334,18 @@ export function ActiveSessionContent({
   // Calculate profit/loss
   const profitLoss = session.currentStack - session.buyIn
 
+  // Calculate hand count (hand_complete events + hands_passed counts)
+  const handCount = session.sessionEvents.reduce((count, event) => {
+    if (event.eventType === 'hand_complete') {
+      return count + 1
+    }
+    if (event.eventType === 'hands_passed') {
+      const data = event.eventData as Record<string, unknown> | null
+      return count + ((data?.count as number) ?? 0)
+    }
+    return count
+  }, 0)
+
   // Calculate minTime (last event time) for time input validation
   const minTime = session.sessionEvents.length > 0
     ? new Date(session.sessionEvents[session.sessionEvents.length - 1]?.recordedAt ?? new Date())
@@ -363,136 +376,15 @@ export function ActiveSessionContent({
   const buttonHeight = 42
 
   return (
-    <Box
+    <Container
+      size="md"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: 'calc(100vh - 60px)',
-        padding: 'var(--mantine-spacing-md)',
+        height: 'calc(100vh - 60px - 32px)',
         gap: 'var(--mantine-spacing-md)',
       }}
     >
-      {/* Top Card - Summary */}
-      <Card p="sm" radius="md" shadow="sm" withBorder style={{ flexShrink: 0 }}>
-        <Stack gap="xs">
-          {/* Header with status and toggle */}
-          <Group justify="space-between">
-            <Group gap="xs">
-              {sessionIsPaused ? (
-                <Badge
-                  color="gray"
-                  leftSection={<IconPlayerPause size={12} />}
-                  size="sm"
-                  variant="filled"
-                >
-                  停止
-                </Badge>
-              ) : (
-                <Badge
-                  color="red"
-                  leftSection={
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        backgroundColor: 'white',
-                        animation: 'pulse 1.5s infinite',
-                      }}
-                    />
-                  }
-                  size="sm"
-                  variant="filled"
-                >
-                  LIVE
-                </Badge>
-              )}
-              {isTournament ? (
-                <Badge
-                  color="grape"
-                  leftSection={<IconTrophy size={10} />}
-                  size="xs"
-                  variant="light"
-                >
-                  MTT
-                </Badge>
-              ) : (
-                <Badge
-                  color="blue"
-                  leftSection={<IconPokerChip size={10} />}
-                  size="xs"
-                  variant="light"
-                >
-                  Cash
-                </Badge>
-              )}
-              {gameInfo && (
-                <Text c="dimmed" size="xs" lineClamp={1}>
-                  {gameInfo}
-                </Text>
-              )}
-            </Group>
-            <Group gap="xs">
-              <SegmentedControl
-                data={[
-                  { label: 'サマリー', value: 'summary' },
-                  { label: 'グラフ', value: 'chart' },
-                ]}
-                onChange={(value) => setTopView(value as 'summary' | 'chart')}
-                size="xs"
-                value={topView}
-              />
-              <ActionIconRefresh onClick={() => refetch()} />
-            </Group>
-          </Group>
-
-          {/* Content area */}
-          <Box h={120}>
-            {/* Summary View */}
-            {topView === 'summary' && (
-              <Stack h="100%" justify="center" gap="xs">
-                {/* Profit/Loss - prominent display */}
-                <Stack align="center" gap={0}>
-                  <Text
-                    c={profitLoss > 0 ? 'green' : profitLoss < 0 ? 'red' : 'dimmed'}
-                    fw={700}
-                    size="1.75rem"
-                  >
-                    {profitLoss >= 0 ? '+' : ''}
-                    {profitLoss.toLocaleString()}
-                  </Text>
-                </Stack>
-
-                {/* Stats row */}
-                <SimpleGrid cols={3}>
-                  <Stack align="center" gap={0}>
-                    <Text c="dimmed" size="xs">
-                      Buy-in
-                    </Text>
-                    <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
-                  </Stack>
-                  <Stack align="center" gap={0}>
-                    <Text c="dimmed" size="xs">
-                      スタック
-                    </Text>
-                    <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
-                  </Stack>
-                  <Stack align="center" gap={0}>
-                    <Text c="dimmed" size="xs">
-                      経過
-                    </Text>
-                    <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
-                  </Stack>
-                </SimpleGrid>
-              </Stack>
-            )}
-
-            {/* Chart View */}
-            {topView === 'chart' && <ChartView session={session} />}
-          </Box>
-        </Stack>
-      </Card>
-
       {/* CSS for pulse animation */}
       <style>
         {`
@@ -503,154 +395,289 @@ export function ActiveSessionContent({
         `}
       </style>
 
-      {/* Bottom Card - Tabs: Actions, Tablemates, History */}
+      {/* Main Card - 3 Tabs */}
       <Card p="sm" radius="md" shadow="sm" withBorder style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <Tabs value={bottomTab} onChange={(v) => setBottomTab(v ?? 'actions')} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Tabs value={activeTab} onChange={(v) => setActiveTab(v ?? 'session')} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Tabs.List>
-            <Tabs.Tab value="actions" leftSection={<IconCoin size={14} />}>
-              アクション
+            <Tabs.Tab value="session" leftSection={<IconChartLine size={14} />}>
+              セッション
             </Tabs.Tab>
             <Tabs.Tab value="tablemates" leftSection={<IconUsers size={14} />}>
               同卓者
             </Tabs.Tab>
             <Tabs.Tab value="history" leftSection={<IconHistory size={14} />}>
               履歴
-              <Badge color="gray" size="xs" variant="light" ml={4}>
-                {session.sessionEvents.length}
-              </Badge>
             </Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="actions" pt="sm" style={{ flex: 1, overflow: 'auto' }}>
-            <Stack gap="sm">
-              {/* Row 1: Stack form with inline update button */}
-              <Group gap="xs">
-                <NumberInput
-                  disabled={sessionIsPaused}
-                  flex={1}
-                  hideControls
-                  leftSection={<IconCoin size={16} />}
-                  min={0}
-                  onChange={(val) =>
-                    setStackAmount(typeof val === 'number' ? val : null)
-                  }
-                  placeholder="スタック額"
-                  size="md"
-                  styles={{ input: { height: buttonHeight } }}
-                  thousandSeparator=","
-                  value={stackAmount ?? ''}
-                />
-                <Button
-                  disabled={stackAmount === null || sessionIsPaused}
-                  h={buttonHeight}
-                  loading={updateStack.isPending}
-                  onClick={handleUpdateStack}
-                  variant="filled"
-                >
-                  更新
-                </Button>
-              </Group>
+          {/* Tab 1: Session (Summary + Actions) */}
+          <Tabs.Panel value="session" pt="sm" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Summary Section - grows to fill available space */}
+            <Box style={{ flex: 1, minHeight: 120, display: 'flex', flexDirection: 'column' }}>
+                {/* Header with status and toggle */}
+                <Group justify="space-between" mb="xs">
+                  <Group gap="xs">
+                    {sessionIsPaused ? (
+                      <Badge
+                        color="gray"
+                        leftSection={<IconPlayerPause size={12} />}
+                        size="sm"
+                        variant="filled"
+                      >
+                        停止
+                      </Badge>
+                    ) : (
+                      <Badge
+                        color="red"
+                        leftSection={
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '50%',
+                              backgroundColor: 'white',
+                              animation: 'pulse 1.5s infinite',
+                            }}
+                          />
+                        }
+                        size="sm"
+                        variant="filled"
+                      >
+                        LIVE
+                      </Badge>
+                    )}
+                    {isTournament ? (
+                      <Badge
+                        color="grape"
+                        leftSection={<IconTrophy size={10} />}
+                        size="xs"
+                        variant="light"
+                      >
+                        MTT
+                      </Badge>
+                    ) : (
+                      <Badge
+                        color="blue"
+                        leftSection={<IconPokerChip size={10} />}
+                        size="xs"
+                        variant="light"
+                      >
+                        Cash
+                      </Badge>
+                    )}
+                    {gameInfo && (
+                      <Text c="dimmed" size="xs" lineClamp={1}>
+                        {gameInfo}
+                      </Text>
+                    )}
+                  </Group>
+                  <Group gap="xs">
+                    <SegmentedControl
+                      data={[
+                        { label: 'サマリー', value: 'summary' },
+                        { label: 'グラフ', value: 'chart' },
+                      ]}
+                      onChange={(value) => setSessionView(value as 'summary' | 'chart')}
+                      size="xs"
+                      value={sessionView}
+                    />
+                    <Button
+                      leftSection={<IconRefresh size={14} />}
+                      onClick={() => refetch()}
+                      variant="subtle"
+                      size="xs"
+                      px="xs"
+                    >
+                      更新
+                    </Button>
+                  </Group>
+                </Group>
 
-              {/* Row 2: Buy-in / All-in buttons */}
-              <SimpleGrid cols={2}>
-                {isCashGame && (
-                  <>
-                    <Button
-                      color="orange"
-                      disabled={sessionIsPaused}
-                      h={buttonHeight}
-                      leftSection={<IconPlus size={16} />}
-                      onClick={openRebuyModal}
-                      variant="light"
-                    >
-                      追加Buy-in
-                    </Button>
-                    <Button
-                      color="pink"
-                      disabled={sessionIsPaused}
-                      h={buttonHeight}
-                      leftSection={<IconTarget size={16} />}
-                      onClick={openAllInModal}
-                      variant="light"
-                    >
-                      オールイン
-                    </Button>
-                  </>
-                )}
-                {isTournament && (
-                  <>
-                    <Button
-                      color="orange"
-                      disabled={sessionIsPaused}
-                      h={buttonHeight}
-                      leftSection={<IconPlus size={16} />}
-                      onClick={openRebuyModal}
-                      variant="light"
-                    >
-                      リバイ
-                    </Button>
-                    <Button
-                      color="teal"
-                      disabled={sessionIsPaused}
-                      h={buttonHeight}
-                      leftSection={<IconPlus size={16} />}
-                      onClick={openAddonModal}
-                      variant="light"
-                    >
-                      アドオン
-                    </Button>
-                  </>
-                )}
-              </SimpleGrid>
+                {/* Content area - grows to fill available space */}
+                <Box style={{ flex: 1, minHeight: 80 }}>
+                  {/* Summary View */}
+                  {sessionView === 'summary' && (
+                    <Stack h="100%" justify="center" gap="md">
+                      {/* Profit/Loss - prominent display */}
+                      <Stack align="center" gap={0}>
+                        <Text
+                          c={profitLoss > 0 ? 'green' : profitLoss < 0 ? 'red' : 'dimmed'}
+                          fw={700}
+                          size="2rem"
+                        >
+                          {profitLoss >= 0 ? '+' : ''}
+                          {profitLoss.toLocaleString()}
+                        </Text>
+                      </Stack>
 
-              {/* Row 3: Pause/Resume and Cash-out buttons */}
-              <SimpleGrid cols={2}>
-                {sessionIsPaused ? (
+                      {/* Stats row */}
+                      <SimpleGrid cols={3}>
+                        <Stack align="center" gap={0}>
+                          <Text c="dimmed" size="xs">
+                            Buy-in
+                          </Text>
+                          <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
+                        </Stack>
+                        <Stack align="center" gap={0}>
+                          <Text c="dimmed" size="xs">
+                            スタック
+                          </Text>
+                          <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
+                        </Stack>
+                        <Stack align="center" gap={0}>
+                          <Text c="dimmed" size="xs">
+                            経過
+                          </Text>
+                          <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
+                        </Stack>
+                      </SimpleGrid>
+                    </Stack>
+                  )}
+
+                  {/* Chart View */}
+                  {sessionView === 'chart' && (
+                    <Box h="100%">
+                      <ChartView session={session} />
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+
+              {/* Actions Section - fixed at bottom */}
+              <Stack gap="sm" mt="md" style={{ flexShrink: 0 }}>
+                {/* Row 1: Stack form with inline update button */}
+                <Group gap="xs">
+                  <NumberInput
+                    disabled={sessionIsPaused}
+                    flex={1}
+                    hideControls
+                    leftSection={<IconCoin size={16} />}
+                    min={0}
+                    onChange={(val) =>
+                      setStackAmount(typeof val === 'number' ? val : null)
+                    }
+                    placeholder="スタック額"
+                    size="md"
+                    styles={{ input: { height: buttonHeight } }}
+                    thousandSeparator=","
+                    value={stackAmount ?? ''}
+                  />
                   <Button
-                    color="green"
+                    disabled={stackAmount === null || sessionIsPaused}
                     h={buttonHeight}
-                    leftSection={<IconPlayerPlay size={16} />}
-                    loading={resumeSession.isPending}
-                    onClick={handleResumeSession}
+                    loading={updateStack.isPending}
+                    onClick={handleUpdateStack}
+                    variant="filled"
+                  >
+                    更新
+                  </Button>
+                </Group>
+
+                {/* Row 2: Buy-in / All-in buttons */}
+                <SimpleGrid cols={2}>
+                  {isCashGame && (
+                    <>
+                      <Button
+                        color="orange"
+                        disabled={sessionIsPaused}
+                        h={buttonHeight}
+                        leftSection={<IconPlus size={16} />}
+                        onClick={openRebuyModal}
+                        variant="light"
+                      >
+                        追加Buy-in
+                      </Button>
+                      <Button
+                        color="pink"
+                        disabled={sessionIsPaused}
+                        h={buttonHeight}
+                        leftSection={<IconTarget size={16} />}
+                        onClick={openAllInModal}
+                        variant="light"
+                      >
+                        オールイン
+                      </Button>
+                    </>
+                  )}
+                  {isTournament && (
+                    <>
+                      <Button
+                        color="orange"
+                        disabled={sessionIsPaused}
+                        h={buttonHeight}
+                        leftSection={<IconPlus size={16} />}
+                        onClick={openRebuyModal}
+                        variant="light"
+                      >
+                        リバイ
+                      </Button>
+                      <Button
+                        color="teal"
+                        disabled={sessionIsPaused}
+                        h={buttonHeight}
+                        leftSection={<IconPlus size={16} />}
+                        onClick={openAddonModal}
+                        variant="light"
+                      >
+                        アドオン
+                      </Button>
+                    </>
+                  )}
+                </SimpleGrid>
+
+                {/* Row 3: Pause/Resume and Cash-out buttons */}
+                <SimpleGrid cols={2}>
+                  {sessionIsPaused ? (
+                    <Button
+                      color="green"
+                      h={buttonHeight}
+                      leftSection={<IconPlayerPlay size={16} />}
+                      loading={resumeSession.isPending}
+                      onClick={handleResumeSession}
+                      variant="light"
+                    >
+                      再開
+                    </Button>
+                  ) : (
+                    <Button
+                      color="gray"
+                      h={buttonHeight}
+                      leftSection={<IconPlayerPause size={16} />}
+                      loading={pauseSession.isPending}
+                      onClick={handlePauseSession}
+                      variant="light"
+                    >
+                      一時停止
+                    </Button>
+                  )}
+                  <Button
+                    color="red"
+                    disabled={sessionIsPaused}
+                    h={buttonHeight}
+                    leftSection={<IconLogout size={16} />}
+                    onClick={handleOpenEndModal}
                     variant="light"
                   >
-                    再開
+                    キャッシュアウト
                   </Button>
-                ) : (
-                  <Button
-                    color="gray"
-                    h={buttonHeight}
-                    leftSection={<IconPlayerPause size={16} />}
-                    loading={pauseSession.isPending}
-                    onClick={handlePauseSession}
-                    variant="light"
-                  >
-                    一時停止
-                  </Button>
-                )}
-                <Button
-                  color="red"
-                  disabled={sessionIsPaused}
-                  h={buttonHeight}
-                  leftSection={<IconLogout size={16} />}
-                  onClick={handleOpenEndModal}
-                  variant="light"
-                >
-                  キャッシュアウト
-                </Button>
-              </SimpleGrid>
-            </Stack>
+                </SimpleGrid>
+              </Stack>
           </Tabs.Panel>
 
+          {/* Tab 2: Tablemates */}
           <Tabs.Panel value="tablemates" pt="sm" style={{ flex: 1, overflow: 'auto' }}>
-            <TablematesCard sessionId={session.id} maxHeight={300} />
+            <TablematesCard sessionId={session.id} />
           </Tabs.Panel>
 
+          {/* Tab 3: History */}
           <Tabs.Panel value="history" pt="sm" style={{ flex: 1, overflow: 'auto' }}>
             <SessionEventTimeline events={session.sessionEvents} />
           </Tabs.Panel>
         </Tabs>
       </Card>
+
+      {/* Hand Counter Card - Fixed at bottom */}
+      <HandCounterCard sessionId={session.id} handCount={handCount} />
 
       {/* Rebuy / Buy-in Addition Modal */}
       <Modal
@@ -786,27 +813,14 @@ export function ActiveSessionContent({
           </Group>
         </Stack>
       </Modal>
-    </Box>
-  )
-}
-
-// Helper component for refresh button
-function ActionIconRefresh({ onClick }: { onClick: () => void }) {
-  return (
-    <Button
-      leftSection={<IconRefresh size={14} />}
-      onClick={onClick}
-      variant="subtle"
-      size="xs"
-      px="xs"
-    >
-      更新
-    </Button>
+    </Container>
   )
 }
 
 // Chart view component extracted for clarity
 function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
+  const [xAxisMode, setXAxisMode] = useState<'time' | 'hands'>('time')
+
   // Build chart data from events with elapsed minutes (excluding paused time)
   const startEvent = session.sessionEvents.find(
     (e) => e.eventType === 'session_start'
@@ -822,6 +836,7 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
   const startTime = new Date(startEvent.recordedAt).getTime()
   const chartData: {
     elapsedMinutes: number
+    handCount: number
     profit: number
     adjustedProfit: number
   }[] = []
@@ -855,6 +870,7 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
 
   let cumulativePausedMs = 0
   let lastPauseTime: number | null = null
+  let cumulativeHandCount = 0
 
   const allInRecords = session.allInRecords ?? []
   const sortedAllIns = [...allInRecords].sort(
@@ -876,6 +892,7 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
 
   chartData.push({
     elapsedMinutes: 0,
+    handCount: 0,
     profit: 0,
     adjustedProfit: 0,
   })
@@ -893,6 +910,16 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
       continue
     }
 
+    // Track hand count
+    if (event.eventType === 'hand_complete') {
+      cumulativeHandCount += 1
+      continue
+    }
+    if (event.eventType === 'hands_passed' && data?.count) {
+      cumulativeHandCount += data.count as number
+      continue
+    }
+
     if (event.eventType === 'stack_update' && data?.amount) {
       const rawElapsedMs = eventTime - startTime
       const activeElapsedMs = rawElapsedMs - cumulativePausedMs
@@ -905,6 +932,7 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
 
       chartData.push({
         elapsedMinutes,
+        handCount: cumulativeHandCount,
         profit,
         adjustedProfit: profit - luck,
       })
@@ -918,9 +946,21 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
   const nowElapsed = Math.round((Date.now() - startTime - currentPausedMs) / (1000 * 60))
   const currentProfit = session.currentStack - session.buyIn
   const currentLuck = getCumulativeLuck(Date.now())
+
+  // Calculate total hand count
+  const totalHandCount = session.sessionEvents.reduce((count, event) => {
+    if (event.eventType === 'hand_complete') return count + 1
+    if (event.eventType === 'hands_passed') {
+      const data = event.eventData as Record<string, unknown> | null
+      return count + ((data?.count as number) ?? 0)
+    }
+    return count
+  }, 0)
+
   if (chartData.length === 0 || chartData[chartData.length - 1]?.elapsedMinutes !== nowElapsed) {
     chartData.push({
       elapsedMinutes: nowElapsed,
+      handCount: totalHandCount,
       profit: currentProfit,
       adjustedProfit: currentProfit - currentLuck,
     })
@@ -941,27 +981,47 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
     return `${hours}h${mins > 0 ? `${mins}m` : ''}`
   }
 
+  const formatHands = (hands: number) => `${hands}H`
+
+  const dataKey = xAxisMode === 'time' ? 'elapsedMinutes' : 'handCount'
+  const tickFormatter = xAxisMode === 'time' ? formatElapsed : formatHands
+
   return (
-    <LineChart
-      data={chartData}
-      dataKey="elapsedMinutes"
-      h={120}
-      series={[
-        { name: 'profit', color: 'green.6', label: '収支' },
-        { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整' },
-      ]}
-      curveType="linear"
-      withDots
-      connectNulls
-      referenceLines={[
-        { y: 0, label: '±0', color: 'gray.5' },
-      ]}
-      valueFormatter={(value) => value.toLocaleString()}
-      xAxisProps={{
-        type: 'number',
-        domain: [0, 'dataMax'],
-        tickFormatter: formatElapsed,
-      }}
-    />
+    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Group justify="flex-end" mb={4} style={{ flexShrink: 0 }}>
+        <SegmentedControl
+          data={[
+            { label: '時間', value: 'time' },
+            { label: 'ハンド', value: 'hands' },
+          ]}
+          onChange={(value) => setXAxisMode(value as 'time' | 'hands')}
+          size="xs"
+          value={xAxisMode}
+        />
+      </Group>
+      <Box style={{ flex: 1, minHeight: 80 }}>
+        <LineChart
+          data={chartData}
+          dataKey={dataKey}
+          h="100%"
+          series={[
+            { name: 'profit', color: 'green.6', label: '収支' },
+            { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整' },
+          ]}
+          curveType="linear"
+          withDots
+          connectNulls
+          referenceLines={[
+            { y: 0, label: '±0', color: 'gray.5' },
+          ]}
+          valueFormatter={(value) => value.toLocaleString()}
+          xAxisProps={{
+            type: 'number',
+            domain: [0, 'dataMax'],
+            tickFormatter,
+          }}
+        />
+      </Box>
+    </Box>
   )
 }
