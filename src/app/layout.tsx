@@ -12,9 +12,10 @@ import {
   mantineHtmlProps,
 } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Noto_Sans_JP } from 'next/font/google'
 import type React from 'react'
+import { ServiceWorkerRegistration } from '~/components/ServiceWorkerRegistration'
 import { TRPCReactProvider } from '~/trpc/react'
 
 const notoSansJP = Noto_Sans_JP({
@@ -35,10 +36,24 @@ const theme = createTheme({
   },
 })
 
+export const viewport: Viewport = {
+  themeColor: '#228be6',
+}
+
 export const metadata: Metadata = {
   title: 'Sapphire',
   description: 'ライブポーカーセッション・ハンド記録アプリ',
-  icons: [{ rel: 'icon', url: '/favicon.ico' }],
+  icons: [
+    { rel: 'icon', url: '/icons/favicon.ico' },
+    { rel: 'icon', url: '/icons/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    { rel: 'apple-touch-icon', url: '/icons/apple-touch-icon.png' },
+  ],
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Sapphire',
+  },
 }
 
 export default function RootLayout({
@@ -53,6 +68,7 @@ export default function RootLayout({
         <MantineProvider defaultColorScheme="auto" theme={theme}>
           <Notifications position="top-right" />
           <TRPCReactProvider>{children}</TRPCReactProvider>
+          <ServiceWorkerRegistration />
         </MantineProvider>
       </body>
     </html>

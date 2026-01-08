@@ -414,22 +414,30 @@ tests/
 
 **Independent Test**: Install PWA, verify launch without browser chrome
 
-### Tests for User Story 9 ⚠️
+### Tests for User Story 9 ✅
 
-- [ ] T166 [P] [US9] Write E2E test for PWA installation in tests/e2e/pwa.spec.ts
-- [ ] T167 [P] [US9] Write E2E test for service worker registration in tests/e2e/pwa.spec.ts
+- [X] T166 [P] [US9] Write E2E test for PWA installation in tests/e2e/pwa.spec.ts
+- [X] T167 [P] [US9] Write E2E test for service worker registration in tests/e2e/pwa.spec.ts
 
 ### Implementation for User Story 9
 
-- [ ] T168 [US9] Create web app manifest in src/app/manifest.ts with Japanese app name
-- [ ] T169 [US9] Create service worker with cache strategy in public/sw.js
-- [ ] T170 [US9] Configure service worker headers in next.config.js
-- [ ] T171 [US9] Create ServiceWorkerRegistration component in src/components/ServiceWorkerRegistration.tsx
-- [ ] T172 [US9] Add ServiceWorkerRegistration to root layout in src/app/layout.tsx
-- [ ] T173 [P] [US9] Create app icons (192x192, 512x512) in public/icons/
-- [ ] T174 [US9] Create offline fallback page in src/app/offline/page.tsx
+- [X] T168 [US9] Create web app manifest in src/app/manifest.ts with Japanese app name
+- [X] T169 [US9] Create service worker with cache strategy in public/sw.js
+- [X] T170 [US9] Configure service worker headers in next.config.js
+- [X] T171 [US9] Create ServiceWorkerRegistration component in src/components/ServiceWorkerRegistration.tsx
+- [X] T172 [US9] Add ServiceWorkerRegistration to root layout in src/app/layout.tsx
+- [X] T173 [P] [US9] Create app icons (192x192, 512x512) in public/icons/
+- [X] T174 [US9] Create offline fallback page in src/app/offline/page.tsx
 
 **Checkpoint**: App is installable as PWA with basic offline fallback
+
+**Implementation Notes** (Phase 11 completed 2025-01):
+- Web App Manifest: src/app/manifest.ts generates /manifest.webmanifest with Japanese app name
+- Service Worker: public/sw.js with cache-first for static assets, network-first for navigation
+- Offline Page: src/app/offline/page.tsx with retry button and Japanese text
+- Icons: 192x192 and 512x512 PNG icons with maskable variants in public/icons/
+- Middleware: Updated matcher to exclude sw.js, manifest.webmanifest, and icons/
+- Viewport: themeColor moved from metadata to viewport export per Next.js 15
 
 ---
 
