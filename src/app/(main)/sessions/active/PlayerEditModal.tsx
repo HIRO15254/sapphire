@@ -47,7 +47,6 @@ interface PlayerEditModalProps {
   opened: boolean
   onClose: () => void
   player: PlayerData | null
-  tablemateId: string
   sessionId: string
 }
 
@@ -60,7 +59,6 @@ export function PlayerEditModal({
   opened,
   onClose,
   player,
-  tablemateId,
   sessionId,
 }: PlayerEditModalProps) {
   const utils = api.useUtils()
@@ -118,8 +116,6 @@ export function PlayerEditModal({
     },
   })
 
-  const updateTablemateMutation = api.sessionTablemate.update.useMutation()
-
   const assignTagMutation = api.player.assignTag.useMutation({
     onError: (error) => {
       notifications.show({
@@ -151,14 +147,6 @@ export function PlayerEditModal({
       name: values.name,
       generalNotes: values.generalNotes || undefined,
     })
-
-    // Update tablemate nickname if name changed
-    if (values.name !== player.name) {
-      updateTablemateMutation.mutate({
-        id: tablemateId,
-        sessionNotes: undefined,
-      })
-    }
 
     // Calculate tag changes using initialTagIds
     const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))

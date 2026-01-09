@@ -145,7 +145,6 @@ export const sessionTablemateRouter = createTRPCRouter({
         .values({
           userId,
           sessionId: input.sessionId,
-          nickname: playerName,
           seatNumber: input.seatNumber,
           playerId: player.id,
         })
@@ -340,7 +339,6 @@ export const sessionTablemateRouter = createTRPCRouter({
         .update(sessionTablemates)
         .set({
           playerId: input.playerId,
-          nickname: targetPlayer.name,
         })
         .where(eq(sessionTablemates.id, input.id))
 
@@ -394,14 +392,6 @@ export const sessionTablemateRouter = createTRPCRouter({
         .update(players)
         .set(updateData)
         .where(eq(players.id, tablemate.playerId))
-
-      // If renamed, also update tablemate nickname
-      if (input.playerName) {
-        await ctx.db
-          .update(sessionTablemates)
-          .set({ nickname: input.playerName })
-          .where(eq(sessionTablemates.id, input.id))
-      }
 
       // Fetch updated player
       const player = await ctx.db.query.players.findFirst({

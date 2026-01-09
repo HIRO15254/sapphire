@@ -214,7 +214,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
 
   const handleOpenConvert = (tablemate: Tablemate) => {
     setSelectedTablemate(tablemate)
-    setNewPlayerName(tablemate.nickname)
+    setNewPlayerName(tablemate.player?.name ?? '')
     openConvertModal()
   }
 
@@ -337,7 +337,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                           {seatNumber}
                         </Badge>
                         <Text size="sm" fw={500} style={{ flexShrink: 0 }}>
-                          {tablemate.nickname}
+                          {tablemate.player?.name}
                         </Text>
                         {/* Player tags */}
                         {playerTags.slice(0, 3).map((ta) => (
@@ -476,7 +476,6 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
               }
             : null
         }
-        tablemateId={selectedTablemate?.id ?? ''}
         sessionId={sessionId}
       />
 
@@ -488,7 +487,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
       >
         <Stack gap="md">
           <Text size="sm">
-            「{selectedTablemate?.nickname}」を既存のプレイヤーに割り当てます。
+            「{selectedTablemate?.player?.name}」を既存のプレイヤーに割り当てます。
             セッション中に追加したタグやメモは引き継がれます。
           </Text>
           <Combobox
@@ -550,7 +549,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
       >
         <Stack gap="md">
           <Text size="sm">
-            「{selectedTablemate?.nickname}」を新しいプレイヤーとして登録します。
+            「{selectedTablemate?.player?.name}」を新しいプレイヤーとして登録します。
             セッション中に追加したタグやメモも保持されます。
           </Text>
           <TextInput

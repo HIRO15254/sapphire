@@ -1,0 +1,1 @@
+ALTER TABLE "sapphire_session_tablemate" DROP COLUMN "nickname";

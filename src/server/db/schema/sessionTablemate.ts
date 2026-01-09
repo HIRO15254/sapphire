@@ -9,13 +9,12 @@ import { users } from './user'
  * SessionTablemate schema for tracking tablemates during a session.
  *
  * Represents opponents at the table during a poker session.
- * Can start as anonymous (just a nickname) and later be linked to an existing Player,
- * or converted into a new Player record.
+ * Each tablemate is backed by a Player record (temporary or permanent).
  *
  * This allows users to:
- * 1. Quickly add tablemates during a live session without creating full player profiles
+ * 1. Quickly add tablemates during a live session (creates temporary player)
  * 2. Add temporary notes specific to that session
- * 3. Later link or convert to a Player record for long-term tracking
+ * 3. Later link or convert to a permanent Player record for long-term tracking
  */
 export const sessionTablemates = createTable(
   'session_tablemate',
@@ -39,11 +38,6 @@ export const sessionTablemates = createTable(
       .varchar('session_id', { length: 255 })
       .notNull()
       .references(() => pokerSessions.id, { onDelete: 'cascade' }),
-    /**
-     * Temporary nickname for quick identification.
-     * e.g., "赤シャツ", "眼鏡", "Seat 3"
-     */
-    nickname: d.varchar('nickname', { length: 100 }).notNull(),
     /**
      * Optional seat number (1-10 typically).
      */
