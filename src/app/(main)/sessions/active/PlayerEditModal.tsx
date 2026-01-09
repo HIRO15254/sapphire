@@ -7,6 +7,7 @@ import {
   Combobox,
   Divider,
   Group,
+  Loader,
   Modal,
   Pill,
   PillsInput,
@@ -16,6 +17,7 @@ import {
   TextInput,
   useCombobox,
 } from '@mantine/core'
+import { IconPlus } from '@tabler/icons-react'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { zodResolver } from 'mantine-form-zod-resolver'
@@ -75,6 +77,9 @@ export function PlayerEditModal({
   // Track the initial tag IDs for calculating changes on submit
   const [initialTagIds, setInitialTagIds] = useState<string[]>([])
 
+  // Search query for tag combobox
+  const [tagSearch, setTagSearch] = useState('')
+
   // Combobox for tag selection
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
@@ -102,6 +107,7 @@ export function PlayerEditModal({
       const tagIds = player.tags.map((t) => t.id)
       setSelectedTagIds(tagIds)
       setInitialTagIds(tagIds)
+      setTagSearch('')
     }
   }, [opened, player])
 
@@ -127,6 +133,25 @@ export function PlayerEditModal({
   })
 
   const removeTagMutation = api.player.removeTag.useMutation({
+    onError: (error) => {
+      notifications.show({
+        title: 'エラー',
+        message: error.message,
+        color: 'red',
+      })
+    },
+  })
+
+  const createTagMutation = api.playerTag.create.useMutation({
+    onSuccess: (newTag) => {
+      // Add the new tag to selected tags
+      if (newTag) {
+        setSelectedTagIds((current) => [...current, newTag.id])
+      }
+      // Invalidate tag list to refresh
+      void utils.playerTag.list.invalidate()
+      setTagSearch('')
+    },
     onError: (error) => {
       notifications.show({
         title: 'エラー',
@@ -171,14 +196,33 @@ export function PlayerEditModal({
     onClose()
   })
 
-  // Handle tag toggle
-  const handleTagToggle = (tagId: string) => {
+  // Handle tag toggle or create new tag
+  const handleTagToggle = (value: string) => {
+    if (value === '$create') {
+      // Create new tag with the search query
+      if (tagSearch.trim()) {
+        createTagMutation.mutate({ name: tagSearch.trim() })
+      }
+      return
+    }
+
     setSelectedTagIds((current) =>
-      current.includes(tagId)
-        ? current.filter((id) => id !== tagId)
-        : [...current, tagId],
+      current.includes(value)
+        ? current.filter((id) => id !== value)
+        : [...current, value],
     )
+    setTagSearch('')
   }
+
+  // Filter tags based on search
+  const filteredTags = allTags.filter((tag) =>
+    tag.name.toLowerCase().includes(tagSearch.toLowerCase()),
+  )
+
+  // Check if search matches any existing tag exactly
+  const exactMatch = allTags.some(
+    (tag) => tag.name.toLowerCase() === tagSearch.toLowerCase(),
+  )
 
   // Handle tag removal from pill
   const handleTagRemove = (tagId: string) => {
@@ -196,7 +240,8 @@ export function PlayerEditModal({
   const isLoading =
     updatePlayerMutation.isPending ||
     assignTagMutation.isPending ||
-    removeTagMutation.isPending
+    removeTagMutation.isPending ||
+    createTagMutation.isPending
 
   return (
     <Modal
@@ -260,9 +305,15 @@ export function PlayerEditModal({
                       ))}
                       <Combobox.EventsTarget>
                         <PillsInput.Field
+                          value={tagSearch}
+                          onChange={(e) => {
+                            setTagSearch(e.currentTarget.value)
+                            combobox.openDropdown()
+                            combobox.updateSelectedOptionIndex()
+                          }}
                           onFocus={() => combobox.openDropdown()}
                           onBlur={() => combobox.closeDropdown()}
-                          placeholder={selectedTags.length === 0 ? 'タグを選択...' : ''}
+                          placeholder={selectedTags.length === 0 ? 'タグを検索または作成...' : ''}
                           style={{ minWidth: 80 }}
                         />
                       </Combobox.EventsTarget>
@@ -272,10 +323,24 @@ export function PlayerEditModal({
 
                 <Combobox.Dropdown>
                   <Combobox.Options>
-                    {allTags.length === 0 ? (
+                    {/* Create new tag option */}
+                    {tagSearch.trim() && !exactMatch && (
+                      <Combobox.Option value="$create" disabled={createTagMutation.isPending}>
+                        <Group gap="sm">
+                          {createTagMutation.isPending ? (
+                            <Loader size={12} />
+                          ) : (
+                            <IconPlus size={12} />
+                          )}
+                          <Text size="sm">「{tagSearch.trim()}」を作成</Text>
+                        </Group>
+                      </Combobox.Option>
+                    )}
+                    {/* Existing tags filtered by search */}
+                    {filteredTags.length === 0 && !tagSearch.trim() ? (
                       <Combobox.Empty>タグがありません</Combobox.Empty>
                     ) : (
-                      allTags.map((tag) => (
+                      filteredTags.map((tag) => (
                         <Combobox.Option
                           key={tag.id}
                           value={tag.id}
