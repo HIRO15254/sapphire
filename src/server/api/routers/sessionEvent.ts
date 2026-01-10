@@ -686,14 +686,14 @@ export const sessionEventRouter = createTRPCRouter({
       })
       const nextSequence = (lastEvent?.sequence ?? 0) + 1
 
-      // Create hand_complete event
+      // Create hand_complete event with optional position
       const [event] = await ctx.db
         .insert(sessionEvents)
         .values({
           sessionId: input.sessionId,
           userId,
           eventType: 'hand_complete',
-          eventData: {},
+          eventData: input.position ? { position: input.position } : {},
           sequence: nextSequence,
           recordedAt: now,
         })
@@ -702,6 +702,7 @@ export const sessionEventRouter = createTRPCRouter({
       return {
         eventId: event?.id,
         eventType: 'hand_complete',
+        eventData: input.position ? { position: input.position } : {},
         sequence: nextSequence,
         recordedAt: now,
       }
@@ -1107,11 +1108,25 @@ export const sessionEventRouter = createTRPCRouter({
     const activeElapsedMs = totalElapsedMs - pausedMs
     const elapsedMinutes = Math.floor(activeElapsedMs / (1000 * 60))
 
+    // Find last hand_complete event for lastHandInfo
+    const lastHandComplete = [...session.sessionEvents]
+      .reverse()
+      .find((e) => e.eventType === 'hand_complete')
+    const lastHandInfo = lastHandComplete
+      ? {
+          recordedAt: lastHandComplete.recordedAt,
+          position:
+            (lastHandComplete.eventData as Record<string, unknown> | null)
+              ?.position as string | undefined,
+        }
+      : null
+
     return {
       ...session,
       currentStack,
       elapsedMinutes,
       isPaused,
+      lastHandInfo,
     }
   }),
 

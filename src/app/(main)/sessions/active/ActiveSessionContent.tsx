@@ -86,6 +86,12 @@ export function ActiveSessionContent({
     refetchInterval: 30000, // Refresh every 30 seconds
   })
 
+  // Query tablemates for hand counter player count
+  const { data: tablematesData } = api.sessionTablemate.list.useQuery(
+    { sessionId: initialSession?.id ?? '' },
+    { enabled: !!initialSession?.id },
+  )
+
   // Mutations
   const endSession = api.sessionEvent.endSession.useMutation({
     onSuccess: () => {
@@ -677,7 +683,12 @@ export function ActiveSessionContent({
       </Card>
 
       {/* Hand Counter Card - Fixed at bottom */}
-      <HandCounterCard sessionId={session.id} handCount={handCount} />
+      <HandCounterCard
+        sessionId={session.id}
+        handCount={handCount}
+        lastHandInfo={session.lastHandInfo}
+        tablematesCount={tablematesData?.tablemates.length ?? 0}
+      />
 
       {/* Rebuy / Buy-in Addition Modal */}
       <Modal

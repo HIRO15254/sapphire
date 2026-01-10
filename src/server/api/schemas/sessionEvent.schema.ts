@@ -233,10 +233,54 @@ export const recordHandSchema = z.object({
 })
 
 /**
+ * All valid positions for recording hand completion (9-max)
+ */
+export const POKER_POSITIONS = [
+  'SB',
+  'BB',
+  'UTG',
+  '+1',
+  '+2',
+  'LJ',
+  'HJ',
+  'CO',
+  'BTN',
+] as const
+
+export type PokerPosition = (typeof POKER_POSITIONS)[number]
+
+/**
+ * Get available positions based on player count.
+ * Positions are removed from middle positions as player count decreases.
+ */
+export function getPositionsForPlayerCount(playerCount: number): PokerPosition[] {
+  switch (playerCount) {
+    case 2:
+      return ['SB', 'BB'] // Heads-up: SB is also BTN
+    case 3:
+      return ['SB', 'BB', 'BTN']
+    case 4:
+      return ['SB', 'BB', 'CO', 'BTN']
+    case 5:
+      return ['SB', 'BB', 'UTG', 'CO', 'BTN']
+    case 6:
+      return ['SB', 'BB', 'UTG', 'HJ', 'CO', 'BTN']
+    case 7:
+      return ['SB', 'BB', 'UTG', 'LJ', 'HJ', 'CO', 'BTN']
+    case 8:
+      return ['SB', 'BB', 'UTG', '+1', 'LJ', 'HJ', 'CO', 'BTN']
+    default:
+      // 9 players or more
+      return ['SB', 'BB', 'UTG', '+1', '+2', 'LJ', 'HJ', 'CO', 'BTN']
+  }
+}
+
+/**
  * Schema for recording a single hand completion (for hand counting)
  */
 export const recordHandCompleteSchema = z.object({
   sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+  position: z.enum(POKER_POSITIONS).optional(),
 })
 
 /**
