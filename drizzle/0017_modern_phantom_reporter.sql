@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "player_user_id_name_unique_idx" ON "sapphire_player" USING btree ("user_id","name") WHERE "sapphire_player"."is_temporary" = false and "sapphire_player"."deleted_at" is null;

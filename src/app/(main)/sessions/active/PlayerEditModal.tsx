@@ -49,6 +49,7 @@ interface PlayerEditModalProps {
   opened: boolean
   onClose: () => void
   player: PlayerData | null
+  tablemateId: string
   sessionId: string
 }
 
@@ -61,6 +62,7 @@ export function PlayerEditModal({
   opened,
   onClose,
   player,
+  tablemateId,
   sessionId,
 }: PlayerEditModalProps) {
   const utils = api.useUtils()
@@ -71,6 +73,13 @@ export function PlayerEditModal({
   })
   const allTags = tagsData?.tags ?? []
 
+  // Get all players for linking (only for temporary players)
+  const { data: playersData } = api.player.list.useQuery(
+    {},
+    { enabled: opened && player?.isTemporary },
+  )
+  const allPlayers = playersData?.players ?? []
+
   // Local state for selected tags (only saved on submit)
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
 
@@ -80,10 +89,21 @@ export function PlayerEditModal({
   // Search query for tag combobox
   const [tagSearch, setTagSearch] = useState('')
 
+  // For temporary players: name search and selected player
+  const [nameSearch, setNameSearch] = useState('')
+  const [selectedExistingPlayerId, setSelectedExistingPlayerId] = useState<string | null>(null)
+  // Track if user explicitly chose to create a new permanent player
+  const [willCreateNew, setWillCreateNew] = useState(false)
+
   // Combobox for tag selection
-  const combobox = useCombobox({
-    onDropdownClose: () => combobox.resetSelectedOption(),
-    onDropdownOpen: () => combobox.updateSelectedOptionIndex('active'),
+  const tagCombobox = useCombobox({
+    onDropdownClose: () => tagCombobox.resetSelectedOption(),
+    onDropdownOpen: () => tagCombobox.updateSelectedOptionIndex('active'),
+  })
+
+  // Combobox for player name (temp players only)
+  const nameCombobox = useCombobox({
+    onDropdownClose: () => nameCombobox.resetSelectedOption(),
   })
 
   // Form
@@ -108,6 +128,10 @@ export function PlayerEditModal({
       setSelectedTagIds(tagIds)
       setInitialTagIds(tagIds)
       setTagSearch('')
+      // For temporary players, initialize name search
+      setNameSearch(player.name)
+      setSelectedExistingPlayerId(null)
+      setWillCreateNew(false)
     }
   }, [opened, player])
 
@@ -161,38 +185,139 @@ export function PlayerEditModal({
     },
   })
 
+  const linkToPlayerMutation = api.sessionTablemate.linkToPlayer.useMutation({
+    onError: (error) => {
+      notifications.show({
+        title: 'エラー',
+        message: error.message,
+        color: 'red',
+      })
+    },
+  })
+
+  const convertToPlayerMutation = api.sessionTablemate.convertToPlayer.useMutation({
+    onError: (error) => {
+      notifications.show({
+        title: 'エラー',
+        message: error.message,
+        color: 'red',
+      })
+    },
+  })
+
   const handleSubmit = form.onSubmit(async (values) => {
     if (!player) return
 
-    const playerId = player.id
+    if (player.isTemporary) {
+      if (selectedExistingPlayerId) {
+        // Link to existing player
+        await linkToPlayerMutation.mutateAsync({
+          id: tablemateId,
+          playerId: selectedExistingPlayerId,
+        })
 
-    // Update player info
-    await updatePlayerMutation.mutateAsync({
-      id: playerId,
-      name: values.name,
-      generalNotes: values.generalNotes || undefined,
-    })
+        // Apply tags to target player
+        const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
+        for (const tagId of tagsToAdd) {
+          await assignTagMutation.mutateAsync({ playerId: selectedExistingPlayerId, tagId })
+        }
 
-    // Calculate tag changes using initialTagIds
-    const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
-    const tagsToRemove = initialTagIds.filter((id) => !selectedTagIds.includes(id))
+        // Update notes on target player if provided
+        if (values.generalNotes) {
+          await updatePlayerMutation.mutateAsync({
+            id: selectedExistingPlayerId,
+            generalNotes: values.generalNotes,
+          })
+        }
 
-    // Apply tag changes
-    for (const tagId of tagsToAdd) {
-      await assignTagMutation.mutateAsync({ playerId, tagId })
-    }
-    for (const tagId of tagsToRemove) {
-      await removeTagMutation.mutateAsync({ playerId, tagId })
+        void utils.player.list.invalidate()
+        notifications.show({
+          title: '紐付け完了',
+          message: `既存プレイヤーに紐付けしました`,
+          color: 'green',
+        })
+      } else if (willCreateNew) {
+        // Convert to new permanent player
+        await convertToPlayerMutation.mutateAsync({
+          id: tablemateId,
+          playerName: nameSearch.trim(),
+        })
+
+        // Update notes if provided
+        if (values.generalNotes) {
+          await updatePlayerMutation.mutateAsync({
+            id: player.id,
+            generalNotes: values.generalNotes,
+          })
+        }
+
+        // Apply tag changes
+        const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
+        const tagsToRemove = initialTagIds.filter((id) => !selectedTagIds.includes(id))
+        for (const tagId of tagsToAdd) {
+          await assignTagMutation.mutateAsync({ playerId: player.id, tagId })
+        }
+        for (const tagId of tagsToRemove) {
+          await removeTagMutation.mutateAsync({ playerId: player.id, tagId })
+        }
+
+        void utils.player.list.invalidate()
+        notifications.show({
+          title: '永続化完了',
+          message: `「${nameSearch.trim()}」を永続プレイヤーとして作成しました`,
+          color: 'green',
+        })
+      } else {
+        // Just update the temporary player (no persist)
+        await updatePlayerMutation.mutateAsync({
+          id: player.id,
+          name: nameSearch.trim(),
+          generalNotes: values.generalNotes || undefined,
+        })
+
+        // Apply tag changes
+        const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
+        const tagsToRemove = initialTagIds.filter((id) => !selectedTagIds.includes(id))
+        for (const tagId of tagsToAdd) {
+          await assignTagMutation.mutateAsync({ playerId: player.id, tagId })
+        }
+        for (const tagId of tagsToRemove) {
+          await removeTagMutation.mutateAsync({ playerId: player.id, tagId })
+        }
+
+        notifications.show({
+          title: '更新完了',
+          message: '一時プレイヤー情報を更新しました',
+          color: 'green',
+        })
+      }
+    } else {
+      // Non-temporary player: just update
+      await updatePlayerMutation.mutateAsync({
+        id: player.id,
+        name: values.name,
+        generalNotes: values.generalNotes || undefined,
+      })
+
+      // Apply tag changes
+      const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
+      const tagsToRemove = initialTagIds.filter((id) => !selectedTagIds.includes(id))
+      for (const tagId of tagsToAdd) {
+        await assignTagMutation.mutateAsync({ playerId: player.id, tagId })
+      }
+      for (const tagId of tagsToRemove) {
+        await removeTagMutation.mutateAsync({ playerId: player.id, tagId })
+      }
+
+      notifications.show({
+        title: '更新完了',
+        message: 'プレイヤー情報を更新しました',
+        color: 'green',
+      })
     }
 
     // Invalidate and close
     void utils.sessionTablemate.list.invalidate({ sessionId })
-
-    notifications.show({
-      title: '更新完了',
-      message: 'プレイヤー情報を更新しました',
-      color: 'green',
-    })
     onClose()
   })
 
@@ -220,9 +345,24 @@ export function PlayerEditModal({
   )
 
   // Check if search matches any existing tag exactly
-  const exactMatch = allTags.some(
+  const exactTagMatch = allTags.some(
     (tag) => tag.name.toLowerCase() === tagSearch.toLowerCase(),
   )
+
+  // Filter players based on name search (exclude already linked temporary players' IDs)
+  const filteredPlayers = allPlayers.filter((p) =>
+    p.name.toLowerCase().includes(nameSearch.toLowerCase()),
+  )
+
+  // Check if name search matches any existing player exactly
+  const exactPlayerMatch = allPlayers.some(
+    (p) => p.name.toLowerCase() === nameSearch.trim().toLowerCase(),
+  )
+
+  // Get selected player name for display
+  const selectedPlayerName = selectedExistingPlayerId
+    ? allPlayers.find((p) => p.id === selectedExistingPlayerId)?.name ?? ''
+    : ''
 
   // Handle tag removal from pill
   const handleTagRemove = (tagId: string) => {
@@ -241,7 +381,9 @@ export function PlayerEditModal({
     updatePlayerMutation.isPending ||
     assignTagMutation.isPending ||
     removeTagMutation.isPending ||
-    createTagMutation.isPending
+    createTagMutation.isPending ||
+    linkToPlayerMutation.isPending ||
+    convertToPlayerMutation.isPending
 
   return (
     <Modal
@@ -253,18 +395,88 @@ export function PlayerEditModal({
       <form onSubmit={handleSubmit}>
         <ScrollArea.Autosize mah="70vh">
           <Stack gap="md" pr="xs">
-            {/* Name - only editable for temporary players */}
-            <TextInput
-              label="プレイヤー名"
-              withAsterisk
-              disabled={!player?.isTemporary}
-              key={form.key('name')}
-              {...form.getInputProps('name')}
-            />
-            {player && !player.isTemporary && (
-              <Text size="xs" c="dimmed" mt={-8}>
-                永続プレイヤーの名前はプレイヤー詳細ページから変更できます
-              </Text>
+            {/* Name field */}
+            {player?.isTemporary ? (
+              // Temporary player: combobox to search existing players or create new
+              <Stack gap={4}>
+                <Combobox
+                  store={nameCombobox}
+                  onOptionSubmit={(val) => {
+                    if (val === '$create') {
+                      setSelectedExistingPlayerId(null)
+                      setWillCreateNew(true)
+                      nameCombobox.closeDropdown()
+                    } else {
+                      setSelectedExistingPlayerId(val)
+                      setNameSearch(allPlayers.find((p) => p.id === val)?.name ?? '')
+                      setWillCreateNew(false)
+                      nameCombobox.closeDropdown()
+                    }
+                  }}
+                >
+                  <Combobox.Target>
+                    <TextInput
+                      label="プレイヤー名"
+                      withAsterisk
+                      value={selectedExistingPlayerId ? selectedPlayerName : nameSearch}
+                      onChange={(e) => {
+                        setNameSearch(e.currentTarget.value)
+                        setSelectedExistingPlayerId(null)
+                        setWillCreateNew(false)
+                        nameCombobox.openDropdown()
+                      }}
+                      onClick={() => nameCombobox.openDropdown()}
+                      onFocus={() => nameCombobox.openDropdown()}
+                      placeholder="プレイヤー名を入力..."
+                      rightSection={<Combobox.Chevron />}
+                    />
+                  </Combobox.Target>
+                  <Combobox.Dropdown>
+                    <Combobox.Options>
+                      {/* Create new option */}
+                      {nameSearch.trim() && !exactPlayerMatch && (
+                        <Combobox.Option value="$create">
+                          <Group gap="sm">
+                            <IconPlus size={14} />
+                            <Text size="sm">「{nameSearch.trim()}」を永続化</Text>
+                          </Group>
+                        </Combobox.Option>
+                      )}
+                      {/* Existing players */}
+                      {filteredPlayers.map((p) => (
+                        <Combobox.Option key={p.id} value={p.id}>
+                          {p.name}
+                        </Combobox.Option>
+                      ))}
+                      {filteredPlayers.length === 0 && !nameSearch.trim() && (
+                        <Combobox.Empty>プレイヤーがいません</Combobox.Empty>
+                      )}
+                    </Combobox.Options>
+                  </Combobox.Dropdown>
+                </Combobox>
+                {/* Show action description */}
+                {(selectedExistingPlayerId || willCreateNew) && (
+                  <Text size="xs" c="dimmed">
+                    {selectedExistingPlayerId
+                      ? `既存のプレイヤー「${selectedPlayerName}」に紐付けます`
+                      : `新しいプレイヤー「${nameSearch.trim()}」として永続化します`}
+                  </Text>
+                )}
+              </Stack>
+            ) : (
+              // Non-temporary player: read-only name
+              <>
+                <TextInput
+                  label="プレイヤー名"
+                  withAsterisk
+                  disabled
+                  key={form.key('name')}
+                  {...form.getInputProps('name')}
+                />
+                <Text size="xs" c="dimmed" mt={-8}>
+                  永続プレイヤーの名前はプレイヤー詳細ページから変更できます
+                </Text>
+              </>
             )}
 
             {/* Tags with color badges */}
@@ -273,12 +485,12 @@ export function PlayerEditModal({
                 タグ
               </Text>
               <Combobox
-                store={combobox}
+                store={tagCombobox}
                 onOptionSubmit={handleTagToggle}
                 withinPortal={false}
               >
                 <Combobox.DropdownTarget>
-                  <PillsInput onClick={() => combobox.openDropdown()}>
+                  <PillsInput onClick={() => tagCombobox.openDropdown()}>
                     <Pill.Group>
                       {selectedTags.map((tag) => (
                         <Badge
@@ -308,11 +520,11 @@ export function PlayerEditModal({
                           value={tagSearch}
                           onChange={(e) => {
                             setTagSearch(e.currentTarget.value)
-                            combobox.openDropdown()
-                            combobox.updateSelectedOptionIndex()
+                            tagCombobox.openDropdown()
+                            tagCombobox.updateSelectedOptionIndex()
                           }}
-                          onFocus={() => combobox.openDropdown()}
-                          onBlur={() => combobox.closeDropdown()}
+                          onFocus={() => tagCombobox.openDropdown()}
+                          onBlur={() => tagCombobox.closeDropdown()}
                           placeholder={selectedTags.length === 0 ? 'タグを検索または作成...' : ''}
                           style={{ minWidth: 80 }}
                         />
@@ -324,7 +536,7 @@ export function PlayerEditModal({
                 <Combobox.Dropdown>
                   <Combobox.Options>
                     {/* Create new tag option */}
-                    {tagSearch.trim() && !exactMatch && (
+                    {tagSearch.trim() && !exactTagMatch && (
                       <Combobox.Option value="$create" disabled={createTagMutation.isPending}>
                         <Group gap="sm">
                           {createTagMutation.isPending ? (
