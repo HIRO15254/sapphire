@@ -34,6 +34,14 @@ const theme = createTheme({
     lg: '1.8',
     xl: '1.9',
   },
+  components: {
+    Container: {
+      defaultProps: {
+        // モバイル時は左右パディングを縮小
+        px: { base: 'xs', sm: 'md' },
+      },
+    },
+  },
 })
 
 export const viewport: Viewport = {

@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm'
-import { index } from 'drizzle-orm/pg-core'
+import { eq, sql } from 'drizzle-orm'
+import { index, uniqueIndex } from 'drizzle-orm/pg-core'
 
 import { createTable, timestampColumns } from './common'
 import { users } from './user'
@@ -51,6 +51,10 @@ export const players = createTable(
   (t) => [
     index('player_user_id_idx').on(t.userId),
     index('player_name_idx').on(t.name),
+    // Unique constraint: player name must be unique per user for non-temporary, non-deleted players
+    uniqueIndex('player_user_id_name_unique_idx')
+      .on(t.userId, t.name)
+      .where(sql`${t.isTemporary} = false and ${t.deletedAt} is null`),
   ],
 )
 

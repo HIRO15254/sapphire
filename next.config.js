@@ -21,6 +21,16 @@ const config = {
         },
       ],
     },
+    {
+      // Version info should not be cached for update detection
+      source: '/version.json',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-cache, no-store, must-revalidate',
+        },
+      ],
+    },
   ],
 }
 
