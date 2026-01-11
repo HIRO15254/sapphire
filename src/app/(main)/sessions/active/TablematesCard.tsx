@@ -21,7 +21,7 @@ import {
   IconRefresh,
   IconTrash,
 } from '@tabler/icons-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { RichTextContent } from '~/components/ui/RichTextContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
@@ -63,6 +63,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
   const [selectedTablemate, setSelectedTablemate] = useState<Tablemate | null>(
     null,
   )
+  const isBulkDeleting = useRef(false)
 
   // Queries
   const { data: tablematesData } =
@@ -99,6 +100,8 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
 
   const deleteMutation = api.sessionTablemate.delete.useMutation({
     onSuccess: () => {
+      // Skip notification and invalidation during bulk delete
+      if (isBulkDeleting.current) return
       notifications.show({
         title: '削除完了',
         message: '同卓者を削除しました',
@@ -107,6 +110,8 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
       void utils.sessionTablemate.list.invalidate({ sessionId })
     },
     onError: (error) => {
+      // Skip notification during bulk delete (will show summary error)
+      if (isBulkDeleting.current) return
       notifications.show({
         title: 'エラー',
         message: error.message,
@@ -140,12 +145,32 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
     deleteMutation.mutate({ id: tablemate.id })
   }
 
-  const handleResetTable = () => {
-    // Delete all tablemates one by one
-    for (const tm of tablemates) {
-      deleteMutation.mutate({ id: tm.id })
-    }
+  const handleResetTable = async () => {
+    const count = tablemates.length
+    isBulkDeleting.current = true
     closeResetModal()
+
+    try {
+      // Delete all tablemates in parallel
+      await Promise.all(
+        tablemates.map((tm) => deleteMutation.mutateAsync({ id: tm.id }))
+      )
+
+      notifications.show({
+        title: 'リセット完了',
+        message: `${count}人の同卓者を削除しました`,
+        color: 'green',
+      })
+    } catch (error) {
+      notifications.show({
+        title: 'エラー',
+        message: error instanceof Error ? error.message : '削除に失敗しました',
+        color: 'red',
+      })
+    } finally {
+      isBulkDeleting.current = false
+      void utils.sessionTablemate.list.invalidate({ sessionId })
+    }
   }
 
   // Get container size for dynamic ScrollArea height

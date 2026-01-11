@@ -30,31 +30,38 @@ import {
   IconUser,
 } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
-import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 
-type SessionEvent =
-  RouterOutputs['sessionEvent']['getActiveSession'] extends infer T
-    ? T extends { sessionEvents: infer E }
-      ? E extends Array<infer Item>
-        ? Item
-        : never
-      : never
-    : never
+// Generic event type for the timeline
+export interface TimelineEvent {
+  id: string
+  sessionId: string
+  eventType: string
+  eventData: unknown
+  sequence: number
+  recordedAt: Date
+  createdAt: Date
+}
 
-type AllInRecord =
-  RouterOutputs['sessionEvent']['getActiveSession'] extends infer T
-    ? T extends { allInRecords: infer R }
-      ? R extends Array<infer Item>
-        ? Item
-        : never
-      : never
-    : never
+// Generic all-in record type
+export interface TimelineAllInRecord {
+  id: string
+  sessionId: string
+  potAmount: number
+  winProbability: string
+  actualResult: boolean
+  recordedAt: Date
+  runItTimes?: number | null
+  winsInRunout?: number | null
+}
 
 interface SessionEventTimelineProps {
-  events: SessionEvent[]
-  allInRecords?: AllInRecord[]
-  onEditAllIn?: (allIn: AllInRecord) => void
+  events: TimelineEvent[]
+  allInRecords?: TimelineAllInRecord[]
+  onEditAllIn?: (allIn: TimelineAllInRecord) => void
+  readOnly?: boolean
+  /** Session ID for cache invalidation (required when not readOnly) */
+  sessionId?: string
 }
 
 // Amount-editable event types
@@ -66,29 +73,39 @@ const NON_DELETABLE_EVENTS = ['session_start', 'session_end']
 
 // Unified timeline item type
 type TimelineItemType =
-  | { kind: 'event'; event: SessionEvent }
-  | { kind: 'allIn'; allIn: AllInRecord }
+  | { kind: 'event'; event: TimelineEvent }
+  | { kind: 'allIn'; allIn: TimelineAllInRecord }
   | { kind: 'hands'; count: number; startTime: Date; endTime: Date }
-  | { kind: 'pauseResume'; pauseEvent: SessionEvent; resumeEvent: SessionEvent; durationMinutes: number }
-  | { kind: 'ongoingBreak'; pauseEvent: SessionEvent }
+  | { kind: 'pauseResume'; pauseEvent: TimelineEvent; resumeEvent: TimelineEvent; durationMinutes: number }
+  | { kind: 'ongoingBreak'; pauseEvent: TimelineEvent }
 
 /**
- * Session event timeline component.
+ * Shared session event timeline component.
  *
- * Displays a chronological list of session events with edit/delete actions.
+ * Displays a chronological list of session events with optional edit/delete actions.
  * Features:
  * - Groups consecutive hand events into a single "x hands" item
- * - Shows all-in records with edit/delete capability
+ * - Shows all-in records with edit/delete capability (when not readOnly)
  * - Groups pause/resume pairs into single items
  */
 export function SessionEventTimeline({
   events,
   allInRecords = [],
   onEditAllIn,
+  readOnly = false,
+  sessionId,
 }: SessionEventTimelineProps) {
   const utils = api.useUtils()
 
-  // Modal states
+  // Invalidate relevant queries after mutations
+  const invalidateQueries = () => {
+    void utils.sessionEvent.getActiveSession.invalidate()
+    if (sessionId) {
+      void utils.session.getById.invalidate({ id: sessionId })
+    }
+  }
+
+  // Modal states (only used when not readOnly)
   const [editModalOpened, { open: openEditModal, close: closeEditModal }] =
     useDisclosure(false)
   const [
@@ -103,31 +120,29 @@ export function SessionEventTimeline({
     editBreakModalOpened,
     { open: openEditBreakModal, close: closeEditBreakModal },
   ] = useDisclosure(false)
-
-  // Selected event for edit/delete
-  const [selectedEvent, setSelectedEvent] = useState<SessionEvent | null>(null)
-  const [selectedAllIn, setSelectedAllIn] = useState<AllInRecord | null>(null)
-  const [editAmount, setEditAmount] = useState<number | null>(null)
-  const [editTime, setEditTime] = useState<string>('')
-
-  // Selected break (pause/resume pair or ongoing) for edit/delete
-  const [selectedBreak, setSelectedBreak] = useState<{
-    pauseEvent: SessionEvent
-    resumeEvent?: SessionEvent  // Optional for ongoing breaks
-  } | null>(null)
-  const [editBreakStartTime, setEditBreakStartTime] = useState<string>('')
-  const [editBreakEndTime, setEditBreakEndTime] = useState<string>('')
-
-  // Delete break modal
   const [
     deleteBreakModalOpened,
     { open: openDeleteBreakModal, close: closeDeleteBreakModal },
   ] = useDisclosure(false)
 
-  // Mutations
+  // Selected event for edit/delete
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null)
+  const [selectedAllIn, setSelectedAllIn] = useState<TimelineAllInRecord | null>(null)
+  const [editAmount, setEditAmount] = useState<number | null>(null)
+  const [editTime, setEditTime] = useState<string>('')
+
+  // Selected break (pause/resume pair or ongoing) for edit/delete
+  const [selectedBreak, setSelectedBreak] = useState<{
+    pauseEvent: TimelineEvent
+    resumeEvent?: TimelineEvent
+  } | null>(null)
+  const [editBreakStartTime, setEditBreakStartTime] = useState<string>('')
+  const [editBreakEndTime, setEditBreakEndTime] = useState<string>('')
+
+  // Mutations (only used when not readOnly)
   const deleteEvent = api.sessionEvent.deleteEvent.useMutation({
     onSuccess: () => {
-      void utils.sessionEvent.getActiveSession.invalidate()
+      invalidateQueries()
       closeDeleteModal()
       setSelectedEvent(null)
     },
@@ -135,7 +150,7 @@ export function SessionEventTimeline({
 
   const updateEvent = api.sessionEvent.updateEvent.useMutation({
     onSuccess: () => {
-      void utils.sessionEvent.getActiveSession.invalidate()
+      invalidateQueries()
       closeEditModal()
       setSelectedEvent(null)
       setEditAmount(null)
@@ -145,7 +160,7 @@ export function SessionEventTimeline({
 
   const deleteAllIn = api.allIn.delete.useMutation({
     onSuccess: () => {
-      void utils.sessionEvent.getActiveSession.invalidate()
+      invalidateQueries()
       closeDeleteAllInModal()
       setSelectedAllIn(null)
     },
@@ -386,7 +401,7 @@ export function SessionEventTimeline({
   /**
    * Get description for event.
    */
-  const getEventDescription = (event: SessionEvent) => {
+  const getEventDescription = (event: TimelineEvent) => {
     const data = event.eventData as Record<string, unknown> | null
 
     switch (event.eventType) {
@@ -458,7 +473,7 @@ export function SessionEventTimeline({
   /**
    * Get time bounds for editing (min/max based on adjacent events).
    */
-  const getTimeBounds = (event: SessionEvent) => {
+  const getTimeBounds = (event: TimelineEvent) => {
     const eventIndex = events.findIndex((e) => e.id === event.id)
     const prevEvent = eventIndex > 0 ? events[eventIndex - 1] : null
     const nextEvent =
@@ -472,8 +487,6 @@ export function SessionEventTimeline({
 
   /**
    * Get time bounds for break editing.
-   * For start time: after previous event, before end time
-   * For end time: after start time, before next event
    */
   const getBreakTimeBounds = () => {
     if (!selectedBreak) return { startMin: null, startMax: null, endMin: null, endMax: null }
@@ -482,19 +495,17 @@ export function SessionEventTimeline({
     const prevEvent = pauseIndex > 0 ? events[pauseIndex - 1] : null
 
     if (selectedBreak.resumeEvent) {
-      // Completed break
       const resumeIndex = events.findIndex((e) => e.id === selectedBreak.resumeEvent?.id)
       const nextEvent = resumeIndex < events.length - 1 ? events[resumeIndex + 1] : null
 
       return {
         startMin: prevEvent ? new Date(prevEvent.recordedAt) : null,
-        startMax: new Date(selectedBreak.resumeEvent.recordedAt), // Must be before end time
-        endMin: new Date(selectedBreak.pauseEvent.recordedAt), // Must be after start time
+        startMax: new Date(selectedBreak.resumeEvent.recordedAt),
+        endMin: new Date(selectedBreak.pauseEvent.recordedAt),
         endMax: nextEvent ? new Date(nextEvent.recordedAt) : new Date(),
       }
     }
 
-    // Ongoing break (no resume)
     const nextEvent = pauseIndex < events.length - 1 ? events[pauseIndex + 1] : null
     return {
       startMin: prevEvent ? new Date(prevEvent.recordedAt) : null,
@@ -507,7 +518,7 @@ export function SessionEventTimeline({
   /**
    * Handle edit button click.
    */
-  const handleEditClick = (event: SessionEvent) => {
+  const handleEditClick = (event: TimelineEvent) => {
     setSelectedEvent(event)
     const data = event.eventData as Record<string, unknown> | null
     setEditAmount((data?.amount as number) ?? null)
@@ -518,7 +529,7 @@ export function SessionEventTimeline({
   /**
    * Handle delete button click.
    */
-  const handleDeleteClick = (event: SessionEvent) => {
+  const handleDeleteClick = (event: TimelineEvent) => {
     setSelectedEvent(event)
     openDeleteModal()
   }
@@ -526,7 +537,7 @@ export function SessionEventTimeline({
   /**
    * Handle all-in edit button click.
    */
-  const handleAllInEditClick = (allIn: AllInRecord) => {
+  const handleAllInEditClick = (allIn: TimelineAllInRecord) => {
     if (onEditAllIn) {
       onEditAllIn(allIn)
     }
@@ -535,7 +546,7 @@ export function SessionEventTimeline({
   /**
    * Handle all-in delete button click.
    */
-  const handleAllInDeleteClick = (allIn: AllInRecord) => {
+  const handleAllInDeleteClick = (allIn: TimelineAllInRecord) => {
     setSelectedAllIn(allIn)
     openDeleteAllInModal()
   }
@@ -546,7 +557,6 @@ export function SessionEventTimeline({
   const handleEditConfirm = () => {
     if (!selectedEvent) return
 
-    // Build mutation input
     const mutationInput: {
       eventId: string
       amount?: number
@@ -555,16 +565,13 @@ export function SessionEventTimeline({
       eventId: selectedEvent.id,
     }
 
-    // Include amount if this event type supports it
     if (isAmountEditable(selectedEvent.eventType) && editAmount !== null) {
       mutationInput.amount = editAmount
     }
 
-    // Include time if changed
     if (isTimeEditable(selectedEvent.eventType) && editTime) {
       const originalTime = formatTimeForInput(selectedEvent.recordedAt)
       if (editTime !== originalTime) {
-        // Parse the time and create a new date with the same date but new time
         const [hours, minutes] = editTime.split(':').map(Number)
         const newDate = new Date(selectedEvent.recordedAt)
         newDate.setHours(hours ?? 0, minutes ?? 0, 0, 0)
@@ -572,11 +579,9 @@ export function SessionEventTimeline({
       }
     }
 
-    // Only mutate if there's something to update
     if (mutationInput.amount !== undefined || mutationInput.recordedAt !== undefined) {
       updateEvent.mutate(mutationInput)
     } else {
-      // Nothing changed, just close
       closeEditModal()
       setSelectedEvent(null)
       setEditAmount(null)
@@ -605,9 +610,9 @@ export function SessionEventTimeline({
   }
 
   /**
-   * Handle break (pause/resume) edit click.
+   * Handle break edit click.
    */
-  const handleBreakEditClick = (pauseEvent: SessionEvent, resumeEvent?: SessionEvent) => {
+  const handleBreakEditClick = (pauseEvent: TimelineEvent, resumeEvent?: TimelineEvent) => {
     setSelectedBreak({ pauseEvent, resumeEvent })
     setEditBreakStartTime(formatTimeForInput(pauseEvent.recordedAt))
     setEditBreakEndTime(resumeEvent ? formatTimeForInput(resumeEvent.recordedAt) : '')
@@ -615,9 +620,9 @@ export function SessionEventTimeline({
   }
 
   /**
-   * Handle break (pause/resume) delete click.
+   * Handle break delete click.
    */
-  const handleBreakDeleteClick = (pauseEvent: SessionEvent, resumeEvent?: SessionEvent) => {
+  const handleBreakDeleteClick = (pauseEvent: TimelineEvent, resumeEvent?: TimelineEvent) => {
     setSelectedBreak({ pauseEvent, resumeEvent })
     openDeleteBreakModal()
   }
@@ -628,10 +633,8 @@ export function SessionEventTimeline({
   const handleBreakDeleteConfirm = async () => {
     if (!selectedBreak) return
 
-    // Delete pause event
     await deleteEvent.mutateAsync({ eventId: selectedBreak.pauseEvent.id })
 
-    // Delete resume event if it exists
     if (selectedBreak.resumeEvent) {
       await deleteEvent.mutateAsync({ eventId: selectedBreak.resumeEvent.id })
     }
@@ -660,7 +663,6 @@ export function SessionEventTimeline({
     const originalStartTime = formatTimeForInput(selectedBreak.pauseEvent.recordedAt)
     const startTimeChanged = editBreakStartTime !== originalStartTime
 
-    // Validate start time
     if (startTimeChanged) {
       const newStartDate = parseTimeString(editBreakStartTime, selectedBreak.pauseEvent.recordedAt)
       if (bounds.startMin && newStartDate <= bounds.startMin) {
@@ -679,7 +681,6 @@ export function SessionEventTimeline({
       }
     }
 
-    // For ongoing breaks (no resume event), only check start time
     if (!selectedBreak.resumeEvent) {
       if (!startTimeChanged) {
         closeEditBreakModal()
@@ -699,11 +700,9 @@ export function SessionEventTimeline({
       return
     }
 
-    // For completed breaks (with resume event)
     const originalEndTime = formatTimeForInput(selectedBreak.resumeEvent.recordedAt)
     const endTimeChanged = editBreakEndTime !== originalEndTime
 
-    // Validate end time
     if (endTimeChanged) {
       const newEndDate = parseTimeString(editBreakEndTime, selectedBreak.resumeEvent.recordedAt)
       if (bounds.endMin && newEndDate <= bounds.endMin) {
@@ -722,7 +721,6 @@ export function SessionEventTimeline({
       }
     }
 
-    // Validate start < end after edits
     const newStartDate = startTimeChanged
       ? parseTimeString(editBreakStartTime, selectedBreak.pauseEvent.recordedAt)
       : new Date(selectedBreak.pauseEvent.recordedAt)
@@ -739,7 +737,6 @@ export function SessionEventTimeline({
     }
 
     if (!startTimeChanged && !endTimeChanged) {
-      // Nothing changed, just close
       closeEditBreakModal()
       setSelectedBreak(null)
       setEditBreakStartTime('')
@@ -747,7 +744,6 @@ export function SessionEventTimeline({
       return
     }
 
-    // Update pause event if start time changed
     if (startTimeChanged) {
       const [hours, minutes] = editBreakStartTime.split(':').map(Number)
       const newDate = new Date(selectedBreak.pauseEvent.recordedAt)
@@ -758,7 +754,6 @@ export function SessionEventTimeline({
       })
     }
 
-    // Update resume event if end time changed
     if (endTimeChanged) {
       const [hours, minutes] = editBreakEndTime.split(':').map(Number)
       const newDate = new Date(selectedBreak.resumeEvent.recordedAt)
@@ -769,9 +764,7 @@ export function SessionEventTimeline({
       })
     }
 
-    // Close modal (will be handled by mutation success if only one update)
     if (startTimeChanged && endTimeChanged) {
-      // Both updated, manually close after a delay
       setTimeout(() => {
         closeEditBreakModal()
         setSelectedBreak(null)
@@ -784,9 +777,24 @@ export function SessionEventTimeline({
   /**
    * Format all-in description.
    */
-  const formatAllInDescription = (allIn: AllInRecord) => {
+  const formatAllInDescription = (allIn: TimelineAllInRecord) => {
     const winProb = parseFloat(allIn.winProbability)
-    const result = allIn.actualResult ? '勝ち' : '負け'
+
+    // Format result based on Run It X times
+    let result: string
+    if (allIn.runItTimes && allIn.runItTimes > 1 && allIn.winsInRunout !== null && allIn.winsInRunout !== undefined) {
+      // Run It X times: show wins/total (e.g., "1/2") unless all win or all lose
+      if (allIn.winsInRunout === allIn.runItTimes) {
+        result = '勝ち'
+      } else if (allIn.winsInRunout === 0) {
+        result = '負け'
+      } else {
+        result = `${allIn.winsInRunout}/${allIn.runItTimes}`
+      }
+    } else {
+      result = allIn.actualResult ? '勝ち' : '負け'
+    }
+
     return `${allIn.potAmount.toLocaleString()} / ${winProb.toFixed(1)}% → ${result}`
   }
 
@@ -814,9 +822,11 @@ export function SessionEventTimeline({
                   <Group gap="xs" justify="space-between" wrap="nowrap">
                     <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                       <Group gap="xs">
-                        <Badge color="violet" size="sm">
-                          ハンド
-                        </Badge>
+                        {!readOnly && (
+                          <Badge color="violet" size="sm">
+                            ハンド
+                          </Badge>
+                        )}
                         <Text c="dimmed" size="xs">
                           {formatTime(item.startTime)} - {formatTime(item.endTime)}
                         </Text>
@@ -828,7 +838,7 @@ export function SessionEventTimeline({
               )
             }
 
-            // Pause/Resume pair item (休憩)
+            // Pause/Resume pair item
             if (item.kind === 'pauseResume') {
               return (
                 <Timeline.Item
@@ -839,9 +849,11 @@ export function SessionEventTimeline({
                   <Group gap="xs" justify="space-between" wrap="nowrap">
                     <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                       <Group gap="xs">
-                        <Badge color="gray" size="sm">
-                          休憩
-                        </Badge>
+                        {!readOnly && (
+                          <Badge color="gray" size="sm">
+                            休憩
+                          </Badge>
+                        )}
                         <Text c="dimmed" size="xs">
                           {formatTime(item.pauseEvent.recordedAt)} - {formatTime(item.resumeEvent.recordedAt)}
                         </Text>
@@ -849,30 +861,32 @@ export function SessionEventTimeline({
                       <Text size="sm">{item.durationMinutes}分</Text>
                     </Stack>
 
-                    <Group gap={4}>
-                      <ActionIcon
-                        color="blue"
-                        onClick={() => handleBreakEditClick(item.pauseEvent, item.resumeEvent)}
-                        size="sm"
-                        variant="subtle"
-                      >
-                        <IconEdit size={14} />
-                      </ActionIcon>
-                      <ActionIcon
-                        color="red"
-                        onClick={() => handleBreakDeleteClick(item.pauseEvent, item.resumeEvent)}
-                        size="sm"
-                        variant="subtle"
-                      >
-                        <IconTrash size={14} />
-                      </ActionIcon>
-                    </Group>
+                    {!readOnly && (
+                      <Group gap={4}>
+                        <ActionIcon
+                          color="blue"
+                          onClick={() => handleBreakEditClick(item.pauseEvent, item.resumeEvent)}
+                          size="sm"
+                          variant="subtle"
+                        >
+                          <IconEdit size={14} />
+                        </ActionIcon>
+                        <ActionIcon
+                          color="red"
+                          onClick={() => handleBreakDeleteClick(item.pauseEvent, item.resumeEvent)}
+                          size="sm"
+                          variant="subtle"
+                        >
+                          <IconTrash size={14} />
+                        </ActionIcon>
+                      </Group>
+                    )}
                   </Group>
                 </Timeline.Item>
               )
             }
 
-            // Ongoing break item (未完了の休憩)
+            // Ongoing break item
             if (item.kind === 'ongoingBreak') {
               return (
                 <Timeline.Item
@@ -883,33 +897,37 @@ export function SessionEventTimeline({
                   <Group gap="xs" justify="space-between" wrap="nowrap">
                     <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                       <Group gap="xs">
-                        <Badge color="gray" size="sm">
-                          休憩中
-                        </Badge>
+                        {!readOnly && (
+                          <Badge color="gray" size="sm">
+                            休憩中
+                          </Badge>
+                        )}
                         <Text c="dimmed" size="xs">
                           {formatTime(item.pauseEvent.recordedAt)} -
                         </Text>
                       </Group>
                     </Stack>
 
-                    <Group gap={4}>
-                      <ActionIcon
-                        color="blue"
-                        onClick={() => handleBreakEditClick(item.pauseEvent)}
-                        size="sm"
-                        variant="subtle"
-                      >
-                        <IconEdit size={14} />
-                      </ActionIcon>
-                      <ActionIcon
-                        color="red"
-                        onClick={() => handleBreakDeleteClick(item.pauseEvent)}
-                        size="sm"
-                        variant="subtle"
-                      >
-                        <IconTrash size={14} />
-                      </ActionIcon>
-                    </Group>
+                    {!readOnly && (
+                      <Group gap={4}>
+                        <ActionIcon
+                          color="blue"
+                          onClick={() => handleBreakEditClick(item.pauseEvent)}
+                          size="sm"
+                          variant="subtle"
+                        >
+                          <IconEdit size={14} />
+                        </ActionIcon>
+                        <ActionIcon
+                          color="red"
+                          onClick={() => handleBreakDeleteClick(item.pauseEvent)}
+                          size="sm"
+                          variant="subtle"
+                        >
+                          <IconTrash size={14} />
+                        </ActionIcon>
+                      </Group>
+                    )}
                   </Group>
                 </Timeline.Item>
               )
@@ -926,9 +944,11 @@ export function SessionEventTimeline({
                   <Group gap="xs" justify="space-between" wrap="nowrap">
                     <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                       <Group gap="xs">
-                        <Badge color="pink" size="sm">
-                          オールイン
-                        </Badge>
+                        {!readOnly && (
+                          <Badge color="pink" size="sm">
+                            オールイン
+                          </Badge>
+                        )}
                         <Text c="dimmed" size="xs">
                           {formatTime(item.allIn.recordedAt)}
                         </Text>
@@ -936,24 +956,26 @@ export function SessionEventTimeline({
                       <Text size="sm">{formatAllInDescription(item.allIn)}</Text>
                     </Stack>
 
-                    <Group gap={4}>
-                      <ActionIcon
-                        color="blue"
-                        onClick={() => handleAllInEditClick(item.allIn)}
-                        size="sm"
-                        variant="subtle"
-                      >
-                        <IconEdit size={14} />
-                      </ActionIcon>
-                      <ActionIcon
-                        color="red"
-                        onClick={() => handleAllInDeleteClick(item.allIn)}
-                        size="sm"
-                        variant="subtle"
-                      >
-                        <IconTrash size={14} />
-                      </ActionIcon>
-                    </Group>
+                    {!readOnly && (
+                      <Group gap={4}>
+                        <ActionIcon
+                          color="blue"
+                          onClick={() => handleAllInEditClick(item.allIn)}
+                          size="sm"
+                          variant="subtle"
+                        >
+                          <IconEdit size={14} />
+                        </ActionIcon>
+                        <ActionIcon
+                          color="red"
+                          onClick={() => handleAllInDeleteClick(item.allIn)}
+                          size="sm"
+                          variant="subtle"
+                        >
+                          <IconTrash size={14} />
+                        </ActionIcon>
+                      </Group>
+                    )}
                   </Group>
                 </Timeline.Item>
               )
@@ -962,8 +984,8 @@ export function SessionEventTimeline({
             // Regular event item
             const event = item.event
             const description = getEventDescription(event)
-            const canEdit = isEditable(event.eventType)
-            const canDelete = isDeletable(event.eventType)
+            const canEdit = !readOnly && isEditable(event.eventType)
+            const canDelete = !readOnly && isDeletable(event.eventType)
 
             return (
               <Timeline.Item
@@ -974,9 +996,11 @@ export function SessionEventTimeline({
                 <Group gap="xs" justify="space-between" wrap="nowrap">
                   <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                     <Group gap="xs">
-                      <Badge color={getEventColor(event.eventType)} size="sm">
-                        {getEventLabel(event.eventType)}
-                      </Badge>
+                      {!readOnly && (
+                        <Badge color={getEventColor(event.eventType)} size="sm">
+                          {getEventLabel(event.eventType)}
+                        </Badge>
+                      )}
                       <Text c="dimmed" size="xs">
                         {formatTime(event.recordedAt)}
                       </Text>
@@ -984,7 +1008,6 @@ export function SessionEventTimeline({
                     {description && <Text size="sm">{description}</Text>}
                   </Stack>
 
-                  {/* Action buttons */}
                   {(canEdit || canDelete) && (
                     <Group gap={4}>
                       {canEdit && (
@@ -1016,282 +1039,285 @@ export function SessionEventTimeline({
         </Timeline>
       </ScrollArea>
 
-      {/* Edit Modal */}
-      <Modal
-        onClose={() => {
-          closeEditModal()
-          setSelectedEvent(null)
-          setEditAmount(null)
-          setEditTime('')
-        }}
-        opened={editModalOpened}
-        title="イベントを編集"
-      >
-        <Stack gap="md">
-          {selectedEvent && (
-            <Text c="dimmed" size="sm">
-              {getEventLabel(selectedEvent.eventType)}を編集します
-            </Text>
-          )}
+      {/* Modals - only rendered when not readOnly */}
+      {!readOnly && (
+        <>
+          {/* Edit Modal */}
+          <Modal
+            onClose={() => {
+              closeEditModal()
+              setSelectedEvent(null)
+              setEditAmount(null)
+              setEditTime('')
+            }}
+            opened={editModalOpened}
+            title="イベントを編集"
+          >
+            <Stack gap="md">
+              {selectedEvent && (
+                <Text c="dimmed" size="sm">
+                  {getEventLabel(selectedEvent.eventType)}を編集します
+                </Text>
+              )}
 
-          {/* Amount input - only for amount-editable events */}
-          {selectedEvent && isAmountEditable(selectedEvent.eventType) && (
-            <NumberInput
-              hideControls
-              label="金額"
-              min={0}
-              onChange={(val) =>
-                setEditAmount(typeof val === 'number' ? val : null)
-              }
-              thousandSeparator=","
-              value={editAmount ?? ''}
-            />
-          )}
-
-          {/* Time input - for time-editable events */}
-          {selectedEvent && isTimeEditable(selectedEvent.eventType) && (
-            <TimeInput
-              description={(() => {
-                const bounds = getTimeBounds(selectedEvent)
-                const parts: string[] = []
-                if (bounds.minTime) {
-                  parts.push(`${formatTimeForInput(bounds.minTime)}より後`)
-                }
-                if (bounds.maxTime) {
-                  parts.push(`${formatTimeForInput(bounds.maxTime)}より前`)
-                }
-                return parts.length > 0 ? parts.join('、') : undefined
-              })()}
-              label="時間"
-              onChange={(e) => setEditTime(e.currentTarget.value)}
-              value={editTime}
-            />
-          )}
-
-          <Group justify="flex-end">
-            <Button
-              onClick={() => {
-                closeEditModal()
-                setSelectedEvent(null)
-                setEditAmount(null)
-                setEditTime('')
-              }}
-              variant="subtle"
-            >
-              キャンセル
-            </Button>
-            <Button
-              loading={updateEvent.isPending}
-              onClick={handleEditConfirm}
-            >
-              更新
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        onClose={() => {
-          closeDeleteModal()
-          setSelectedEvent(null)
-        }}
-        opened={deleteModalOpened}
-        title={
-          selectedEvent?.eventType === 'session_pause' ||
-          selectedEvent?.eventType === 'session_resume'
-            ? '休憩を削除'
-            : 'イベントを削除'
-        }
-      >
-        <Stack gap="md">
-          {selectedEvent &&
-          (selectedEvent.eventType === 'session_pause' ||
-            selectedEvent.eventType === 'session_resume') ? (
-            <Text>この休憩を削除しますか？</Text>
-          ) : (
-            <Text>このイベントを削除しますか？</Text>
-          )}
-          {selectedEvent &&
-            selectedEvent.eventType !== 'session_pause' &&
-            selectedEvent.eventType !== 'session_resume' && (
-            <Text c="dimmed" size="sm">
-              {getEventLabel(selectedEvent.eventType)}
-              {getEventDescription(selectedEvent)
-                ? ` - ${getEventDescription(selectedEvent)}`
-                : ''}
-            </Text>
-          )}
-          <Group justify="flex-end">
-            <Button
-              onClick={() => {
-                closeDeleteModal()
-                setSelectedEvent(null)
-              }}
-              variant="subtle"
-            >
-              キャンセル
-            </Button>
-            <Button
-              color="red"
-              loading={deleteEvent.isPending}
-              onClick={handleDeleteConfirm}
-            >
-              削除
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      {/* Delete All-in Confirmation Modal */}
-      <Modal
-        onClose={() => {
-          closeDeleteAllInModal()
-          setSelectedAllIn(null)
-        }}
-        opened={deleteAllInModalOpened}
-        title="オールイン記録を削除"
-      >
-        <Stack gap="md">
-          <Text>このオールイン記録を削除しますか？</Text>
-          {selectedAllIn && (
-            <Text c="dimmed" size="sm">
-              {formatAllInDescription(selectedAllIn)}
-            </Text>
-          )}
-          <Group justify="flex-end">
-            <Button
-              onClick={() => {
-                closeDeleteAllInModal()
-                setSelectedAllIn(null)
-              }}
-              variant="subtle"
-            >
-              キャンセル
-            </Button>
-            <Button
-              color="red"
-              loading={deleteAllIn.isPending}
-              onClick={handleAllInDeleteConfirm}
-            >
-              削除
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      {/* Edit Break Modal */}
-      <Modal
-        onClose={() => {
-          closeEditBreakModal()
-          setSelectedBreak(null)
-          setEditBreakStartTime('')
-          setEditBreakEndTime('')
-        }}
-        opened={editBreakModalOpened}
-        title={selectedBreak?.resumeEvent ? '休憩を編集' : '休憩中を編集'}
-      >
-        <Stack gap="md">
-          {(() => {
-            const bounds = getBreakTimeBounds()
-            const startDescParts: string[] = []
-            if (bounds.startMin) {
-              startDescParts.push(`${formatTimeForInput(bounds.startMin)}より後`)
-            }
-            if (bounds.startMax) {
-              startDescParts.push(`${formatTimeForInput(bounds.startMax)}より前`)
-            }
-            const startDesc = startDescParts.length > 0 ? startDescParts.join('、') : undefined
-
-            const endDescParts: string[] = []
-            if (bounds.endMin) {
-              endDescParts.push(`${formatTimeForInput(bounds.endMin)}より後`)
-            }
-            if (bounds.endMax) {
-              endDescParts.push(`${formatTimeForInput(bounds.endMax)}より前`)
-            }
-            const endDesc = endDescParts.length > 0 ? endDescParts.join('、') : undefined
-
-            return (
-              <>
-                <TimeInput
-                  label="開始時刻"
-                  description={startDesc}
-                  value={editBreakStartTime}
-                  onChange={(e) => setEditBreakStartTime(e.currentTarget.value)}
+              {selectedEvent && isAmountEditable(selectedEvent.eventType) && (
+                <NumberInput
+                  hideControls
+                  label="金額"
+                  min={0}
+                  onChange={(val) =>
+                    setEditAmount(typeof val === 'number' ? val : null)
+                  }
+                  thousandSeparator=","
+                  value={editAmount ?? ''}
                 />
-                {selectedBreak?.resumeEvent && (
-                  <TimeInput
-                    label="終了時刻"
-                    description={endDesc}
-                    value={editBreakEndTime}
-                    onChange={(e) => setEditBreakEndTime(e.currentTarget.value)}
-                  />
-                )}
-              </>
-            )
-          })()}
-          <Group justify="flex-end">
-            <Button
-              onClick={() => {
-                closeEditBreakModal()
-                setSelectedBreak(null)
-                setEditBreakStartTime('')
-                setEditBreakEndTime('')
-              }}
-              variant="subtle"
-            >
-              キャンセル
-            </Button>
-            <Button
-              loading={updateEvent.isPending}
-              onClick={handleBreakEditConfirm}
-            >
-              更新
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+              )}
 
-      {/* Delete Break Confirmation Modal */}
-      <Modal
-        onClose={() => {
-          closeDeleteBreakModal()
-          setSelectedBreak(null)
-        }}
-        opened={deleteBreakModalOpened}
-        title="休憩を削除"
-      >
-        <Stack gap="md">
-          <Text>この休憩を削除しますか？</Text>
-          {selectedBreak && (
-            <Text c="dimmed" size="sm">
-              {formatTimeForInput(selectedBreak.pauseEvent.recordedAt)}
-              {selectedBreak.resumeEvent
-                ? ` - ${formatTimeForInput(selectedBreak.resumeEvent.recordedAt)}`
-                : ' - (継続中)'}
-            </Text>
-          )}
-          <Group justify="flex-end">
-            <Button
-              onClick={() => {
-                closeDeleteBreakModal()
-                setSelectedBreak(null)
-              }}
-              variant="subtle"
-            >
-              キャンセル
-            </Button>
-            <Button
-              color="red"
-              loading={deleteEvent.isPending}
-              onClick={handleBreakDeleteConfirm}
-            >
-              削除
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+              {selectedEvent && isTimeEditable(selectedEvent.eventType) && (
+                <TimeInput
+                  description={(() => {
+                    const bounds = getTimeBounds(selectedEvent)
+                    const parts: string[] = []
+                    if (bounds.minTime) {
+                      parts.push(`${formatTimeForInput(bounds.minTime)}より後`)
+                    }
+                    if (bounds.maxTime) {
+                      parts.push(`${formatTimeForInput(bounds.maxTime)}より前`)
+                    }
+                    return parts.length > 0 ? parts.join('、') : undefined
+                  })()}
+                  label="時間"
+                  onChange={(e) => setEditTime(e.currentTarget.value)}
+                  value={editTime}
+                />
+              )}
+
+              <Group justify="flex-end">
+                <Button
+                  onClick={() => {
+                    closeEditModal()
+                    setSelectedEvent(null)
+                    setEditAmount(null)
+                    setEditTime('')
+                  }}
+                  variant="subtle"
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  loading={updateEvent.isPending}
+                  onClick={handleEditConfirm}
+                >
+                  更新
+                </Button>
+              </Group>
+            </Stack>
+          </Modal>
+
+          {/* Delete Confirmation Modal */}
+          <Modal
+            onClose={() => {
+              closeDeleteModal()
+              setSelectedEvent(null)
+            }}
+            opened={deleteModalOpened}
+            title={
+              selectedEvent?.eventType === 'session_pause' ||
+              selectedEvent?.eventType === 'session_resume'
+                ? '休憩を削除'
+                : 'イベントを削除'
+            }
+          >
+            <Stack gap="md">
+              {selectedEvent &&
+              (selectedEvent.eventType === 'session_pause' ||
+                selectedEvent.eventType === 'session_resume') ? (
+                <Text>この休憩を削除しますか？</Text>
+              ) : (
+                <Text>このイベントを削除しますか？</Text>
+              )}
+              {selectedEvent &&
+                selectedEvent.eventType !== 'session_pause' &&
+                selectedEvent.eventType !== 'session_resume' && (
+                <Text c="dimmed" size="sm">
+                  {getEventLabel(selectedEvent.eventType)}
+                  {getEventDescription(selectedEvent)
+                    ? ` - ${getEventDescription(selectedEvent)}`
+                    : ''}
+                </Text>
+              )}
+              <Group justify="flex-end">
+                <Button
+                  onClick={() => {
+                    closeDeleteModal()
+                    setSelectedEvent(null)
+                  }}
+                  variant="subtle"
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  color="red"
+                  loading={deleteEvent.isPending}
+                  onClick={handleDeleteConfirm}
+                >
+                  削除
+                </Button>
+              </Group>
+            </Stack>
+          </Modal>
+
+          {/* Delete All-in Confirmation Modal */}
+          <Modal
+            onClose={() => {
+              closeDeleteAllInModal()
+              setSelectedAllIn(null)
+            }}
+            opened={deleteAllInModalOpened}
+            title="オールイン記録を削除"
+          >
+            <Stack gap="md">
+              <Text>このオールイン記録を削除しますか？</Text>
+              {selectedAllIn && (
+                <Text c="dimmed" size="sm">
+                  {formatAllInDescription(selectedAllIn)}
+                </Text>
+              )}
+              <Group justify="flex-end">
+                <Button
+                  onClick={() => {
+                    closeDeleteAllInModal()
+                    setSelectedAllIn(null)
+                  }}
+                  variant="subtle"
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  color="red"
+                  loading={deleteAllIn.isPending}
+                  onClick={handleAllInDeleteConfirm}
+                >
+                  削除
+                </Button>
+              </Group>
+            </Stack>
+          </Modal>
+
+          {/* Edit Break Modal */}
+          <Modal
+            onClose={() => {
+              closeEditBreakModal()
+              setSelectedBreak(null)
+              setEditBreakStartTime('')
+              setEditBreakEndTime('')
+            }}
+            opened={editBreakModalOpened}
+            title={selectedBreak?.resumeEvent ? '休憩を編集' : '休憩中を編集'}
+          >
+            <Stack gap="md">
+              {(() => {
+                const bounds = getBreakTimeBounds()
+                const startDescParts: string[] = []
+                if (bounds.startMin) {
+                  startDescParts.push(`${formatTimeForInput(bounds.startMin)}より後`)
+                }
+                if (bounds.startMax) {
+                  startDescParts.push(`${formatTimeForInput(bounds.startMax)}より前`)
+                }
+                const startDesc = startDescParts.length > 0 ? startDescParts.join('、') : undefined
+
+                const endDescParts: string[] = []
+                if (bounds.endMin) {
+                  endDescParts.push(`${formatTimeForInput(bounds.endMin)}より後`)
+                }
+                if (bounds.endMax) {
+                  endDescParts.push(`${formatTimeForInput(bounds.endMax)}より前`)
+                }
+                const endDesc = endDescParts.length > 0 ? endDescParts.join('、') : undefined
+
+                return (
+                  <>
+                    <TimeInput
+                      label="開始時刻"
+                      description={startDesc}
+                      value={editBreakStartTime}
+                      onChange={(e) => setEditBreakStartTime(e.currentTarget.value)}
+                    />
+                    {selectedBreak?.resumeEvent && (
+                      <TimeInput
+                        label="終了時刻"
+                        description={endDesc}
+                        value={editBreakEndTime}
+                        onChange={(e) => setEditBreakEndTime(e.currentTarget.value)}
+                      />
+                    )}
+                  </>
+                )
+              })()}
+              <Group justify="flex-end">
+                <Button
+                  onClick={() => {
+                    closeEditBreakModal()
+                    setSelectedBreak(null)
+                    setEditBreakStartTime('')
+                    setEditBreakEndTime('')
+                  }}
+                  variant="subtle"
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  loading={updateEvent.isPending}
+                  onClick={handleBreakEditConfirm}
+                >
+                  更新
+                </Button>
+              </Group>
+            </Stack>
+          </Modal>
+
+          {/* Delete Break Confirmation Modal */}
+          <Modal
+            onClose={() => {
+              closeDeleteBreakModal()
+              setSelectedBreak(null)
+            }}
+            opened={deleteBreakModalOpened}
+            title="休憩を削除"
+          >
+            <Stack gap="md">
+              <Text>この休憩を削除しますか？</Text>
+              {selectedBreak && (
+                <Text c="dimmed" size="sm">
+                  {formatTimeForInput(selectedBreak.pauseEvent.recordedAt)}
+                  {selectedBreak.resumeEvent
+                    ? ` - ${formatTimeForInput(selectedBreak.resumeEvent.recordedAt)}`
+                    : ' - (継続中)'}
+                </Text>
+              )}
+              <Group justify="flex-end">
+                <Button
+                  onClick={() => {
+                    closeDeleteBreakModal()
+                    setSelectedBreak(null)
+                  }}
+                  variant="subtle"
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  color="red"
+                  loading={deleteEvent.isPending}
+                  onClick={handleBreakDeleteConfirm}
+                >
+                  削除
+                </Button>
+              </Group>
+            </Stack>
+          </Modal>
+        </>
+      )}
     </Box>
   )
 }

@@ -19,7 +19,6 @@ import {
   Tabs,
   Text,
 } from '@mantine/core'
-import { LineChart } from '@mantine/charts'
 import { TimeInput } from '@mantine/dates'
 import { useDisclosure, useElementSize } from '@mantine/hooks'
 import {
@@ -41,9 +40,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
+import {
+  SessionEventTimeline,
+  type TimelineAllInRecord,
+} from '~/components/sessions/SessionEventTimeline'
+import { SessionProfitChart } from '~/components/sessions/SessionProfitChart'
 import { type AllInFormValues, AllInModal } from '../[id]/AllInModal'
 import { HandCounterCard } from './HandCounterCard'
-import { SessionEventTimeline } from './SessionEventTimeline'
 import { StartSessionForm } from './StartSessionForm'
 import { TablematesCard } from './TablematesCard'
 
@@ -327,9 +330,13 @@ export function ActiveSessionContent({
   /**
    * Handle edit all-in record from timeline.
    */
-  const handleEditAllIn = (allIn: AllInRecord) => {
-    setEditingAllIn(allIn)
-    openAllInModal()
+  const handleEditAllIn = (timelineAllIn: TimelineAllInRecord) => {
+    // Find the full record from session data
+    const fullRecord = session?.allInRecords.find((r) => r.id === timelineAllIn.id)
+    if (fullRecord) {
+      setEditingAllIn(fullRecord)
+      openAllInModal()
+    }
   }
 
   /**
@@ -551,7 +558,14 @@ export function ActiveSessionContent({
                     <>
                       {/* Chart - takes most of the space */}
                       <Box style={{ flex: 1, minHeight: 100 }}>
-                        <ChartView session={session} />
+                        <SessionProfitChart
+                          sessionEvents={session.sessionEvents}
+                          allInRecords={session.allInRecords}
+                          buyIn={session.buyIn}
+                          currentStack={session.currentStack}
+                          enableHandsMode
+                          bigBlind={session.cashGame?.bigBlind}
+                        />
                       </Box>
                       <Divider my="xs" />
                       {/* Summary at bottom: profit on top, stats below */}
@@ -627,7 +641,14 @@ export function ActiveSessionContent({
                       {/* Chart View */}
                       {sessionView === 'chart' && (
                         <Box h="100%">
-                          <ChartView session={session} />
+                          <SessionProfitChart
+                            sessionEvents={session.sessionEvents}
+                            allInRecords={session.allInRecords}
+                            buyIn={session.buyIn}
+                            currentStack={session.currentStack}
+                            enableHandsMode
+                            bigBlind={session.cashGame?.bigBlind}
+                          />
                         </Box>
                       )}
                     </>
@@ -749,6 +770,7 @@ export function ActiveSessionContent({
             <SessionEventTimeline
               events={session.sessionEvents}
               allInRecords={session.allInRecords}
+              sessionId={session.id}
               onEditAllIn={handleEditAllIn}
             />
           </Tabs.Panel>
@@ -941,226 +963,5 @@ export function ActiveSessionContent({
         </Stack>
       </Modal>
     </Container>
-  )
-}
-
-// Chart view component extracted for clarity
-function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
-  const [xAxisMode, setXAxisMode] = useState<'time' | 'hands'>('time')
-
-  // Build chart data from events with elapsed minutes (excluding paused time)
-  const startEvent = session.sessionEvents.find(
-    (e) => e.eventType === 'session_start'
-  )
-  if (!startEvent) {
-    return (
-      <Text c="dimmed" size="sm" ta="center">
-        スタック記録がありません
-      </Text>
-    )
-  }
-
-  const startTime = new Date(startEvent.recordedAt).getTime()
-  const chartData: {
-    elapsedMinutes: number
-    handCount: number
-    profit: number
-    adjustedProfit: number
-  }[] = []
-
-  // First pass: calculate total buy-in at each point in time
-  const buyInEvents: { time: number; amount: number }[] = [
-    { time: startTime, amount: session.buyIn }
-  ]
-  let accumulatedRebuyAddon = 0
-  for (const event of session.sessionEvents) {
-    const data = event.eventData as Record<string, unknown> | null
-    if ((event.eventType === 'rebuy' || event.eventType === 'addon') && data?.amount) {
-      accumulatedRebuyAddon += data.amount as number
-      buyInEvents.push({
-        time: new Date(event.recordedAt).getTime(),
-        amount: data.amount as number,
-      })
-    }
-  }
-  const initialBuyIn = session.buyIn - accumulatedRebuyAddon
-
-  const getTotalBuyIn = (upToTime: number) => {
-    let total = initialBuyIn
-    for (const buyInEvent of buyInEvents) {
-      if (buyInEvent.time > startTime && buyInEvent.time <= upToTime) {
-        total += buyInEvent.amount
-      }
-    }
-    return total
-  }
-
-  let cumulativePausedMs = 0
-  let lastPauseTime: number | null = null
-  let cumulativeHandCount = 0
-
-  const allInRecords = session.allInRecords ?? []
-  const sortedAllIns = [...allInRecords].sort(
-    (a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()
-  )
-
-  const getCumulativeLuck = (upToTime: number) => {
-    let luck = 0
-    for (const allIn of sortedAllIns) {
-      const allInTime = new Date(allIn.recordedAt).getTime()
-      if (allInTime > upToTime) break
-      const winProbability = parseFloat(allIn.winProbability)
-      const expectedValue = allIn.potAmount * (winProbability / 100)
-      const actualValue = allIn.actualResult ? allIn.potAmount : 0
-      luck += actualValue - expectedValue
-    }
-    return luck
-  }
-
-  chartData.push({
-    elapsedMinutes: 0,
-    handCount: 0,
-    profit: 0,
-    adjustedProfit: 0,
-  })
-
-  for (const event of session.sessionEvents) {
-    const data = event.eventData as Record<string, unknown> | null
-    const eventTime = new Date(event.recordedAt).getTime()
-
-    if (event.eventType === 'session_pause') {
-      lastPauseTime = eventTime
-      continue
-    } else if (event.eventType === 'session_resume' && lastPauseTime !== null) {
-      cumulativePausedMs += eventTime - lastPauseTime
-      lastPauseTime = null
-      continue
-    }
-
-    // Track hand count
-    if (event.eventType === 'hand_complete') {
-      cumulativeHandCount += 1
-      continue
-    }
-    if (event.eventType === 'hands_passed' && data?.count) {
-      cumulativeHandCount += data.count as number
-      continue
-    }
-
-    if (event.eventType === 'stack_update' && data?.amount) {
-      const rawElapsedMs = eventTime - startTime
-      const activeElapsedMs = rawElapsedMs - cumulativePausedMs
-      const elapsedMinutes = Math.round(activeElapsedMs / (1000 * 60))
-
-      const stackAmount = data.amount as number
-      const totalBuyInAtTime = getTotalBuyIn(eventTime)
-      const profit = stackAmount - totalBuyInAtTime
-      const luck = getCumulativeLuck(eventTime)
-
-      chartData.push({
-        elapsedMinutes,
-        handCount: cumulativeHandCount,
-        profit,
-        adjustedProfit: profit - luck,
-      })
-    }
-  }
-
-  let currentPausedMs = cumulativePausedMs
-  if (lastPauseTime !== null) {
-    currentPausedMs += Date.now() - lastPauseTime
-  }
-  const nowElapsed = Math.round((Date.now() - startTime - currentPausedMs) / (1000 * 60))
-  const currentProfit = session.currentStack - session.buyIn
-  const currentLuck = getCumulativeLuck(Date.now())
-
-  // Calculate total hand count
-  const totalHandCount = session.sessionEvents.reduce((count, event) => {
-    if (event.eventType === 'hand_complete') return count + 1
-    if (event.eventType === 'hands_passed') {
-      const data = event.eventData as Record<string, unknown> | null
-      return count + ((data?.count as number) ?? 0)
-    }
-    return count
-  }, 0)
-
-  // Add current point
-  const lastRecordedPoint = chartData[chartData.length - 1]
-  if (lastRecordedPoint && lastRecordedPoint.elapsedMinutes !== nowElapsed) {
-    chartData.push({
-      elapsedMinutes: nowElapsed,
-      handCount: totalHandCount,
-      profit: currentProfit,
-      adjustedProfit: currentProfit - currentLuck,
-    })
-  }
-
-  if (chartData.length < 2) {
-    return (
-      <Text c="dimmed" size="sm" ta="center">
-        スタック記録がありません
-      </Text>
-    )
-  }
-
-  const dataKey = xAxisMode === 'time' ? 'elapsedMinutes' : 'handCount'
-
-  // Format elapsed minutes to "Xh Ym" format
-  const formatElapsedMinutes = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hours === 0) return `${mins}m`
-    return mins > 0 ? `${hours}h${mins}m` : `${hours}h`
-  }
-
-  // Custom tooltip label formatter
-  const tooltipLabelFormatter = (label: number) => {
-    if (xAxisMode === 'time') {
-      return formatElapsedMinutes(label)
-    }
-    return `${label} hands`
-  }
-
-  return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingTop: 'var(--mantine-spacing-xs)' }}>
-      <Group justify="flex-end" mb={4} style={{ flexShrink: 0 }}>
-        <SegmentedControl
-          data={[
-            { label: '時間', value: 'time' },
-            { label: 'ハンド', value: 'hands' },
-          ]}
-          onChange={(value) => setXAxisMode(value as 'time' | 'hands')}
-          size="xs"
-          value={xAxisMode}
-        />
-      </Group>
-      <Box style={{ flex: 1, minHeight: 80 }}>
-        <LineChart
-          data={chartData}
-          dataKey={dataKey}
-          h="100%"
-          series={[
-            { name: 'profit', color: 'green.6', label: '収支' },
-            { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整' },
-          ]}
-          curveType="linear"
-          withDots={false}
-          connectNulls
-          referenceLines={[
-            { y: 0, label: '±0', color: 'gray.5' },
-          ]}
-          valueFormatter={(value) => value.toLocaleString()}
-          xAxisProps={{
-            type: 'number',
-            domain: [0, 'dataMax'],
-            tick: false,
-          }}
-          tooltipProps={{
-            wrapperStyle: { zIndex: 1000 },
-            labelFormatter: tooltipLabelFormatter,
-          }}
-        />
-      </Box>
-    </Box>
   )
 }

@@ -1,13 +1,12 @@
 'use client'
 
 import {
-  Badge,
   Button,
+  Card,
   Collapse,
   Container,
   Group,
   Modal,
-  Paper,
   Stack,
   Text,
   Title,
@@ -31,9 +30,12 @@ import {
   deleteAllInRecord,
   updateAllInRecord,
 } from '../actions'
+import {
+  SessionEventTimeline,
+  type TimelineAllInRecord,
+} from '~/components/sessions/SessionEventTimeline'
 import { type AllInFormValues, AllInModal } from './AllInModal'
 import { AllInSection } from './AllInSection'
-import { SessionEventTimeline } from './SessionEventTimeline'
 import { SessionHeader } from './SessionHeader'
 import { SessionInfo } from './SessionInfo'
 import type { AllInRecord, Session } from './types'
@@ -115,6 +117,14 @@ export function SessionDetailContent({
     openAllInModal()
   }
 
+  // Handle edit all-in from timeline (finds full record by id)
+  const handleEditAllIn = (timelineAllIn: TimelineAllInRecord) => {
+    const fullRecord = session.allInRecords.find((r) => r.id === timelineAllIn.id)
+    if (fullRecord) {
+      openAllInForEdit(fullRecord)
+    }
+  }
+
   // Handle all-in form submit
   const handleAllInSubmit = (values: AllInFormValues) => {
     const winProbabilityNum = Number.parseFloat(values.winProbability)
@@ -180,7 +190,7 @@ export function SessionDetailContent({
     })
   }
 
-  // Handle all-in delete click
+  // Handle all-in delete click (for AllInSection)
   const handleAllInDeleteClick = (recordId: string) => {
     setDeletingAllInId(recordId)
     openDeleteAllInModal()
@@ -239,17 +249,19 @@ export function SessionDetailContent({
         {/* Session Info (Profit/Loss + Details) */}
         <SessionInfo session={session} />
 
-        {/* All-In Records */}
-        <AllInSection
-          allInRecords={session.allInRecords}
-          onAddClick={openAllInForCreate}
-          onDeleteClick={handleAllInDeleteClick}
-          onEditClick={openAllInForEdit}
-        />
+        {/* All-In Records (only for archived sessions without events) */}
+        {session.sessionEvents.length === 0 && (
+          <AllInSection
+            allInRecords={session.allInRecords}
+            onAddClick={openAllInForCreate}
+            onDeleteClick={handleAllInDeleteClick}
+            onEditClick={openAllInForEdit}
+          />
+        )}
 
         {/* Event Timeline (only for live-recorded sessions) */}
         {session.sessionEvents.length > 0 && (
-          <Paper p="md" radius="md" shadow="sm" withBorder>
+          <Card p="lg" radius="md" shadow="sm" withBorder>
             <UnstyledButton
               onClick={() => setHistoryOpened((o) => !o)}
               style={{ width: '100%' }}
@@ -258,9 +270,6 @@ export function SessionDetailContent({
                 <Group gap="xs">
                   <IconHistory size={20} />
                   <Title order={4}>イベント履歴</Title>
-                  <Badge color="gray" size="sm" variant="light">
-                    {session.sessionEvents.length}
-                  </Badge>
                 </Group>
                 {historyOpened ? (
                   <IconChevronUp size={20} />
@@ -271,10 +280,15 @@ export function SessionDetailContent({
             </UnstyledButton>
             <Collapse in={historyOpened}>
               <Stack gap="md" mt="md">
-                <SessionEventTimeline events={session.sessionEvents} />
+                <SessionEventTimeline
+                  events={session.sessionEvents}
+                  allInRecords={session.allInRecords}
+                  sessionId={session.id}
+                  onEditAllIn={handleEditAllIn}
+                />
               </Stack>
             </Collapse>
-          </Paper>
+          </Card>
         )}
       </Stack>
 

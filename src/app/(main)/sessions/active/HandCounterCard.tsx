@@ -318,12 +318,11 @@ export function HandCounterCard({
         </Group>
 
         {/* Last recorded info */}
-        {lastHandInfo && (
-          <Text c="dimmed" size="xs" ta="center">
-            最終記録: {formatRelativeTime(lastHandInfo.recordedAt)}
-            {lastHandInfo.position && ` (${lastHandInfo.position})`}
-          </Text>
-        )}
+        <Text c="dimmed" size="xs" ta="center">
+          {lastHandInfo
+            ? `最終記録: ${formatRelativeTime(lastHandInfo.recordedAt)}${lastHandInfo.position ? ` (${lastHandInfo.position})` : ''}`
+            : '記録なし'}
+        </Text>
       </Stack>
     </Card>
   )
