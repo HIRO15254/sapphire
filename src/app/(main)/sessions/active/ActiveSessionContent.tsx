@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   Container,
+  Divider,
   Group,
   Loader,
   Modal,
@@ -377,6 +378,18 @@ export function ActiveSessionContent({
   const isCashGame = session.gameType === 'cash'
   const isTournament = session.gameType === 'tournament'
 
+  // Get pause start time (most recent session_pause event)
+  const pauseStartTime = sessionIsPaused
+    ? (() => {
+        const pauseEvent = [...session.sessionEvents]
+          .reverse()
+          .find((e) => e.eventType === 'session_pause')
+        if (!pauseEvent) return null
+        const date = new Date(pauseEvent.recordedAt)
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+      })()
+    : null
+
   // Calculate profit/loss
   const profitLoss = session.currentStack - session.buyIn
 
@@ -532,7 +545,7 @@ export function ActiveSessionContent({
                 </Group>
 
                 {/* Content area - grows to fill available space */}
-                <Box ref={contentRef} style={{ flex: 1, minHeight: 80, display: 'flex', flexDirection: 'column', gap: 'var(--mantine-spacing-sm)' }}>
+                <Box ref={contentRef} style={{ flex: 1, minHeight: 80, display: 'flex', flexDirection: 'column' }}>
                   {/* When enough space, show both chart and summary */}
                   {showBothViews ? (
                     <>
@@ -540,6 +553,7 @@ export function ActiveSessionContent({
                       <Box style={{ flex: 1, minHeight: 100 }}>
                         <ChartView session={session} />
                       </Box>
+                      <Divider my="xs" />
                       {/* Summary at bottom: profit on top, stats below */}
                       <Stack gap="xs" style={{ flexShrink: 0 }}>
                         {/* Profit/Loss - large, no label */}
@@ -621,8 +635,10 @@ export function ActiveSessionContent({
                 </Box>
               </Box>
 
+              <Divider my="sm" />
+
               {/* Actions Section - fixed at bottom */}
-              <Stack gap="sm" mt="md" style={{ flexShrink: 0 }}>
+              <Stack gap="sm" style={{ flexShrink: 0 }}>
                 {/* Row 1: Stack form with inline update button */}
                 <Group gap="xs">
                   <NumberInput
@@ -749,7 +765,7 @@ export function ActiveSessionContent({
           >
             <Stack align="center" gap="sm">
               <IconPlayerPause size={32} color="white" />
-              <Text c="white" fw={500}>休憩中</Text>
+              <Text c="white" fw={500}>休憩中{pauseStartTime && ` (${pauseStartTime}〜)`}</Text>
               <Button
                 color="green"
                 leftSection={<IconPlayerPlay size={16} />}
@@ -946,10 +962,8 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
   const chartData: {
     elapsedMinutes: number
     handCount: number
-    profit: number | null
-    adjustedProfit: number | null
-    profitProjected: number | null
-    adjustedProfitProjected: number | null
+    profit: number
+    adjustedProfit: number
   }[] = []
 
   // First pass: calculate total buy-in at each point in time
@@ -1006,8 +1020,6 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
     handCount: 0,
     profit: 0,
     adjustedProfit: 0,
-    profitProjected: null,
-    adjustedProfitProjected: null,
   })
 
   for (const event of session.sessionEvents) {
@@ -1048,8 +1060,6 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
         handCount: cumulativeHandCount,
         profit,
         adjustedProfit: profit - luck,
-        profitProjected: null,
-        adjustedProfitProjected: null,
       })
     }
   }
@@ -1072,21 +1082,14 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
     return count
   }, 0)
 
-  // Add current point as projected (dotted line from last recorded point)
+  // Add current point
   const lastRecordedPoint = chartData[chartData.length - 1]
   if (lastRecordedPoint && lastRecordedPoint.elapsedMinutes !== nowElapsed) {
-    // Add projected values to the last recorded point (to connect the lines)
-    lastRecordedPoint.profitProjected = lastRecordedPoint.profit
-    lastRecordedPoint.adjustedProfitProjected = lastRecordedPoint.adjustedProfit
-
-    // Add current point with only projected values
     chartData.push({
       elapsedMinutes: nowElapsed,
       handCount: totalHandCount,
-      profit: null,
-      adjustedProfit: null,
-      profitProjected: currentProfit,
-      adjustedProfitProjected: currentProfit - currentLuck,
+      profit: currentProfit,
+      adjustedProfit: currentProfit - currentLuck,
     })
   }
 
@@ -1100,8 +1103,24 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
 
   const dataKey = xAxisMode === 'time' ? 'elapsedMinutes' : 'handCount'
 
+  // Format elapsed minutes to "Xh Ym" format
+  const formatElapsedMinutes = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    if (hours === 0) return `${mins}m`
+    return mins > 0 ? `${hours}h${mins}m` : `${hours}h`
+  }
+
+  // Custom tooltip label formatter
+  const tooltipLabelFormatter = (label: number) => {
+    if (xAxisMode === 'time') {
+      return formatElapsedMinutes(label)
+    }
+    return `${label} hands`
+  }
+
   return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingTop: 'var(--mantine-spacing-sm)', paddingBottom: 'var(--mantine-spacing-sm)' }}>
+    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingTop: 'var(--mantine-spacing-xs)' }}>
       <Group justify="flex-end" mb={4} style={{ flexShrink: 0 }}>
         <SegmentedControl
           data={[
@@ -1121,11 +1140,9 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
           series={[
             { name: 'profit', color: 'green.6', label: '収支' },
             { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整' },
-            { name: 'profitProjected', color: 'green.6', label: '収支（現在）', strokeDasharray: '5 5' },
-            { name: 'adjustedProfitProjected', color: 'orange.6', label: 'All-in調整（現在）', strokeDasharray: '5 5' },
           ]}
           curveType="linear"
-          withDots
+          withDots={false}
           connectNulls
           referenceLines={[
             { y: 0, label: '±0', color: 'gray.5' },
@@ -1135,6 +1152,10 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
             type: 'number',
             domain: [0, 'dataMax'],
             tick: false,
+          }}
+          tooltipProps={{
+            wrapperStyle: { zIndex: 1000 },
+            labelFormatter: tooltipLabelFormatter,
           }}
         />
       </Box>
