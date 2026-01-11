@@ -17,14 +17,14 @@ import { TimeInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
-  IconClock,
-  IconCoin,
+  IconCards,
+  IconClockPause,
+  IconCoins,
   IconEdit,
   IconLogout,
   IconPlayerPause,
   IconPlayerPlay,
   IconPlus,
-  IconPokerChip,
   IconTarget,
   IconTrash,
   IconUser,
@@ -110,13 +110,19 @@ export function SessionEventTimeline({
   const [editAmount, setEditAmount] = useState<number | null>(null)
   const [editTime, setEditTime] = useState<string>('')
 
-  // Selected break (pause/resume pair or ongoing) for edit
+  // Selected break (pause/resume pair or ongoing) for edit/delete
   const [selectedBreak, setSelectedBreak] = useState<{
     pauseEvent: SessionEvent
     resumeEvent?: SessionEvent  // Optional for ongoing breaks
   } | null>(null)
   const [editBreakStartTime, setEditBreakStartTime] = useState<string>('')
   const [editBreakEndTime, setEditBreakEndTime] = useState<string>('')
+
+  // Delete break modal
+  const [
+    deleteBreakModalOpened,
+    { open: openDeleteBreakModal, close: closeDeleteBreakModal },
+  ] = useDisclosure(false)
 
   // Mutations
   const deleteEvent = api.sessionEvent.deleteEvent.useMutation({
@@ -305,7 +311,7 @@ export function SessionEventTimeline({
       case 'player_seated':
         return <IconUser size={16} />
       case 'stack_update':
-        return <IconCoin size={16} />
+        return <IconCoins size={16} />
       case 'rebuy':
         return <IconPlus size={16} />
       case 'addon':
@@ -313,7 +319,7 @@ export function SessionEventTimeline({
       case 'all_in':
         return <IconTarget size={16} />
       default:
-        return <IconCoin size={16} />
+        return <IconCoins size={16} />
     }
   }
 
@@ -609,6 +615,32 @@ export function SessionEventTimeline({
   }
 
   /**
+   * Handle break (pause/resume) delete click.
+   */
+  const handleBreakDeleteClick = (pauseEvent: SessionEvent, resumeEvent?: SessionEvent) => {
+    setSelectedBreak({ pauseEvent, resumeEvent })
+    openDeleteBreakModal()
+  }
+
+  /**
+   * Handle break delete confirm - deletes both pause and resume events.
+   */
+  const handleBreakDeleteConfirm = async () => {
+    if (!selectedBreak) return
+
+    // Delete pause event
+    await deleteEvent.mutateAsync({ eventId: selectedBreak.pauseEvent.id })
+
+    // Delete resume event if it exists
+    if (selectedBreak.resumeEvent) {
+      await deleteEvent.mutateAsync({ eventId: selectedBreak.resumeEvent.id })
+    }
+
+    closeDeleteBreakModal()
+    setSelectedBreak(null)
+  }
+
+  /**
    * Parse time string (HH:MM) to Date using a reference date.
    */
   const parseTimeString = (timeStr: string, refDate: Date): Date => {
@@ -775,7 +807,7 @@ export function SessionEventTimeline({
             if (item.kind === 'hands') {
               return (
                 <Timeline.Item
-                  bullet={<IconPokerChip size={16} />}
+                  bullet={<IconCards size={16} />}
                   color="violet"
                   key={`hands-${index}`}
                 >
@@ -800,7 +832,7 @@ export function SessionEventTimeline({
             if (item.kind === 'pauseResume') {
               return (
                 <Timeline.Item
-                  bullet={<IconClock size={16} />}
+                  bullet={<IconClockPause size={16} />}
                   color="gray"
                   key={`pause-${item.pauseEvent.id}`}
                 >
@@ -828,7 +860,7 @@ export function SessionEventTimeline({
                       </ActionIcon>
                       <ActionIcon
                         color="red"
-                        onClick={() => handleDeleteClick(item.pauseEvent)}
+                        onClick={() => handleBreakDeleteClick(item.pauseEvent, item.resumeEvent)}
                         size="sm"
                         variant="subtle"
                       >
@@ -844,7 +876,7 @@ export function SessionEventTimeline({
             if (item.kind === 'ongoingBreak') {
               return (
                 <Timeline.Item
-                  bullet={<IconClock size={16} />}
+                  bullet={<IconClockPause size={16} />}
                   color="gray"
                   key={`ongoing-${item.pauseEvent.id}`}
                 >
@@ -871,7 +903,7 @@ export function SessionEventTimeline({
                       </ActionIcon>
                       <ActionIcon
                         color="red"
-                        onClick={() => handleDeleteClick(item.pauseEvent)}
+                        onClick={() => handleBreakDeleteClick(item.pauseEvent)}
                         size="sm"
                         variant="subtle"
                       >
@@ -1216,6 +1248,46 @@ export function SessionEventTimeline({
               onClick={handleBreakEditConfirm}
             >
               更新
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Delete Break Confirmation Modal */}
+      <Modal
+        onClose={() => {
+          closeDeleteBreakModal()
+          setSelectedBreak(null)
+        }}
+        opened={deleteBreakModalOpened}
+        title="休憩を削除"
+      >
+        <Stack gap="md">
+          <Text>この休憩を削除しますか？</Text>
+          {selectedBreak && (
+            <Text c="dimmed" size="sm">
+              {formatTimeForInput(selectedBreak.pauseEvent.recordedAt)}
+              {selectedBreak.resumeEvent
+                ? ` - ${formatTimeForInput(selectedBreak.resumeEvent.recordedAt)}`
+                : ' - (継続中)'}
+            </Text>
+          )}
+          <Group justify="flex-end">
+            <Button
+              onClick={() => {
+                closeDeleteBreakModal()
+                setSelectedBreak(null)
+              }}
+              variant="subtle"
+            >
+              キャンセル
+            </Button>
+            <Button
+              color="red"
+              loading={deleteEvent.isPending}
+              onClick={handleBreakDeleteConfirm}
+            >
+              削除
             </Button>
           </Group>
         </Stack>

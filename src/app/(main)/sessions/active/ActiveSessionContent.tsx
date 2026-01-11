@@ -26,7 +26,7 @@ import {
   IconAlertCircle,
   IconChartLine,
   IconClock,
-  IconCoin,
+  IconCoins,
   IconHistory,
   IconLogout,
   IconPlayerPause,
@@ -252,10 +252,10 @@ export function ActiveSessionContent({
    * Handle stack update.
    */
   const handleUpdateStack = () => {
-    if (!session || stackAmount === null) return
+    if (!session) return
     updateStack.mutate({
       sessionId: session.id,
-      amount: stackAmount,
+      amount: stackAmount ?? session.currentStack,
     })
   }
 
@@ -644,7 +644,7 @@ export function ActiveSessionContent({
                   <NumberInput
                     flex={1}
                     hideControls
-                    leftSection={<IconCoin size={16} />}
+                    leftSection={<IconCoins size={16} />}
                     min={0}
                     onChange={(val) =>
                       setStackAmount(typeof val === 'number' ? val : null)
@@ -660,7 +660,7 @@ export function ActiveSessionContent({
                     h={buttonHeight}
                     loading={updateStack.isPending}
                     onClick={handleUpdateStack}
-                    variant="filled"
+                    variant="light"
                   >
                     更新
                   </Button>
