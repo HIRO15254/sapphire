@@ -566,7 +566,7 @@ export function ActiveSessionContent({
                     size="md"
                     styles={{ input: { height: buttonHeight } }}
                     thousandSeparator=","
-                    value={stackAmount ?? ''}
+                    value={stackAmount ?? session.currentStack}
                   />
                   <Button
                     disabled={stackAmount === null || sessionIsPaused}
