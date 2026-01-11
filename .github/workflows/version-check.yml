@@ -3,6 +3,8 @@ name: Version Check
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -12,7 +14,7 @@ jobs:
       - name: Checkout with history
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # Need previous commit to compare versions
+          fetch-depth: 0  # Full history for comparing with main branch
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -25,8 +27,17 @@ jobs:
           CURRENT_VERSION=$(jq -r '.version' package.json)
           echo "Current version: $CURRENT_VERSION"
 
-          # Get previous version from the parent commit
-          PREVIOUS_VERSION=$(git show HEAD^:package.json 2>/dev/null | jq -r '.version' 2>/dev/null || echo "0.0.0")
+          # Get base version to compare against
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # For PRs: compare with the target branch (main)
+            git fetch origin main
+            PREVIOUS_VERSION=$(git show origin/main:package.json 2>/dev/null | jq -r '.version' 2>/dev/null || echo "0.0.0")
+            echo "Comparing with main branch"
+          else
+            # For push to main: compare with the parent commit
+            PREVIOUS_VERSION=$(git show HEAD^:package.json 2>/dev/null | jq -r '.version' 2>/dev/null || echo "0.0.0")
+            echo "Comparing with parent commit"
+          fi
           echo "Previous version: $PREVIOUS_VERSION"
 
           # Compare versions using semver logic
