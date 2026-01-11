@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "node scripts/generate-version.js",
     "build": "bun run db:migrate && next build",
     "check": "biome check .",
     "check:unsafe": "biome check --write --unsafe .",
