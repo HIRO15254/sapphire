@@ -762,6 +762,7 @@ export function ActiveSessionContent({
             blur={2}
             center
             radius="md"
+            zIndex={100}
           >
             <Stack align="center" gap="sm">
               <IconPlayerPause size={32} color="white" />
@@ -795,6 +796,7 @@ export function ActiveSessionContent({
             blur={2}
             center
             radius="md"
+            zIndex={100}
           >
             <Text c="white" fw={500} size="sm">休憩中</Text>
           </Overlay>
