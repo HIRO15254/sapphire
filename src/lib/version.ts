@@ -2,10 +2,16 @@
  * Version checking utilities for PWA update detection
  */
 
+export interface ChangelogEntry {
+  version: string
+  date: string | null
+  content: string
+}
+
 export interface VersionInfo {
   version: string
   buildTime: string
-  changelog: string
+  changelogs: ChangelogEntry[]
 }
 
 const STORAGE_KEY = 'sapphire-app-version'
@@ -71,4 +77,16 @@ export function isNewerVersion(
   }
 
   return false
+}
+
+/**
+ * Filter changelogs to only include versions newer than the stored version
+ */
+export function getNewChangelogs(
+  changelogs: ChangelogEntry[],
+  storedVersion: string
+): ChangelogEntry[] {
+  return changelogs.filter((entry) =>
+    isNewerVersion(storedVersion, entry.version)
+  )
 }

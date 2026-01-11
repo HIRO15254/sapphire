@@ -2,8 +2,10 @@
 
 import {
   Button,
+  Divider,
   Group,
   Modal,
+  ScrollArea,
   Stack,
   Text,
   Title,
@@ -11,26 +13,29 @@ import {
 } from '@mantine/core'
 import { IconRefresh } from '@tabler/icons-react'
 
-import type { VersionInfo } from '~/lib/version'
+import type { ChangelogEntry } from '~/lib/version'
 
 interface UpdateNotificationModalProps {
   opened: boolean
   onClose: () => void
-  versionInfo: VersionInfo | null
+  latestVersion: string
+  changelogs: ChangelogEntry[]
   onUpdate: () => void
 }
 
 /**
  * Modal component for displaying PWA update notifications.
  * Shows version number and changelog content in Japanese.
+ * Supports displaying multiple version changelogs when user has missed updates.
  */
 export function UpdateNotificationModal({
   opened,
   onClose,
-  versionInfo,
+  latestVersion,
+  changelogs,
   onUpdate,
 }: UpdateNotificationModalProps) {
-  if (!versionInfo) return null
+  if (changelogs.length === 0) return null
 
   return (
     <Modal
@@ -47,25 +52,41 @@ export function UpdateNotificationModal({
     >
       <Stack>
         <Title order={4}>
-          バージョン {versionInfo.version} が利用可能です
+          バージョン {latestVersion} が利用可能です
         </Title>
 
-        {versionInfo.changelog && (
-          <Stack gap="xs">
-            <Text c="dimmed" fw={500} size="sm">
-              更新内容:
-            </Text>
-            <TypographyStylesProvider>
-              <div
-                // Convert markdown-style changelog to simple HTML
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: Safe - content is from our CHANGELOG.md
-                dangerouslySetInnerHTML={{
-                  __html: formatChangelog(versionInfo.changelog),
-                }}
-              />
-            </TypographyStylesProvider>
+        <Text c="dimmed" fw={500} size="sm">
+          更新内容:
+        </Text>
+
+        <ScrollArea.Autosize mah={300}>
+          <Stack gap="md">
+            {changelogs.map((entry, index) => (
+              <Stack key={entry.version} gap="xs">
+                {/* Show version header for multiple changelogs */}
+                {changelogs.length > 1 && (
+                  <Text fw={600} size="sm">
+                    v{entry.version}
+                    {entry.date && (
+                      <Text c="dimmed" component="span" ml="xs" size="xs">
+                        ({entry.date})
+                      </Text>
+                    )}
+                  </Text>
+                )}
+                <TypographyStylesProvider>
+                  <div
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: Safe - content is from our CHANGELOG.md
+                    dangerouslySetInnerHTML={{
+                      __html: formatChangelog(entry.content),
+                    }}
+                  />
+                </TypographyStylesProvider>
+                {index < changelogs.length - 1 && <Divider />}
+              </Stack>
+            ))}
           </Stack>
-        )}
+        </ScrollArea.Autosize>
 
         <Group justify="flex-end" mt="md">
           <Button onClick={onClose} variant="subtle">

@@ -11,33 +11,47 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.join(__dirname, '..')
 
 /**
- * Extract the latest changelog section from CHANGELOG.md
+ * Extract all changelog entries from CHANGELOG.md
+ * Returns an array of { version, date, content } objects
  */
-function extractLatestChangelog(changelogContent) {
-  // Match the first version section (## [x.x.x] - date or ## [x.x.x])
-  // and capture everything until the next version section or end of file
+function extractAllChangelogs(changelogContent) {
   const lines = changelogContent.split('\n')
-  let capturing = false
-  const result = []
+  const entries = []
+  let currentEntry = null
 
   for (const line of lines) {
-    // Check if this is a version header line
-    if (line.match(/^## \[\d+\.\d+\.\d+\]/)) {
-      if (capturing) {
-        // We hit the next version, stop capturing
-        break
+    // Check if this is a version header line: ## [x.x.x] - date or ## [x.x.x]
+    const versionMatch = line.match(/^## \[(\d+\.\d+\.\d+)\](?:\s*-\s*(.+))?/)
+
+    if (versionMatch) {
+      // Save the previous entry if exists
+      if (currentEntry) {
+        currentEntry.content = currentEntry.content.trim()
+        entries.push(currentEntry)
       }
-      // Start capturing after this header
-      capturing = true
+
+      // Start a new entry
+      currentEntry = {
+        version: versionMatch[1],
+        date: versionMatch[2]?.trim() || null,
+        content: '',
+      }
       continue
     }
 
-    if (capturing) {
-      result.push(line)
+    // Add line to current entry
+    if (currentEntry) {
+      currentEntry.content += line + '\n'
     }
   }
 
-  return result.join('\n').trim()
+  // Don't forget the last entry
+  if (currentEntry) {
+    currentEntry.content = currentEntry.content.trim()
+    entries.push(currentEntry)
+  }
+
+  return entries
 }
 
 function main() {
@@ -48,18 +62,18 @@ function main() {
 
   // Read CHANGELOG.md
   const changelogPath = path.join(rootDir, 'CHANGELOG.md')
-  let changelog = ''
+  let changelogs = []
 
   if (fs.existsSync(changelogPath)) {
     const changelogContent = fs.readFileSync(changelogPath, 'utf-8')
-    changelog = extractLatestChangelog(changelogContent)
+    changelogs = extractAllChangelogs(changelogContent)
   }
 
   // Generate version.json
   const versionInfo = {
     version,
     buildTime: new Date().toISOString(),
-    changelog,
+    changelogs,
   }
 
   // Ensure public directory exists
@@ -73,9 +87,7 @@ function main() {
 
   console.log(`Generated version.json: v${version}`)
   console.log(`Build time: ${versionInfo.buildTime}`)
-  if (changelog) {
-    console.log(`Changelog entries: ${changelog.split('\n').length} lines`)
-  }
+  console.log(`Changelog entries: ${changelogs.length} versions`)
 }
 
 main()

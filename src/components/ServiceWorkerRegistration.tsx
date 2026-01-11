@@ -4,12 +4,13 @@ import { useDisclosure } from '@mantine/hooks'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
+  type ChangelogEntry,
   fetchVersionInfo,
+  getNewChangelogs,
   getStoredVersion,
   isNewerVersion,
   storeVersion,
   VERSION_CHECK_INTERVAL,
-  type VersionInfo,
 } from '~/lib/version'
 import { UpdateNotificationModal } from './UpdateNotificationModal'
 
@@ -24,8 +25,10 @@ export function ServiceWorkerRegistration() {
     updateModalOpened,
     { open: openUpdateModal, close: closeUpdateModal },
   ] = useDisclosure(false)
-  const [pendingVersionInfo, setPendingVersionInfo] =
-    useState<VersionInfo | null>(null)
+  const [latestVersion, setLatestVersion] = useState<string>('')
+  const [pendingChangelogs, setPendingChangelogs] = useState<ChangelogEntry[]>(
+    []
+  )
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null)
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -46,7 +49,14 @@ export function ServiceWorkerRegistration() {
 
     // Check if there's a newer version
     if (isNewerVersion(storedVersion, versionInfo.version)) {
-      setPendingVersionInfo(versionInfo)
+      // Get all changelogs between stored version and current version
+      const newChangelogs = getNewChangelogs(
+        versionInfo.changelogs,
+        storedVersion
+      )
+
+      setLatestVersion(versionInfo.version)
+      setPendingChangelogs(newChangelogs)
       openUpdateModal()
     }
   }, [openUpdateModal])
@@ -56,8 +66,8 @@ export function ServiceWorkerRegistration() {
    */
   const handleUpdate = useCallback(() => {
     // Store the new version
-    if (pendingVersionInfo) {
-      storeVersion(pendingVersionInfo.version)
+    if (latestVersion) {
+      storeVersion(latestVersion)
     }
 
     // Close the modal
@@ -71,18 +81,18 @@ export function ServiceWorkerRegistration() {
 
     // Reload the page to get the new version
     window.location.reload()
-  }, [pendingVersionInfo, closeUpdateModal])
+  }, [latestVersion, closeUpdateModal])
 
   /**
    * Handle "Later" action - store version to not show again
    */
   const handleDismiss = useCallback(() => {
     // Store version so we don't show the same notification again
-    if (pendingVersionInfo) {
-      storeVersion(pendingVersionInfo.version)
+    if (latestVersion) {
+      storeVersion(latestVersion)
     }
     closeUpdateModal()
-  }, [pendingVersionInfo, closeUpdateModal])
+  }, [latestVersion, closeUpdateModal])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -145,10 +155,11 @@ export function ServiceWorkerRegistration() {
 
   return (
     <UpdateNotificationModal
+      changelogs={pendingChangelogs}
+      latestVersion={latestVersion}
       onClose={handleDismiss}
       onUpdate={handleUpdate}
       opened={updateModalOpened}
-      versionInfo={pendingVersionInfo}
     />
   )
 }
