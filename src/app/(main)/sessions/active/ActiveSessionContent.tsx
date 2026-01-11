@@ -20,7 +20,7 @@ import {
 } from '@mantine/core'
 import { LineChart } from '@mantine/charts'
 import { TimeInput } from '@mantine/dates'
-import { useDisclosure } from '@mantine/hooks'
+import { useDisclosure, useElementSize } from '@mantine/hooks'
 import {
   IconAlertCircle,
   IconChartLine,
@@ -182,6 +182,11 @@ export function ActiveSessionContent({
 
   // Editing all-in record
   const [editingAllIn, setEditingAllIn] = useState<AllInRecord | null>(null)
+
+  // Measure content area to determine if we can show both chart and summary
+  const { ref: contentRef, height: contentHeight } = useElementSize()
+  // Show both when height is sufficient (chart ~120px + summary 2rows ~100px + gap)
+  const showBothViews = contentHeight >= 280
 
   /**
    * Get current time as HH:MM string.
@@ -512,63 +517,106 @@ export function ActiveSessionContent({
                       </Text>
                     )}
                   </Group>
-                  <SegmentedControl
-                    data={[
-                      { label: 'サマリー', value: 'summary' },
-                      { label: 'グラフ', value: 'chart' },
-                    ]}
-                    onChange={(value) => setSessionView(value as 'summary' | 'chart')}
-                    size="xs"
-                    value={sessionView}
-                  />
+                  {/* Hide toggle when both views are shown */}
+                  {!showBothViews && (
+                    <SegmentedControl
+                      data={[
+                        { label: 'サマリー', value: 'summary' },
+                        { label: 'グラフ', value: 'chart' },
+                      ]}
+                      onChange={(value) => setSessionView(value as 'summary' | 'chart')}
+                      size="xs"
+                      value={sessionView}
+                    />
+                  )}
                 </Group>
 
                 {/* Content area - grows to fill available space */}
-                <Box style={{ flex: 1, minHeight: 80 }}>
-                  {/* Summary View */}
-                  {sessionView === 'summary' && (
-                    <Stack h="100%" justify="center" gap="md">
-                      {/* Profit/Loss - prominent display */}
-                      <Stack align="center" gap={0}>
+                <Box ref={contentRef} style={{ flex: 1, minHeight: 80, display: 'flex', flexDirection: 'column', gap: 'var(--mantine-spacing-sm)' }}>
+                  {/* When enough space, show both chart and summary */}
+                  {showBothViews ? (
+                    <>
+                      {/* Chart - takes most of the space */}
+                      <Box style={{ flex: 1, minHeight: 100 }}>
+                        <ChartView session={session} />
+                      </Box>
+                      {/* Summary at bottom: profit on top, stats below */}
+                      <Stack gap="xs" style={{ flexShrink: 0 }}>
+                        {/* Profit/Loss - large, no label */}
                         <Text
                           c={profitLoss > 0 ? 'green' : profitLoss < 0 ? 'red' : 'dimmed'}
                           fw={700}
-                          size="2rem"
+                          size="1.5rem"
+                          ta="center"
                         >
                           {profitLoss >= 0 ? '+' : ''}
                           {profitLoss.toLocaleString()}
                         </Text>
+                        {/* Other stats in a row */}
+                        <SimpleGrid cols={3}>
+                          <Stack align="center" gap={0}>
+                            <Text c="dimmed" size="xs">Buy-in</Text>
+                            <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
+                          </Stack>
+                          <Stack align="center" gap={0}>
+                            <Text c="dimmed" size="xs">スタック</Text>
+                            <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
+                          </Stack>
+                          <Stack align="center" gap={0}>
+                            <Text c="dimmed" size="xs">経過</Text>
+                            <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
+                          </Stack>
+                        </SimpleGrid>
                       </Stack>
+                    </>
+                  ) : (
+                    <>
+                      {/* Summary View */}
+                      {sessionView === 'summary' && (
+                        <Stack h="100%" justify="center" gap="md">
+                          {/* Profit/Loss - prominent display */}
+                          <Stack align="center" gap={0}>
+                            <Text
+                              c={profitLoss > 0 ? 'green' : profitLoss < 0 ? 'red' : 'dimmed'}
+                              fw={700}
+                              size="2rem"
+                            >
+                              {profitLoss >= 0 ? '+' : ''}
+                              {profitLoss.toLocaleString()}
+                            </Text>
+                          </Stack>
 
-                      {/* Stats row */}
-                      <SimpleGrid cols={3}>
-                        <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">
-                            Buy-in
-                          </Text>
-                          <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
+                          {/* Stats row */}
+                          <SimpleGrid cols={3}>
+                            <Stack align="center" gap={0}>
+                              <Text c="dimmed" size="xs">
+                                Buy-in
+                              </Text>
+                              <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
+                            </Stack>
+                            <Stack align="center" gap={0}>
+                              <Text c="dimmed" size="xs">
+                                スタック
+                              </Text>
+                              <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
+                            </Stack>
+                            <Stack align="center" gap={0}>
+                              <Text c="dimmed" size="xs">
+                                経過
+                              </Text>
+                              <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
+                            </Stack>
+                          </SimpleGrid>
                         </Stack>
-                        <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">
-                            スタック
-                          </Text>
-                          <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
-                        </Stack>
-                        <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">
-                            経過
-                          </Text>
-                          <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
-                        </Stack>
-                      </SimpleGrid>
-                    </Stack>
-                  )}
+                      )}
 
-                  {/* Chart View */}
-                  {sessionView === 'chart' && (
-                    <Box h="100%">
-                      <ChartView session={session} />
-                    </Box>
+                      {/* Chart View */}
+                      {sessionView === 'chart' && (
+                        <Box h="100%">
+                          <ChartView session={session} />
+                        </Box>
+                      )}
+                    </>
                   )}
                 </Box>
               </Box>
@@ -898,8 +946,10 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
   const chartData: {
     elapsedMinutes: number
     handCount: number
-    profit: number
-    adjustedProfit: number
+    profit: number | null
+    adjustedProfit: number | null
+    profitProjected: number | null
+    adjustedProfitProjected: number | null
   }[] = []
 
   // First pass: calculate total buy-in at each point in time
@@ -956,6 +1006,8 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
     handCount: 0,
     profit: 0,
     adjustedProfit: 0,
+    profitProjected: null,
+    adjustedProfitProjected: null,
   })
 
   for (const event of session.sessionEvents) {
@@ -996,6 +1048,8 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
         handCount: cumulativeHandCount,
         profit,
         adjustedProfit: profit - luck,
+        profitProjected: null,
+        adjustedProfitProjected: null,
       })
     }
   }
@@ -1018,12 +1072,21 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
     return count
   }, 0)
 
-  if (chartData.length === 0 || chartData[chartData.length - 1]?.elapsedMinutes !== nowElapsed) {
+  // Add current point as projected (dotted line from last recorded point)
+  const lastRecordedPoint = chartData[chartData.length - 1]
+  if (lastRecordedPoint && lastRecordedPoint.elapsedMinutes !== nowElapsed) {
+    // Add projected values to the last recorded point (to connect the lines)
+    lastRecordedPoint.profitProjected = lastRecordedPoint.profit
+    lastRecordedPoint.adjustedProfitProjected = lastRecordedPoint.adjustedProfit
+
+    // Add current point with only projected values
     chartData.push({
       elapsedMinutes: nowElapsed,
       handCount: totalHandCount,
-      profit: currentProfit,
-      adjustedProfit: currentProfit - currentLuck,
+      profit: null,
+      adjustedProfit: null,
+      profitProjected: currentProfit,
+      adjustedProfitProjected: currentProfit - currentLuck,
     })
   }
 
@@ -1035,20 +1098,10 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
     )
   }
 
-  const formatElapsed = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hours === 0) return `${mins}分`
-    return `${hours}h${mins > 0 ? `${mins}m` : ''}`
-  }
-
-  const formatHands = (hands: number) => `${hands}H`
-
   const dataKey = xAxisMode === 'time' ? 'elapsedMinutes' : 'handCount'
-  const tickFormatter = xAxisMode === 'time' ? formatElapsed : formatHands
 
   return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingTop: 'var(--mantine-spacing-sm)', paddingBottom: 'var(--mantine-spacing-sm)' }}>
       <Group justify="flex-end" mb={4} style={{ flexShrink: 0 }}>
         <SegmentedControl
           data={[
@@ -1068,6 +1121,8 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
           series={[
             { name: 'profit', color: 'green.6', label: '収支' },
             { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整' },
+            { name: 'profitProjected', color: 'green.6', label: '収支（現在）', strokeDasharray: '5 5' },
+            { name: 'adjustedProfitProjected', color: 'orange.6', label: 'All-in調整（現在）', strokeDasharray: '5 5' },
           ]}
           curveType="linear"
           withDots
@@ -1079,7 +1134,7 @@ function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
           xAxisProps={{
             type: 'number',
             domain: [0, 'dataMax'],
-            tickFormatter,
+            tick: false,
           }}
         />
       </Box>
