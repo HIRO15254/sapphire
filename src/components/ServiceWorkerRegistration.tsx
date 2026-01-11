@@ -13,6 +13,9 @@ export function ServiceWorkerRegistration() {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
 
+    // Disable service worker in development
+    if (process.env.NODE_ENV === 'development') return
+
     // Register service worker
     const registerSW = async () => {
       try {
