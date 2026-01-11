@@ -11,6 +11,7 @@ import {
   Loader,
   Modal,
   NumberInput,
+  Overlay,
   SegmentedControl,
   SimpleGrid,
   Stack,
@@ -31,7 +32,6 @@ import {
   IconPlayerPlay,
   IconPlus,
   IconPokerChip,
-  IconRefresh,
   IconTarget,
   IconTrophy,
   IconUsers,
@@ -47,6 +47,8 @@ import { StartSessionForm } from './StartSessionForm'
 import { TablematesCard } from './TablematesCard'
 
 type ActiveSession = RouterOutputs['sessionEvent']['getActiveSession']
+
+type AllInRecord = NonNullable<ActiveSession>['allInRecords'][number]
 
 interface ActiveSessionContentProps {
   initialSession: ActiveSession
@@ -142,12 +144,22 @@ export function ActiveSessionContent({
     },
   })
 
-  // All-in mutation
+  // All-in mutations
   const createAllIn = api.allIn.create.useMutation({
     onSuccess: () => {
       void utils.sessionEvent.getActiveSession.invalidate()
       void refetch()
       closeAllInModal()
+      setEditingAllIn(null)
+    },
+  })
+
+  const updateAllIn = api.allIn.update.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      void refetch()
+      closeAllInModal()
+      setEditingAllIn(null)
     },
   })
 
@@ -167,6 +179,9 @@ export function ActiveSessionContent({
 
   // Toggle between summary and chart view in session tab
   const [sessionView, setSessionView] = useState<'summary' | 'chart'>('summary')
+
+  // Editing all-in record
+  const [editingAllIn, setEditingAllIn] = useState<AllInRecord | null>(null)
 
   /**
    * Get current time as HH:MM string.
@@ -280,15 +295,35 @@ export function ActiveSessionContent({
     // Parse recordedAt time
     const recordedAt = values.recordedAt ? parseTimeToDate(values.recordedAt) : undefined
 
-    createAllIn.mutate({
-      sessionId: session.id,
-      potAmount: values.potAmount,
-      winProbability,
-      actualResult,
-      runItTimes: values.useRunIt ? values.runItTimes : null,
-      winsInRunout: values.useRunIt ? values.winsInRunout : null,
-      recordedAt,
-    })
+    if (editingAllIn) {
+      // Update existing all-in record
+      updateAllIn.mutate({
+        id: editingAllIn.id,
+        potAmount: values.potAmount,
+        winProbability,
+        actualResult,
+        recordedAt,
+      })
+    } else {
+      // Create new all-in record
+      createAllIn.mutate({
+        sessionId: session.id,
+        potAmount: values.potAmount,
+        winProbability,
+        actualResult,
+        runItTimes: values.useRunIt ? values.runItTimes : null,
+        winsInRunout: values.useRunIt ? values.winsInRunout : null,
+        recordedAt,
+      })
+    }
+  }
+
+  /**
+   * Handle edit all-in record from timeline.
+   */
+  const handleEditAllIn = (allIn: AllInRecord) => {
+    setEditingAllIn(allIn)
+    openAllInModal()
   }
 
   /**
@@ -402,7 +437,7 @@ export function ActiveSessionContent({
       </style>
 
       {/* Main Card - 3 Tabs */}
-      <Card p="sm" radius="md" shadow="sm" withBorder style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <Card p="sm" radius="md" shadow="sm" withBorder style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         <Tabs value={activeTab} onChange={(v) => setActiveTab(v ?? 'session')} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Tabs.List>
             <Tabs.Tab value="session" leftSection={<IconChartLine size={14} />}>
@@ -477,26 +512,15 @@ export function ActiveSessionContent({
                       </Text>
                     )}
                   </Group>
-                  <Group gap="xs">
-                    <SegmentedControl
-                      data={[
-                        { label: 'サマリー', value: 'summary' },
-                        { label: 'グラフ', value: 'chart' },
-                      ]}
-                      onChange={(value) => setSessionView(value as 'summary' | 'chart')}
-                      size="xs"
-                      value={sessionView}
-                    />
-                    <Button
-                      leftSection={<IconRefresh size={14} />}
-                      onClick={() => refetch()}
-                      variant="subtle"
-                      size="xs"
-                      px="xs"
-                    >
-                      更新
-                    </Button>
-                  </Group>
+                  <SegmentedControl
+                    data={[
+                      { label: 'サマリー', value: 'summary' },
+                      { label: 'グラフ', value: 'chart' },
+                    ]}
+                    onChange={(value) => setSessionView(value as 'summary' | 'chart')}
+                    size="xs"
+                    value={sessionView}
+                  />
                 </Group>
 
                 {/* Content area - grows to fill available space */}
@@ -554,7 +578,6 @@ export function ActiveSessionContent({
                 {/* Row 1: Stack form with inline update button */}
                 <Group gap="xs">
                   <NumberInput
-                    disabled={sessionIsPaused}
                     flex={1}
                     hideControls
                     leftSection={<IconCoin size={16} />}
@@ -569,7 +592,7 @@ export function ActiveSessionContent({
                     value={stackAmount ?? session.currentStack}
                   />
                   <Button
-                    disabled={stackAmount === null || sessionIsPaused}
+                    disabled={stackAmount === null}
                     h={buttonHeight}
                     loading={updateStack.isPending}
                     onClick={handleUpdateStack}
@@ -585,7 +608,6 @@ export function ActiveSessionContent({
                     <>
                       <Button
                         color="orange"
-                        disabled={sessionIsPaused}
                         h={buttonHeight}
                         leftSection={<IconPlus size={16} />}
                         onClick={openRebuyModal}
@@ -595,7 +617,6 @@ export function ActiveSessionContent({
                       </Button>
                       <Button
                         color="pink"
-                        disabled={sessionIsPaused}
                         h={buttonHeight}
                         leftSection={<IconTarget size={16} />}
                         onClick={openAllInModal}
@@ -609,7 +630,6 @@ export function ActiveSessionContent({
                     <>
                       <Button
                         color="orange"
-                        disabled={sessionIsPaused}
                         h={buttonHeight}
                         leftSection={<IconPlus size={16} />}
                         onClick={openRebuyModal}
@@ -619,7 +639,6 @@ export function ActiveSessionContent({
                       </Button>
                       <Button
                         color="teal"
-                        disabled={sessionIsPaused}
                         h={buttonHeight}
                         leftSection={<IconPlus size={16} />}
                         onClick={openAddonModal}
@@ -631,34 +650,20 @@ export function ActiveSessionContent({
                   )}
                 </SimpleGrid>
 
-                {/* Row 3: Pause/Resume and Cash-out buttons */}
+                {/* Row 3: Pause and Cash-out buttons */}
                 <SimpleGrid cols={2}>
-                  {sessionIsPaused ? (
-                    <Button
-                      color="green"
-                      h={buttonHeight}
-                      leftSection={<IconPlayerPlay size={16} />}
-                      loading={resumeSession.isPending}
-                      onClick={handleResumeSession}
-                      variant="light"
-                    >
-                      再開
-                    </Button>
-                  ) : (
-                    <Button
-                      color="gray"
-                      h={buttonHeight}
-                      leftSection={<IconPlayerPause size={16} />}
-                      loading={pauseSession.isPending}
-                      onClick={handlePauseSession}
-                      variant="light"
-                    >
-                      一時停止
-                    </Button>
-                  )}
+                  <Button
+                    color="gray"
+                    h={buttonHeight}
+                    leftSection={<IconPlayerPause size={16} />}
+                    loading={pauseSession.isPending}
+                    onClick={handlePauseSession}
+                    variant="light"
+                  >
+                    一時停止
+                  </Button>
                   <Button
                     color="red"
-                    disabled={sessionIsPaused}
                     h={buttonHeight}
                     leftSection={<IconLogout size={16} />}
                     onClick={handleOpenEndModal}
@@ -676,19 +681,61 @@ export function ActiveSessionContent({
           </Tabs.Panel>
 
           {/* Tab 3: History */}
-          <Tabs.Panel value="history" pt="sm" style={{ flex: 1, overflow: 'auto' }}>
-            <SessionEventTimeline events={session.sessionEvents} />
+          <Tabs.Panel value="history" pt="sm" style={{ flex: 1, overflow: 'hidden' }}>
+            <SessionEventTimeline
+              events={session.sessionEvents}
+              allInRecords={session.allInRecords}
+              onEditAllIn={handleEditAllIn}
+            />
           </Tabs.Panel>
         </Tabs>
+
+        {/* Pause overlay for card */}
+        {sessionIsPaused && (
+          <Overlay
+            color="dark"
+            backgroundOpacity={0.6}
+            blur={2}
+            center
+            radius="md"
+          >
+            <Stack align="center" gap="sm">
+              <IconPlayerPause size={32} color="white" />
+              <Text c="white" fw={500}>休憩中</Text>
+              <Button
+                color="green"
+                leftSection={<IconPlayerPlay size={16} />}
+                loading={resumeSession.isPending}
+                onClick={handleResumeSession}
+                variant="light"
+              >
+                再開
+              </Button>
+            </Stack>
+          </Overlay>
+        )}
       </Card>
 
       {/* Hand Counter Card - Fixed at bottom */}
-      <HandCounterCard
-        sessionId={session.id}
-        handCount={handCount}
-        lastHandInfo={session.lastHandInfo}
-        tablematesCount={tablematesData?.tablemates.length ?? 0}
-      />
+      <Box style={{ position: 'relative' }}>
+        <HandCounterCard
+          sessionId={session.id}
+          handCount={handCount}
+          lastHandInfo={session.lastHandInfo}
+          tablematesCount={tablematesData?.tablemates.length ?? 0}
+        />
+        {sessionIsPaused && (
+          <Overlay
+            color="dark"
+            backgroundOpacity={0.6}
+            blur={2}
+            center
+            radius="md"
+          >
+            <Text c="white" fw={500} size="sm">休憩中</Text>
+          </Overlay>
+        )}
+      </Box>
 
       {/* Rebuy / Buy-in Addition Modal */}
       <Modal
@@ -772,10 +819,13 @@ export function ActiveSessionContent({
 
       {/* All-in Record Modal */}
       <AllInModal
-        editingAllIn={null}
-        isLoading={createAllIn.isPending}
+        editingAllIn={editingAllIn}
+        isLoading={createAllIn.isPending || updateAllIn.isPending}
         minTime={minTime}
-        onClose={closeAllInModal}
+        onClose={() => {
+          closeAllInModal()
+          setEditingAllIn(null)
+        }}
         onSubmit={handleAllInSubmit}
         opened={allInModalOpened}
       />
