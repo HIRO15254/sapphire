@@ -74,7 +74,7 @@ export function AppShell({ children }: AppShellProps) {
         breakpoint: 'sm',
         collapsed: { mobile: !opened },
       }}
-      padding="md"
+      padding={{ base: 'xs', sm: 'md' }}
     >
       <MantineAppShell.Header>
         <Group h="100%" justify="space-between" px="md">

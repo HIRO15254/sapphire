@@ -50,3 +50,6 @@ yarn-error.log*
 
 # react-cosmos
 cosmos.imports.js
+
+# generated version info
+public/version.json

@@ -7,31 +7,31 @@ import {
   Button,
   Card,
   Container,
+  Divider,
   Group,
   Loader,
   Modal,
   NumberInput,
+  Overlay,
   SegmentedControl,
   SimpleGrid,
   Stack,
   Tabs,
   Text,
 } from '@mantine/core'
-import { LineChart } from '@mantine/charts'
 import { TimeInput } from '@mantine/dates'
-import { useDisclosure } from '@mantine/hooks'
+import { useDisclosure, useElementSize } from '@mantine/hooks'
 import {
   IconAlertCircle,
   IconChartLine,
   IconClock,
-  IconCoin,
+  IconCoins,
   IconHistory,
   IconLogout,
   IconPlayerPause,
   IconPlayerPlay,
   IconPlus,
   IconPokerChip,
-  IconRefresh,
   IconTarget,
   IconTrophy,
   IconUsers,
@@ -40,13 +40,19 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
+import {
+  SessionEventTimeline,
+  type TimelineAllInRecord,
+} from '~/components/sessions/SessionEventTimeline'
+import { SessionProfitChart } from '~/components/sessions/SessionProfitChart'
 import { type AllInFormValues, AllInModal } from '../[id]/AllInModal'
 import { HandCounterCard } from './HandCounterCard'
-import { SessionEventTimeline } from './SessionEventTimeline'
 import { StartSessionForm } from './StartSessionForm'
 import { TablematesCard } from './TablematesCard'
 
 type ActiveSession = RouterOutputs['sessionEvent']['getActiveSession']
+
+type AllInRecord = NonNullable<ActiveSession>['allInRecords'][number]
 
 interface ActiveSessionContentProps {
   initialSession: ActiveSession
@@ -85,6 +91,12 @@ export function ActiveSessionContent({
     initialData: initialSession,
     refetchInterval: 30000, // Refresh every 30 seconds
   })
+
+  // Query tablemates for hand counter player count
+  const { data: tablematesData } = api.sessionTablemate.list.useQuery(
+    { sessionId: initialSession?.id ?? '' },
+    { enabled: !!initialSession?.id },
+  )
 
   // Mutations
   const endSession = api.sessionEvent.endSession.useMutation({
@@ -136,12 +148,22 @@ export function ActiveSessionContent({
     },
   })
 
-  // All-in mutation
+  // All-in mutations
   const createAllIn = api.allIn.create.useMutation({
     onSuccess: () => {
       void utils.sessionEvent.getActiveSession.invalidate()
       void refetch()
       closeAllInModal()
+      setEditingAllIn(null)
+    },
+  })
+
+  const updateAllIn = api.allIn.update.useMutation({
+    onSuccess: () => {
+      void utils.sessionEvent.getActiveSession.invalidate()
+      void refetch()
+      closeAllInModal()
+      setEditingAllIn(null)
     },
   })
 
@@ -161,6 +183,14 @@ export function ActiveSessionContent({
 
   // Toggle between summary and chart view in session tab
   const [sessionView, setSessionView] = useState<'summary' | 'chart'>('summary')
+
+  // Editing all-in record
+  const [editingAllIn, setEditingAllIn] = useState<AllInRecord | null>(null)
+
+  // Measure content area to determine if we can show both chart and summary
+  const { ref: contentRef, height: contentHeight } = useElementSize()
+  // Show both when height is sufficient (chart ~120px + summary 2rows ~100px + gap)
+  const showBothViews = contentHeight >= 280
 
   /**
    * Get current time as HH:MM string.
@@ -225,10 +255,10 @@ export function ActiveSessionContent({
    * Handle stack update.
    */
   const handleUpdateStack = () => {
-    if (!session || stackAmount === null) return
+    if (!session) return
     updateStack.mutate({
       sessionId: session.id,
-      amount: stackAmount,
+      amount: stackAmount ?? session.currentStack,
     })
   }
 
@@ -274,15 +304,39 @@ export function ActiveSessionContent({
     // Parse recordedAt time
     const recordedAt = values.recordedAt ? parseTimeToDate(values.recordedAt) : undefined
 
-    createAllIn.mutate({
-      sessionId: session.id,
-      potAmount: values.potAmount,
-      winProbability,
-      actualResult,
-      runItTimes: values.useRunIt ? values.runItTimes : null,
-      winsInRunout: values.useRunIt ? values.winsInRunout : null,
-      recordedAt,
-    })
+    if (editingAllIn) {
+      // Update existing all-in record
+      updateAllIn.mutate({
+        id: editingAllIn.id,
+        potAmount: values.potAmount,
+        winProbability,
+        actualResult,
+        recordedAt,
+      })
+    } else {
+      // Create new all-in record
+      createAllIn.mutate({
+        sessionId: session.id,
+        potAmount: values.potAmount,
+        winProbability,
+        actualResult,
+        runItTimes: values.useRunIt ? values.runItTimes : null,
+        winsInRunout: values.useRunIt ? values.winsInRunout : null,
+        recordedAt,
+      })
+    }
+  }
+
+  /**
+   * Handle edit all-in record from timeline.
+   */
+  const handleEditAllIn = (timelineAllIn: TimelineAllInRecord) => {
+    // Find the full record from session data
+    const fullRecord = session?.allInRecords.find((r) => r.id === timelineAllIn.id)
+    if (fullRecord) {
+      setEditingAllIn(fullRecord)
+      openAllInModal()
+    }
   }
 
   /**
@@ -330,6 +384,18 @@ export function ActiveSessionContent({
   const sessionIsPaused = session.isPaused
   const isCashGame = session.gameType === 'cash'
   const isTournament = session.gameType === 'tournament'
+
+  // Get pause start time (most recent session_pause event)
+  const pauseStartTime = sessionIsPaused
+    ? (() => {
+        const pauseEvent = [...session.sessionEvents]
+          .reverse()
+          .find((e) => e.eventType === 'session_pause')
+        if (!pauseEvent) return null
+        const date = new Date(pauseEvent.recordedAt)
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+      })()
+    : null
 
   // Calculate profit/loss
   const profitLoss = session.currentStack - session.buyIn
@@ -396,7 +462,7 @@ export function ActiveSessionContent({
       </style>
 
       {/* Main Card - 3 Tabs */}
-      <Card p="sm" radius="md" shadow="sm" withBorder style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <Card p="sm" radius="md" shadow="sm" withBorder style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         <Tabs value={activeTab} onChange={(v) => setActiveTab(v ?? 'session')} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Tabs.List>
             <Tabs.Tab value="session" leftSection={<IconChartLine size={14} />}>
@@ -471,7 +537,8 @@ export function ActiveSessionContent({
                       </Text>
                     )}
                   </Group>
-                  <Group gap="xs">
+                  {/* Hide toggle when both views are shown */}
+                  {!showBothViews && (
                     <SegmentedControl
                       data={[
                         { label: 'サマリー', value: 'summary' },
@@ -481,77 +548,124 @@ export function ActiveSessionContent({
                       size="xs"
                       value={sessionView}
                     />
-                    <Button
-                      leftSection={<IconRefresh size={14} />}
-                      onClick={() => refetch()}
-                      variant="subtle"
-                      size="xs"
-                      px="xs"
-                    >
-                      更新
-                    </Button>
-                  </Group>
+                  )}
                 </Group>
 
                 {/* Content area - grows to fill available space */}
-                <Box style={{ flex: 1, minHeight: 80 }}>
-                  {/* Summary View */}
-                  {sessionView === 'summary' && (
-                    <Stack h="100%" justify="center" gap="md">
-                      {/* Profit/Loss - prominent display */}
-                      <Stack align="center" gap={0}>
+                <Box ref={contentRef} style={{ flex: 1, minHeight: 80, display: 'flex', flexDirection: 'column' }}>
+                  {/* When enough space, show both chart and summary */}
+                  {showBothViews ? (
+                    <>
+                      {/* Chart - takes most of the space */}
+                      <Box style={{ flex: 1, minHeight: 100 }}>
+                        <SessionProfitChart
+                          sessionEvents={session.sessionEvents}
+                          allInRecords={session.allInRecords}
+                          buyIn={session.buyIn}
+                          currentStack={session.currentStack}
+                          enableHandsMode
+                          bigBlind={session.cashGame?.bigBlind}
+                        />
+                      </Box>
+                      <Divider my="xs" />
+                      {/* Summary at bottom: profit on top, stats below */}
+                      <Stack gap="xs" style={{ flexShrink: 0 }}>
+                        {/* Profit/Loss - large, no label */}
                         <Text
                           c={profitLoss > 0 ? 'green' : profitLoss < 0 ? 'red' : 'dimmed'}
                           fw={700}
-                          size="2rem"
+                          size="1.5rem"
+                          ta="center"
                         >
                           {profitLoss >= 0 ? '+' : ''}
                           {profitLoss.toLocaleString()}
                         </Text>
+                        {/* Other stats in a row */}
+                        <SimpleGrid cols={3}>
+                          <Stack align="center" gap={0}>
+                            <Text c="dimmed" size="xs">Buy-in</Text>
+                            <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
+                          </Stack>
+                          <Stack align="center" gap={0}>
+                            <Text c="dimmed" size="xs">スタック</Text>
+                            <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
+                          </Stack>
+                          <Stack align="center" gap={0}>
+                            <Text c="dimmed" size="xs">経過</Text>
+                            <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
+                          </Stack>
+                        </SimpleGrid>
                       </Stack>
+                    </>
+                  ) : (
+                    <>
+                      {/* Summary View */}
+                      {sessionView === 'summary' && (
+                        <Stack h="100%" justify="center" gap="md">
+                          {/* Profit/Loss - prominent display */}
+                          <Stack align="center" gap={0}>
+                            <Text
+                              c={profitLoss > 0 ? 'green' : profitLoss < 0 ? 'red' : 'dimmed'}
+                              fw={700}
+                              size="2rem"
+                            >
+                              {profitLoss >= 0 ? '+' : ''}
+                              {profitLoss.toLocaleString()}
+                            </Text>
+                          </Stack>
 
-                      {/* Stats row */}
-                      <SimpleGrid cols={3}>
-                        <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">
-                            Buy-in
-                          </Text>
-                          <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
+                          {/* Stats row */}
+                          <SimpleGrid cols={3}>
+                            <Stack align="center" gap={0}>
+                              <Text c="dimmed" size="xs">
+                                Buy-in
+                              </Text>
+                              <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
+                            </Stack>
+                            <Stack align="center" gap={0}>
+                              <Text c="dimmed" size="xs">
+                                スタック
+                              </Text>
+                              <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
+                            </Stack>
+                            <Stack align="center" gap={0}>
+                              <Text c="dimmed" size="xs">
+                                経過
+                              </Text>
+                              <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
+                            </Stack>
+                          </SimpleGrid>
                         </Stack>
-                        <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">
-                            スタック
-                          </Text>
-                          <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
-                        </Stack>
-                        <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">
-                            経過
-                          </Text>
-                          <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
-                        </Stack>
-                      </SimpleGrid>
-                    </Stack>
-                  )}
+                      )}
 
-                  {/* Chart View */}
-                  {sessionView === 'chart' && (
-                    <Box h="100%">
-                      <ChartView session={session} />
-                    </Box>
+                      {/* Chart View */}
+                      {sessionView === 'chart' && (
+                        <Box h="100%">
+                          <SessionProfitChart
+                            sessionEvents={session.sessionEvents}
+                            allInRecords={session.allInRecords}
+                            buyIn={session.buyIn}
+                            currentStack={session.currentStack}
+                            enableHandsMode
+                            bigBlind={session.cashGame?.bigBlind}
+                          />
+                        </Box>
+                      )}
+                    </>
                   )}
                 </Box>
               </Box>
 
+              <Divider my="sm" />
+
               {/* Actions Section - fixed at bottom */}
-              <Stack gap="sm" mt="md" style={{ flexShrink: 0 }}>
+              <Stack gap="sm" style={{ flexShrink: 0 }}>
                 {/* Row 1: Stack form with inline update button */}
                 <Group gap="xs">
                   <NumberInput
-                    disabled={sessionIsPaused}
                     flex={1}
                     hideControls
-                    leftSection={<IconCoin size={16} />}
+                    leftSection={<IconCoins size={16} />}
                     min={0}
                     onChange={(val) =>
                       setStackAmount(typeof val === 'number' ? val : null)
@@ -560,14 +674,14 @@ export function ActiveSessionContent({
                     size="md"
                     styles={{ input: { height: buttonHeight } }}
                     thousandSeparator=","
-                    value={stackAmount ?? ''}
+                    value={stackAmount ?? session.currentStack}
                   />
                   <Button
-                    disabled={stackAmount === null || sessionIsPaused}
+                    disabled={stackAmount === null}
                     h={buttonHeight}
                     loading={updateStack.isPending}
                     onClick={handleUpdateStack}
-                    variant="filled"
+                    variant="light"
                   >
                     更新
                   </Button>
@@ -579,7 +693,6 @@ export function ActiveSessionContent({
                     <>
                       <Button
                         color="orange"
-                        disabled={sessionIsPaused}
                         h={buttonHeight}
                         leftSection={<IconPlus size={16} />}
                         onClick={openRebuyModal}
@@ -589,7 +702,6 @@ export function ActiveSessionContent({
                       </Button>
                       <Button
                         color="pink"
-                        disabled={sessionIsPaused}
                         h={buttonHeight}
                         leftSection={<IconTarget size={16} />}
                         onClick={openAllInModal}
@@ -603,7 +715,6 @@ export function ActiveSessionContent({
                     <>
                       <Button
                         color="orange"
-                        disabled={sessionIsPaused}
                         h={buttonHeight}
                         leftSection={<IconPlus size={16} />}
                         onClick={openRebuyModal}
@@ -613,7 +724,6 @@ export function ActiveSessionContent({
                       </Button>
                       <Button
                         color="teal"
-                        disabled={sessionIsPaused}
                         h={buttonHeight}
                         leftSection={<IconPlus size={16} />}
                         onClick={openAddonModal}
@@ -625,34 +735,20 @@ export function ActiveSessionContent({
                   )}
                 </SimpleGrid>
 
-                {/* Row 3: Pause/Resume and Cash-out buttons */}
+                {/* Row 3: Pause and Cash-out buttons */}
                 <SimpleGrid cols={2}>
-                  {sessionIsPaused ? (
-                    <Button
-                      color="green"
-                      h={buttonHeight}
-                      leftSection={<IconPlayerPlay size={16} />}
-                      loading={resumeSession.isPending}
-                      onClick={handleResumeSession}
-                      variant="light"
-                    >
-                      再開
-                    </Button>
-                  ) : (
-                    <Button
-                      color="gray"
-                      h={buttonHeight}
-                      leftSection={<IconPlayerPause size={16} />}
-                      loading={pauseSession.isPending}
-                      onClick={handlePauseSession}
-                      variant="light"
-                    >
-                      一時停止
-                    </Button>
-                  )}
+                  <Button
+                    color="gray"
+                    h={buttonHeight}
+                    leftSection={<IconPlayerPause size={16} />}
+                    loading={pauseSession.isPending}
+                    onClick={handlePauseSession}
+                    variant="light"
+                  >
+                    一時停止
+                  </Button>
                   <Button
                     color="red"
-                    disabled={sessionIsPaused}
                     h={buttonHeight}
                     leftSection={<IconLogout size={16} />}
                     onClick={handleOpenEndModal}
@@ -670,14 +766,64 @@ export function ActiveSessionContent({
           </Tabs.Panel>
 
           {/* Tab 3: History */}
-          <Tabs.Panel value="history" pt="sm" style={{ flex: 1, overflow: 'auto' }}>
-            <SessionEventTimeline events={session.sessionEvents} />
+          <Tabs.Panel value="history" pt="sm" style={{ flex: 1, overflow: 'hidden' }}>
+            <SessionEventTimeline
+              events={session.sessionEvents}
+              allInRecords={session.allInRecords}
+              sessionId={session.id}
+              onEditAllIn={handleEditAllIn}
+            />
           </Tabs.Panel>
         </Tabs>
+
+        {/* Pause overlay for card */}
+        {sessionIsPaused && (
+          <Overlay
+            color="dark"
+            backgroundOpacity={0.6}
+            blur={2}
+            center
+            radius="md"
+            zIndex={100}
+          >
+            <Stack align="center" gap="sm">
+              <IconPlayerPause size={32} color="white" />
+              <Text c="white" fw={500}>休憩中{pauseStartTime && ` (${pauseStartTime}〜)`}</Text>
+              <Button
+                color="green"
+                leftSection={<IconPlayerPlay size={16} />}
+                loading={resumeSession.isPending}
+                onClick={handleResumeSession}
+                variant="light"
+              >
+                再開
+              </Button>
+            </Stack>
+          </Overlay>
+        )}
       </Card>
 
       {/* Hand Counter Card - Fixed at bottom */}
-      <HandCounterCard sessionId={session.id} handCount={handCount} />
+      <Box style={{ position: 'relative' }}>
+        <HandCounterCard
+          sessionId={session.id}
+          handCount={handCount}
+          lastHandInfo={session.lastHandInfo}
+          tablematesCount={tablematesData?.tablemates.length ?? 0}
+        />
+        {sessionIsPaused && (
+          <Overlay
+            color="dark"
+            backgroundOpacity={0.6}
+            blur={2}
+            center
+            radius="md"
+            zIndex={100}
+          >
+            <Text c="white" fw={500} size="sm">休憩中</Text>
+          </Overlay>
+        )}
+      </Box>
 
       {/* Rebuy / Buy-in Addition Modal */}
       <Modal
@@ -761,10 +907,13 @@ export function ActiveSessionContent({
 
       {/* All-in Record Modal */}
       <AllInModal
-        editingAllIn={null}
-        isLoading={createAllIn.isPending}
+        editingAllIn={editingAllIn}
+        isLoading={createAllIn.isPending || updateAllIn.isPending}
         minTime={minTime}
-        onClose={closeAllInModal}
+        onClose={() => {
+          closeAllInModal()
+          setEditingAllIn(null)
+        }}
         onSubmit={handleAllInSubmit}
         opened={allInModalOpened}
       />
@@ -814,214 +963,5 @@ export function ActiveSessionContent({
         </Stack>
       </Modal>
     </Container>
-  )
-}
-
-// Chart view component extracted for clarity
-function ChartView({ session }: { session: NonNullable<ActiveSession> }) {
-  const [xAxisMode, setXAxisMode] = useState<'time' | 'hands'>('time')
-
-  // Build chart data from events with elapsed minutes (excluding paused time)
-  const startEvent = session.sessionEvents.find(
-    (e) => e.eventType === 'session_start'
-  )
-  if (!startEvent) {
-    return (
-      <Text c="dimmed" size="sm" ta="center">
-        スタック記録がありません
-      </Text>
-    )
-  }
-
-  const startTime = new Date(startEvent.recordedAt).getTime()
-  const chartData: {
-    elapsedMinutes: number
-    handCount: number
-    profit: number
-    adjustedProfit: number
-  }[] = []
-
-  // First pass: calculate total buy-in at each point in time
-  const buyInEvents: { time: number; amount: number }[] = [
-    { time: startTime, amount: session.buyIn }
-  ]
-  let accumulatedRebuyAddon = 0
-  for (const event of session.sessionEvents) {
-    const data = event.eventData as Record<string, unknown> | null
-    if ((event.eventType === 'rebuy' || event.eventType === 'addon') && data?.amount) {
-      accumulatedRebuyAddon += data.amount as number
-      buyInEvents.push({
-        time: new Date(event.recordedAt).getTime(),
-        amount: data.amount as number,
-      })
-    }
-  }
-  const initialBuyIn = session.buyIn - accumulatedRebuyAddon
-
-  const getTotalBuyIn = (upToTime: number) => {
-    let total = initialBuyIn
-    for (const buyInEvent of buyInEvents) {
-      if (buyInEvent.time > startTime && buyInEvent.time <= upToTime) {
-        total += buyInEvent.amount
-      }
-    }
-    return total
-  }
-
-  let cumulativePausedMs = 0
-  let lastPauseTime: number | null = null
-  let cumulativeHandCount = 0
-
-  const allInRecords = session.allInRecords ?? []
-  const sortedAllIns = [...allInRecords].sort(
-    (a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()
-  )
-
-  const getCumulativeLuck = (upToTime: number) => {
-    let luck = 0
-    for (const allIn of sortedAllIns) {
-      const allInTime = new Date(allIn.recordedAt).getTime()
-      if (allInTime > upToTime) break
-      const winProbability = parseFloat(allIn.winProbability)
-      const expectedValue = allIn.potAmount * (winProbability / 100)
-      const actualValue = allIn.actualResult ? allIn.potAmount : 0
-      luck += actualValue - expectedValue
-    }
-    return luck
-  }
-
-  chartData.push({
-    elapsedMinutes: 0,
-    handCount: 0,
-    profit: 0,
-    adjustedProfit: 0,
-  })
-
-  for (const event of session.sessionEvents) {
-    const data = event.eventData as Record<string, unknown> | null
-    const eventTime = new Date(event.recordedAt).getTime()
-
-    if (event.eventType === 'session_pause') {
-      lastPauseTime = eventTime
-      continue
-    } else if (event.eventType === 'session_resume' && lastPauseTime !== null) {
-      cumulativePausedMs += eventTime - lastPauseTime
-      lastPauseTime = null
-      continue
-    }
-
-    // Track hand count
-    if (event.eventType === 'hand_complete') {
-      cumulativeHandCount += 1
-      continue
-    }
-    if (event.eventType === 'hands_passed' && data?.count) {
-      cumulativeHandCount += data.count as number
-      continue
-    }
-
-    if (event.eventType === 'stack_update' && data?.amount) {
-      const rawElapsedMs = eventTime - startTime
-      const activeElapsedMs = rawElapsedMs - cumulativePausedMs
-      const elapsedMinutes = Math.round(activeElapsedMs / (1000 * 60))
-
-      const stackAmount = data.amount as number
-      const totalBuyInAtTime = getTotalBuyIn(eventTime)
-      const profit = stackAmount - totalBuyInAtTime
-      const luck = getCumulativeLuck(eventTime)
-
-      chartData.push({
-        elapsedMinutes,
-        handCount: cumulativeHandCount,
-        profit,
-        adjustedProfit: profit - luck,
-      })
-    }
-  }
-
-  let currentPausedMs = cumulativePausedMs
-  if (lastPauseTime !== null) {
-    currentPausedMs += Date.now() - lastPauseTime
-  }
-  const nowElapsed = Math.round((Date.now() - startTime - currentPausedMs) / (1000 * 60))
-  const currentProfit = session.currentStack - session.buyIn
-  const currentLuck = getCumulativeLuck(Date.now())
-
-  // Calculate total hand count
-  const totalHandCount = session.sessionEvents.reduce((count, event) => {
-    if (event.eventType === 'hand_complete') return count + 1
-    if (event.eventType === 'hands_passed') {
-      const data = event.eventData as Record<string, unknown> | null
-      return count + ((data?.count as number) ?? 0)
-    }
-    return count
-  }, 0)
-
-  if (chartData.length === 0 || chartData[chartData.length - 1]?.elapsedMinutes !== nowElapsed) {
-    chartData.push({
-      elapsedMinutes: nowElapsed,
-      handCount: totalHandCount,
-      profit: currentProfit,
-      adjustedProfit: currentProfit - currentLuck,
-    })
-  }
-
-  if (chartData.length < 2) {
-    return (
-      <Text c="dimmed" size="sm" ta="center">
-        スタック記録がありません
-      </Text>
-    )
-  }
-
-  const formatElapsed = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hours === 0) return `${mins}分`
-    return `${hours}h${mins > 0 ? `${mins}m` : ''}`
-  }
-
-  const formatHands = (hands: number) => `${hands}H`
-
-  const dataKey = xAxisMode === 'time' ? 'elapsedMinutes' : 'handCount'
-  const tickFormatter = xAxisMode === 'time' ? formatElapsed : formatHands
-
-  return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Group justify="flex-end" mb={4} style={{ flexShrink: 0 }}>
-        <SegmentedControl
-          data={[
-            { label: '時間', value: 'time' },
-            { label: 'ハンド', value: 'hands' },
-          ]}
-          onChange={(value) => setXAxisMode(value as 'time' | 'hands')}
-          size="xs"
-          value={xAxisMode}
-        />
-      </Group>
-      <Box style={{ flex: 1, minHeight: 80 }}>
-        <LineChart
-          data={chartData}
-          dataKey={dataKey}
-          h="100%"
-          series={[
-            { name: 'profit', color: 'green.6', label: '収支' },
-            { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整' },
-          ]}
-          curveType="linear"
-          withDots
-          connectNulls
-          referenceLines={[
-            { y: 0, label: '±0', color: 'gray.5' },
-          ]}
-          valueFormatter={(value) => value.toLocaleString()}
-          xAxisProps={{
-            type: 'number',
-            domain: [0, 'dataMax'],
-            tickFormatter,
-          }}
-        />
-      </Box>
-    </Box>
   )
 }

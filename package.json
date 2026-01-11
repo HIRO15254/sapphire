@@ -1,9 +1,10 @@
 {
   "name": "sapphire",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "node scripts/generate-version.js",
     "build": "bun run db:migrate && next build",
     "check": "biome check .",
     "check:unsafe": "biome check --write --unsafe .",

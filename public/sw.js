@@ -27,8 +27,7 @@ self.addEventListener('install', (event) => {
       return cache.addAll(PRECACHE_ASSETS)
     })
   )
-  // Activate immediately without waiting
-  self.skipWaiting()
+  // Note: We don't call skipWaiting() here to allow user to control when to update
 })
 
 // Activate event - clean up old caches
@@ -174,3 +173,11 @@ async function networkFirstWithOfflineFallback(request) {
     )
   }
 }
+
+// Listen for skip waiting message from the client
+// This allows the app to control when the new service worker activates
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})

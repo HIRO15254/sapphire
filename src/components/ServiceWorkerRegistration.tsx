@@ -1,17 +1,105 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useDisclosure } from '@mantine/hooks'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+import {
+  type ChangelogEntry,
+  fetchVersionInfo,
+  getNewChangelogs,
+  getStoredVersion,
+  isNewerVersion,
+  storeVersion,
+  VERSION_CHECK_INTERVAL,
+} from '~/lib/version'
+import { UpdateNotificationModal } from './UpdateNotificationModal'
 
 /**
  * Service Worker Registration Component
  *
- * Registers the service worker on component mount.
- * Should be included in the root layout to ensure SW is registered on all pages.
+ * Registers the service worker and handles PWA update notifications.
+ * Periodically checks for new versions and displays update modal when available.
  */
 export function ServiceWorkerRegistration() {
+  const [
+    updateModalOpened,
+    { open: openUpdateModal, close: closeUpdateModal },
+  ] = useDisclosure(false)
+  const [latestVersion, setLatestVersion] = useState<string>('')
+  const [pendingChangelogs, setPendingChangelogs] = useState<ChangelogEntry[]>(
+    []
+  )
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null)
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  /**
+   * Check for new version and show notification if available
+   */
+  const checkForUpdates = useCallback(async () => {
+    const versionInfo = await fetchVersionInfo()
+    if (!versionInfo) return
+
+    const storedVersion = getStoredVersion()
+
+    // First time user - store version without showing modal
+    if (!storedVersion) {
+      storeVersion(versionInfo.version)
+      return
+    }
+
+    // Check if there's a newer version
+    if (isNewerVersion(storedVersion, versionInfo.version)) {
+      // Get all changelogs between stored version and current version
+      const newChangelogs = getNewChangelogs(
+        versionInfo.changelogs,
+        storedVersion
+      )
+
+      setLatestVersion(versionInfo.version)
+      setPendingChangelogs(newChangelogs)
+      openUpdateModal()
+    }
+  }, [openUpdateModal])
+
+  /**
+   * Handle the update action - refresh service worker and reload page
+   */
+  const handleUpdate = useCallback(() => {
+    // Store the new version
+    if (latestVersion) {
+      storeVersion(latestVersion)
+    }
+
+    // Close the modal
+    closeUpdateModal()
+
+    // Tell the waiting service worker to activate
+    const registration = registrationRef.current
+    if (registration?.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+    }
+
+    // Reload the page to get the new version
+    window.location.reload()
+  }, [latestVersion, closeUpdateModal])
+
+  /**
+   * Handle "Later" action - store version to not show again
+   */
+  const handleDismiss = useCallback(() => {
+    // Store version so we don't show the same notification again
+    if (latestVersion) {
+      storeVersion(latestVersion)
+    }
+    closeUpdateModal()
+  }, [latestVersion, closeUpdateModal])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
+
+    // Disable service worker in development
+    if (process.env.NODE_ENV === 'development') return
 
     // Register service worker
     const registerSW = async () => {
@@ -19,8 +107,9 @@ export function ServiceWorkerRegistration() {
         const registration = await navigator.serviceWorker.register('/sw.js', {
           scope: '/',
         })
+        registrationRef.current = registration
 
-        // Check for updates periodically
+        // Listen for service worker updates
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing
           if (!newWorker) return
@@ -30,18 +119,47 @@ export function ServiceWorkerRegistration() {
               newWorker.state === 'installed' &&
               navigator.serviceWorker.controller
             ) {
-              // New content available - could show update notification here
-              console.log('Sapphire: 新しいバージョンが利用可能です')
+              // New service worker installed - check version
+              checkForUpdates()
             }
           })
         })
+
+        // Handle controller change (when new SW takes over)
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          // New service worker activated - page will reload
+        })
+
+        // Initial version check
+        checkForUpdates()
+
+        // Set up periodic version checks
+        checkIntervalRef.current = setInterval(
+          checkForUpdates,
+          VERSION_CHECK_INTERVAL
+        )
       } catch (error) {
         console.error('Service Worker registration failed:', error)
       }
     }
 
     registerSW()
-  }, [])
 
-  return null
+    // Cleanup interval on unmount
+    return () => {
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current)
+      }
+    }
+  }, [checkForUpdates])
+
+  return (
+    <UpdateNotificationModal
+      changelogs={pendingChangelogs}
+      latestVersion={latestVersion}
+      onClose={handleDismiss}
+      onUpdate={handleUpdate}
+      opened={updateModalOpened}
+    />
+  )
 }

@@ -5,29 +5,23 @@ import {
   Badge,
   Box,
   Button,
-  Combobox,
   Group,
   Menu,
   Modal,
   ScrollArea,
   Stack,
   Text,
-  TextInput,
-  useCombobox,
 } from '@mantine/core'
 import { useDisclosure, useElementSize } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
   IconDoorExit,
   IconDotsVertical,
-  IconLink,
   IconPlus,
   IconRefresh,
   IconTrash,
-  IconUser,
-  IconUserPlus,
 } from '@tabler/icons-react'
-import { useMemo, useState } from 'react'
+import { useRef, useState } from 'react'
 import { RichTextContent } from '~/components/ui/RichTextContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
@@ -48,8 +42,8 @@ const SEAT_COUNT = 9
  *
  * When clicking an empty seat, a temporary player is automatically created.
  * The tablemate can later be:
- * - Converted to a permanent player (removes isTemporary flag)
- * - Linked to an existing player (merges temp player data into target)
+ * - Converted to a permanent player (via edit modal)
+ * - Linked to an existing player (via edit modal)
  * - Deleted (removes tablemate and associated temporary player)
  */
 export function TablematesCard({ sessionId }: TablematesCardProps) {
@@ -60,12 +54,6 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
     editModalOpened,
     { open: openEditModal, close: closeEditModal },
   ] = useDisclosure(false)
-  const [linkModalOpened, { open: openLinkModal, close: closeLinkModal }] =
-    useDisclosure(false)
-  const [
-    convertModalOpened,
-    { open: openConvertModal, close: closeConvertModal },
-  ] = useDisclosure(false)
   const [
     resetModalOpened,
     { open: openResetModal, close: closeResetModal },
@@ -75,17 +63,13 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
   const [selectedTablemate, setSelectedTablemate] = useState<Tablemate | null>(
     null,
   )
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
-  const [playerSearchQuery, setPlayerSearchQuery] = useState('')
-  const [newPlayerName, setNewPlayerName] = useState('')
+  const isBulkDeleting = useRef(false)
 
   // Queries
   const { data: tablematesData } =
     api.sessionTablemate.list.useQuery({ sessionId })
-  const { data: playersData } = api.player.list.useQuery({})
 
   const tablemates = tablematesData?.tablemates ?? []
-  const players = playersData?.players ?? []
 
   // Build seat map: seatNumber -> tablemate
   const seatMap = new Map<number, Tablemate>()
@@ -114,9 +98,10 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
     },
   })
 
-
   const deleteMutation = api.sessionTablemate.delete.useMutation({
     onSuccess: () => {
+      // Skip notification and invalidation during bulk delete
+      if (isBulkDeleting.current) return
       notifications.show({
         title: '削除完了',
         message: '同卓者を削除しました',
@@ -125,49 +110,8 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
       void utils.sessionTablemate.list.invalidate({ sessionId })
     },
     onError: (error) => {
-      notifications.show({
-        title: 'エラー',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
-
-  const linkMutation = api.sessionTablemate.linkToPlayer.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: '紐付け完了',
-        message: 'プレイヤーと紐付けしました',
-        color: 'green',
-      })
-      closeLinkModal()
-      setSelectedTablemate(null)
-      setSelectedPlayerId(null)
-      void utils.sessionTablemate.list.invalidate({ sessionId })
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'エラー',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
-
-  const convertMutation = api.sessionTablemate.convertToPlayer.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: '作成完了',
-        message: '新しいプレイヤーを作成しました',
-        color: 'green',
-      })
-      closeConvertModal()
-      setSelectedTablemate(null)
-      setNewPlayerName('')
-      void utils.sessionTablemate.list.invalidate({ sessionId })
-      void utils.player.list.invalidate()
-    },
-    onError: (error) => {
+      // Skip notification during bulk delete (will show summary error)
+      if (isBulkDeleting.current) return
       notifications.show({
         title: 'エラー',
         message: error.message,
@@ -197,87 +141,37 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
     setSelectedTablemate(null)
   }
 
-  const handleOpenLink = (tablemate: Tablemate) => {
-    setSelectedTablemate(tablemate)
-    setSelectedPlayerId(null)
-    setPlayerSearchQuery('')
-    openLinkModal()
-  }
-
-  const handleLink = () => {
-    if (!selectedTablemate || !selectedPlayerId) return
-    linkMutation.mutate({
-      id: selectedTablemate.id,
-      playerId: selectedPlayerId,
-    })
-  }
-
-  const handleOpenConvert = (tablemate: Tablemate) => {
-    setSelectedTablemate(tablemate)
-    setNewPlayerName(tablemate.nickname)
-    openConvertModal()
-  }
-
-  const handleConvert = () => {
-    if (!selectedTablemate || !newPlayerName.trim()) return
-    convertMutation.mutate({
-      id: selectedTablemate.id,
-      playerName: newPlayerName.trim(),
-    })
-  }
-
   const handleDelete = (tablemate: Tablemate) => {
     deleteMutation.mutate({ id: tablemate.id })
   }
 
-  const handleResetTable = () => {
-    // Delete all tablemates one by one
-    for (const tm of tablemates) {
-      deleteMutation.mutate({ id: tm.id })
-    }
+  const handleResetTable = async () => {
+    const count = tablemates.length
+    isBulkDeleting.current = true
     closeResetModal()
-  }
 
-  // Player combobox
-  const combobox = useCombobox({
-    onDropdownClose: () => combobox.resetSelectedOption(),
-  })
+    try {
+      // Delete all tablemates in parallel
+      await Promise.all(
+        tablemates.map((tm) => deleteMutation.mutateAsync({ id: tm.id }))
+      )
 
-  // Get player IDs that are already linked to other tablemates (excluding current)
-  const linkedPlayerIds = useMemo(() => {
-    const ids = new Set<string>()
-    for (const tm of tablemates) {
-      // Skip current tablemate and temporary players
-      if (tm.id === selectedTablemate?.id) continue
-      if (tm.player?.isTemporary) continue
-      if (tm.playerId) {
-        ids.add(tm.playerId)
-      }
+      notifications.show({
+        title: 'リセット完了',
+        message: `${count}人の同卓者を削除しました`,
+        color: 'green',
+      })
+    } catch (error) {
+      notifications.show({
+        title: 'エラー',
+        message: error instanceof Error ? error.message : '削除に失敗しました',
+        color: 'red',
+      })
+    } finally {
+      isBulkDeleting.current = false
+      void utils.sessionTablemate.list.invalidate({ sessionId })
     }
-    return ids
-  }, [tablemates, selectedTablemate?.id])
-
-  // Filter players: exclude already linked and filter by search query
-  const filteredPlayers = useMemo(() => {
-    return players.filter((player) => {
-      // Exclude already linked players
-      if (linkedPlayerIds.has(player.id)) return false
-      // Filter by search query
-      if (playerSearchQuery.trim()) {
-        return player.name.toLowerCase().includes(playerSearchQuery.toLowerCase())
-      }
-      return true
-    })
-  }, [players, linkedPlayerIds, playerSearchQuery])
-
-  const playerOptions = filteredPlayers.map((player) => (
-    <Combobox.Option key={player.id} value={player.id}>
-      {player.name}
-    </Combobox.Option>
-  ))
-
-  const selectedPlayerName =
-    players.find((p) => p.id === selectedPlayerId)?.name ?? ''
+  }
 
   // Get container size for dynamic ScrollArea height
   const { ref: containerRef, height: containerHeight } = useElementSize()
@@ -337,7 +231,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                           {seatNumber}
                         </Badge>
                         <Text size="sm" fw={500} style={{ flexShrink: 0 }}>
-                          {tablemate.nickname}
+                          {tablemate.player?.name}
                         </Text>
                         {/* Player tags */}
                         {playerTags.slice(0, 3).map((ta) => (
@@ -382,23 +276,6 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                             </ActionIcon>
                           </Menu.Target>
                           <Menu.Dropdown onClick={(e) => e.stopPropagation()}>
-                            {isTemporary && (
-                              <>
-                                <Menu.Item
-                                  leftSection={<IconLink size={14} />}
-                                  onClick={() => handleOpenLink(tablemate)}
-                                >
-                                  既存プレイヤーを割り当て
-                                </Menu.Item>
-                                <Menu.Item
-                                  leftSection={<IconUserPlus size={14} />}
-                                  onClick={() => handleOpenConvert(tablemate)}
-                                >
-                                  新規プレイヤーとして作成
-                                </Menu.Item>
-                                <Menu.Divider />
-                              </>
-                            )}
                             <Menu.Item
                               color="red"
                               leftSection={<IconTrash size={14} />}
@@ -479,100 +356,6 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
         tablemateId={selectedTablemate?.id ?? ''}
         sessionId={sessionId}
       />
-
-      {/* Link Modal */}
-      <Modal
-        onClose={closeLinkModal}
-        opened={linkModalOpened}
-        title="既存プレイヤーを割り当て"
-      >
-        <Stack gap="md">
-          <Text size="sm">
-            「{selectedTablemate?.nickname}」を既存のプレイヤーに割り当てます。
-            セッション中に追加したタグやメモは引き継がれます。
-          </Text>
-          <Combobox
-            onOptionSubmit={(val) => {
-              setSelectedPlayerId(val)
-              setPlayerSearchQuery(players.find((p) => p.id === val)?.name ?? '')
-              combobox.closeDropdown()
-            }}
-            store={combobox}
-          >
-            <Combobox.Target>
-              <TextInput
-                label="プレイヤーを検索"
-                leftSection={<IconUser size={16} />}
-                onClick={() => combobox.openDropdown()}
-                onFocus={() => combobox.openDropdown()}
-                onChange={(e) => {
-                  setPlayerSearchQuery(e.currentTarget.value)
-                  setSelectedPlayerId(null)
-                  combobox.openDropdown()
-                }}
-                placeholder="プレイヤー名を入力..."
-                rightSection={<Combobox.Chevron />}
-                value={selectedPlayerId ? selectedPlayerName : playerSearchQuery}
-              />
-            </Combobox.Target>
-            <Combobox.Dropdown>
-              <Combobox.Options>
-                {playerOptions.length > 0 ? (
-                  playerOptions
-                ) : playerSearchQuery.trim() ? (
-                  <Combobox.Empty>「{playerSearchQuery}」に一致するプレイヤーがいません</Combobox.Empty>
-                ) : (
-                  <Combobox.Empty>割り当て可能なプレイヤーがいません</Combobox.Empty>
-                )}
-              </Combobox.Options>
-            </Combobox.Dropdown>
-          </Combobox>
-          <Group justify="flex-end">
-            <Button onClick={closeLinkModal} variant="subtle">
-              キャンセル
-            </Button>
-            <Button
-              disabled={!selectedPlayerId}
-              loading={linkMutation.isPending}
-              onClick={handleLink}
-            >
-              割り当て
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      {/* Convert Modal */}
-      <Modal
-        onClose={closeConvertModal}
-        opened={convertModalOpened}
-        title="新規プレイヤーとして作成"
-      >
-        <Stack gap="md">
-          <Text size="sm">
-            「{selectedTablemate?.nickname}」を新しいプレイヤーとして登録します。
-            セッション中に追加したタグやメモも保持されます。
-          </Text>
-          <TextInput
-            label="プレイヤー名"
-            onChange={(e) => setNewPlayerName(e.currentTarget.value)}
-            required
-            value={newPlayerName}
-          />
-          <Group justify="flex-end">
-            <Button onClick={closeConvertModal} variant="subtle">
-              キャンセル
-            </Button>
-            <Button
-              disabled={!newPlayerName.trim()}
-              loading={convertMutation.isPending}
-              onClick={handleConvert}
-            >
-              作成
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
 
       {/* Reset Table Modal */}
       <Modal
