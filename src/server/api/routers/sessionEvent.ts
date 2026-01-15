@@ -1,8 +1,16 @@
 import { TRPCError } from '@trpc/server'
 import { and, asc, desc, eq } from 'drizzle-orm'
 
-import { isNotDeleted, pokerSessions, sessionEvents } from '~/server/db/schema'
 import {
+  isNotDeleted,
+  pokerSessions,
+  sessionEvents,
+  tournamentBlindLevels,
+  tournamentPrizeLevels,
+  tournamentPrizeStructures,
+} from '~/server/db/schema'
+import {
+  clearTournamentOverridesSchema,
   deleteEventSchema,
   deleteLatestHandCompleteSchema,
   endSessionSchema,
@@ -18,6 +26,11 @@ import {
   startSessionSchema,
   updateEventSchema,
   updateStackSchema,
+  updateTimerStartedAtSchema,
+  updateTournamentFieldSchema,
+  updateTournamentOverrideBasicSchema,
+  updateTournamentOverrideBlindsSchema,
+  updateTournamentOverridePrizesSchema,
 } from '../schemas/sessionEvent.schema'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
 
@@ -74,6 +87,7 @@ export const sessionEventRouter = createTRPCRouter({
           isActive: true,
           startTime: now,
           buyIn: input.buyIn,
+          timerStartedAt: input.timerStartedAt,
         })
         .returning()
 
@@ -96,6 +110,19 @@ export const sessionEventRouter = createTRPCRouter({
           recordedAt: now,
         })
         .returning()
+
+      // If initialStack is provided (for tournaments), create a stack_update event
+      // This sets the starting chip count separate from the monetary buy-in
+      if (input.initialStack !== null && input.initialStack !== undefined) {
+        await ctx.db.insert(sessionEvents).values({
+          sessionId: newSession.id,
+          userId,
+          eventType: 'stack_update',
+          eventData: { amount: input.initialStack },
+          sequence: 2,
+          recordedAt: now,
+        })
+      }
 
       return {
         sessionId: newSession.id,
@@ -159,6 +186,7 @@ export const sessionEventRouter = createTRPCRouter({
           isActive: false,
           endTime: recordedAt,
           cashOut: input.cashOut,
+          finalPosition: input.finalPosition,
         })
         .where(eq(pokerSessions.id, input.sessionId))
         .returning()
@@ -440,34 +468,40 @@ export const sessionEventRouter = createTRPCRouter({
       })
       const nextSequence = (lastEvent?.sequence ?? 0) + 1
 
-      // Create rebuy event
+      // Create rebuy event with cost and chips
+      const eventData = {
+        amount: input.cost, // backwards compatibility
+        cost: input.cost,
+        chips: input.chips ?? undefined,
+      }
+
       const [event] = await ctx.db
         .insert(sessionEvents)
         .values({
           sessionId: input.sessionId,
           userId,
           eventType: 'rebuy',
-          eventData: { amount: input.amount },
+          eventData,
           sequence: nextSequence,
           recordedAt,
         })
         .returning()
 
-      // Update session buyIn total
+      // Update session buyIn total (using cost)
       await ctx.db
         .update(pokerSessions)
         .set({
-          buyIn: session.buyIn + input.amount,
+          buyIn: session.buyIn + input.cost,
         })
         .where(eq(pokerSessions.id, input.sessionId))
 
       return {
         eventId: event?.id,
         eventType: 'rebuy',
-        eventData: { amount: input.amount },
+        eventData,
         sequence: nextSequence,
         recordedAt,
-        newBuyInTotal: session.buyIn + input.amount,
+        newBuyInTotal: session.buyIn + input.cost,
       }
     }),
 
@@ -506,34 +540,40 @@ export const sessionEventRouter = createTRPCRouter({
       })
       const nextSequence = (lastEvent?.sequence ?? 0) + 1
 
-      // Create addon event
+      // Create addon event with cost and chips
+      const eventData = {
+        amount: input.cost, // backwards compatibility
+        cost: input.cost,
+        chips: input.chips ?? undefined,
+      }
+
       const [event] = await ctx.db
         .insert(sessionEvents)
         .values({
           sessionId: input.sessionId,
           userId,
           eventType: 'addon',
-          eventData: { amount: input.amount },
+          eventData,
           sequence: nextSequence,
           recordedAt,
         })
         .returning()
 
-      // Update session buyIn total
+      // Update session buyIn total (using cost)
       await ctx.db
         .update(pokerSessions)
         .set({
-          buyIn: session.buyIn + input.amount,
+          buyIn: session.buyIn + input.cost,
         })
         .where(eq(pokerSessions.id, input.sessionId))
 
       return {
         eventId: event?.id,
         eventType: 'addon',
-        eventData: { amount: input.amount },
+        eventData,
         sequence: nextSequence,
         recordedAt,
-        newBuyInTotal: session.buyIn + input.amount,
+        newBuyInTotal: session.buyIn + input.cost,
       }
     }),
 
@@ -1054,7 +1094,24 @@ export const sessionEventRouter = createTRPCRouter({
       with: {
         store: true,
         cashGame: true,
-        tournament: true,
+        tournament: {
+          with: {
+            blindLevels: {
+              orderBy: [asc(tournamentBlindLevels.level)],
+            },
+            prizeStructures: {
+              with: {
+                prizeLevels: {
+                  with: {
+                    prizeItems: true,
+                  },
+                  orderBy: [asc(tournamentPrizeLevels.sortOrder)],
+                },
+              },
+              orderBy: [asc(tournamentPrizeStructures.sortOrder)],
+            },
+          },
+        },
         sessionEvents: {
           orderBy: [asc(sessionEvents.sequence)],
         },
@@ -1160,5 +1217,275 @@ export const sessionEventRouter = createTRPCRouter({
       })
 
       return events
+    }),
+
+  // ============================================================================
+  // Tournament Override Mutations
+  // ============================================================================
+
+  /**
+   * Update tournament basic info override for an active session.
+   * Creates a session-specific copy of tournament settings.
+   */
+  updateTournamentOverrideBasic: protectedProcedure
+    .input(updateTournamentOverrideBasicSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session ownership and is tournament type
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+          eq(pokerSessions.isActive, true),
+          isNotDeleted(pokerSessions.deletedAt),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'アクティブなセッションが見つかりません',
+        })
+      }
+
+      if (session.gameType !== 'tournament') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'トーナメントセッションではありません',
+        })
+      }
+
+      await ctx.db
+        .update(pokerSessions)
+        .set({
+          tournamentOverrideBasic: input.data,
+          updatedAt: new Date(),
+        })
+        .where(eq(pokerSessions.id, input.sessionId))
+
+      return { success: true }
+    }),
+
+  /**
+   * Update tournament blind levels override for an active session.
+   */
+  updateTournamentOverrideBlinds: protectedProcedure
+    .input(updateTournamentOverrideBlindsSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session ownership and is tournament type
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+          eq(pokerSessions.isActive, true),
+          isNotDeleted(pokerSessions.deletedAt),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'アクティブなセッションが見つかりません',
+        })
+      }
+
+      if (session.gameType !== 'tournament') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'トーナメントセッションではありません',
+        })
+      }
+
+      await ctx.db
+        .update(pokerSessions)
+        .set({
+          tournamentOverrideBlinds: input.blindLevels,
+          updatedAt: new Date(),
+        })
+        .where(eq(pokerSessions.id, input.sessionId))
+
+      return { success: true }
+    }),
+
+  /**
+   * Update tournament prize structures override for an active session.
+   */
+  updateTournamentOverridePrizes: protectedProcedure
+    .input(updateTournamentOverridePrizesSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session ownership and is tournament type
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+          eq(pokerSessions.isActive, true),
+          isNotDeleted(pokerSessions.deletedAt),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'アクティブなセッションが見つかりません',
+        })
+      }
+
+      if (session.gameType !== 'tournament') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'トーナメントセッションではありません',
+        })
+      }
+
+      await ctx.db
+        .update(pokerSessions)
+        .set({
+          tournamentOverridePrizes: input.prizeStructures,
+          updatedAt: new Date(),
+        })
+        .where(eq(pokerSessions.id, input.sessionId))
+
+      return { success: true }
+    }),
+
+  /**
+   * Clear tournament overrides for an active session.
+   * Reverts to using the store tournament settings.
+   */
+  clearTournamentOverrides: protectedProcedure
+    .input(clearTournamentOverridesSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session ownership
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+          eq(pokerSessions.isActive, true),
+          isNotDeleted(pokerSessions.deletedAt),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'アクティブなセッションが見つかりません',
+        })
+      }
+
+      // Build update object based on what should be cleared
+      const updateData: Record<string, unknown> = {
+        updatedAt: new Date(),
+      }
+
+      if (input.clearBasic) {
+        updateData.tournamentOverrideBasic = null
+      }
+      if (input.clearBlinds) {
+        updateData.tournamentOverrideBlinds = null
+      }
+      if (input.clearPrizes) {
+        updateData.tournamentOverridePrizes = null
+      }
+
+      // If no specific clear flags, clear all
+      if (!input.clearBasic && !input.clearBlinds && !input.clearPrizes) {
+        updateData.tournamentOverrideBasic = null
+        updateData.tournamentOverrideBlinds = null
+        updateData.tournamentOverridePrizes = null
+      }
+
+      await ctx.db
+        .update(pokerSessions)
+        .set(updateData)
+        .where(eq(pokerSessions.id, input.sessionId))
+
+      return { success: true }
+    }),
+
+  /**
+   * Update timer start time for tournament session.
+   */
+  updateTimerStartedAt: protectedProcedure
+    .input(updateTimerStartedAtSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session ownership
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+          eq(pokerSessions.isActive, true),
+          isNotDeleted(pokerSessions.deletedAt),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'アクティブなセッションが見つかりません',
+        })
+      }
+
+      await ctx.db
+        .update(pokerSessions)
+        .set({
+          timerStartedAt: input.timerStartedAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(pokerSessions.id, input.sessionId))
+
+      return { success: true }
+    }),
+
+  /**
+   * Update tournament field (entries, remaining players).
+   */
+  updateTournamentField: protectedProcedure
+    .input(updateTournamentFieldSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session ownership
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+          eq(pokerSessions.isActive, true),
+          isNotDeleted(pokerSessions.deletedAt),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'アクティブなセッションが見つかりません',
+        })
+      }
+
+      const updateData: Record<string, unknown> = {
+        updatedAt: new Date(),
+      }
+
+      if (input.entries !== undefined) {
+        updateData.tournamentEntries = input.entries
+      }
+      if (input.remaining !== undefined) {
+        updateData.tournamentRemaining = input.remaining
+      }
+
+      await ctx.db
+        .update(pokerSessions)
+        .set(updateData)
+        .where(eq(pokerSessions.id, input.sessionId))
+
+      return { success: true }
     }),
 })

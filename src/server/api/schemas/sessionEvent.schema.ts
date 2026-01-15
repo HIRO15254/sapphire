@@ -93,22 +93,48 @@ export const stackUpdateDataSchema = z.object({
 
 /**
  * rebuy event data
+ * - cost: currency paid (added to buyIn total)
+ * - chips: stack received (for tournaments)
+ * - amount: legacy field (equals cost for backwards compatibility)
  */
 export const rebuyDataSchema = z.object({
   amount: z
     .number()
     .int('リバイ額は整数で入力してください')
     .positive('リバイ額は1以上の整数で入力してください'),
+  cost: z
+    .number()
+    .int('支払い額は整数で入力してください')
+    .positive('支払い額は1以上の整数で入力してください')
+    .optional(),
+  chips: z
+    .number()
+    .int('チップ数は整数で入力してください')
+    .positive('チップ数は1以上の整数で入力してください')
+    .optional(),
 })
 
 /**
  * addon event data
+ * - cost: currency paid (added to buyIn total)
+ * - chips: stack received (for tournaments)
+ * - amount: legacy field (equals cost for backwards compatibility)
  */
 export const addonDataSchema = z.object({
   amount: z
     .number()
     .int('アドオン額は整数で入力してください')
     .positive('アドオン額は1以上の整数で入力してください'),
+  cost: z
+    .number()
+    .int('支払い額は整数で入力してください')
+    .positive('支払い額は1以上の整数で入力してください')
+    .optional(),
+  chips: z
+    .number()
+    .int('チップ数は整数で入力してください')
+    .positive('チップ数は1以上の整数で入力してください')
+    .optional(),
 })
 
 // ============================================================================
@@ -135,6 +161,15 @@ export const startSessionSchema = z.object({
     .number()
     .int('バイイン額は整数で入力してください')
     .positive('バイイン額は1以上の整数で入力してください'),
+  /** Tournament initial stack (optional, for tournaments) */
+  initialStack: z
+    .number()
+    .int('初期スタックは整数で入力してください')
+    .positive('初期スタックは1以上の整数で入力してください')
+    .optional()
+    .nullable(),
+  /** Tournament blind timer start time (optional) */
+  timerStartedAt: z.date().optional().nullable(),
 })
 
 /**
@@ -147,6 +182,13 @@ export const endSessionSchema = z.object({
     .int('キャッシュアウト額は整数で入力してください')
     .min(0, 'キャッシュアウト額は0以上で入力してください'),
   recordedAt: z.date().optional(),
+  /** Tournament final position (optional, for tournaments only) */
+  finalPosition: z
+    .number()
+    .int('順位は整数で入力してください')
+    .min(1, '順位は1以上で入力してください')
+    .optional()
+    .nullable(),
 })
 
 /**
@@ -191,25 +233,41 @@ export const updateStackSchema = z.object({
 
 /**
  * Schema for recording a rebuy
+ * - cost: currency paid (required, added to buyIn total)
+ * - chips: stack received (optional, for tournaments)
  */
 export const recordRebuySchema = z.object({
   sessionId: z.string().uuid('有効なセッションIDを指定してください'),
-  amount: z
+  cost: z
     .number()
-    .int('リバイ額は整数で入力してください')
-    .positive('リバイ額は1以上の整数で入力してください'),
+    .int('支払い額は整数で入力してください')
+    .positive('支払い額は1以上の整数で入力してください'),
+  chips: z
+    .number()
+    .int('チップ数は整数で入力してください')
+    .positive('チップ数は1以上の整数で入力してください')
+    .optional()
+    .nullable(),
   recordedAt: z.date().optional(),
 })
 
 /**
  * Schema for recording an addon
+ * - cost: currency paid (required, added to buyIn total)
+ * - chips: stack received (optional, for tournaments)
  */
 export const recordAddonSchema = z.object({
   sessionId: z.string().uuid('有効なセッションIDを指定してください'),
-  amount: z
+  cost: z
     .number()
-    .int('アドオン額は整数で入力してください')
-    .positive('アドオン額は1以上の整数で入力してください'),
+    .int('支払い額は整数で入力してください')
+    .positive('支払い額は1以上の整数で入力してください'),
+  chips: z
+    .number()
+    .int('チップ数は整数で入力してください')
+    .positive('チップ数は1以上の整数で入力してください')
+    .optional()
+    .nullable(),
   recordedAt: z.date().optional(),
 })
 
@@ -327,6 +385,116 @@ export const updateEventSchema = z.object({
 })
 
 // ============================================================================
+// Tournament Override Schemas
+// ============================================================================
+
+/**
+ * Schema for tournament basic info override
+ */
+export const tournamentBasicOverrideSchema = z.object({
+  name: z.string().max(255).nullable().optional(),
+  buyIn: z.number().int().positive(),
+  rake: z.number().int().positive().nullable().optional(),
+  startingStack: z.number().int().positive().nullable().optional(),
+  notes: z.string().nullable().optional(),
+})
+
+/**
+ * Schema for blind level in override
+ */
+export const blindLevelSchema = z.object({
+  level: z.number().int().positive(),
+  isBreak: z.boolean().default(false),
+  smallBlind: z.number().int().positive().nullable().optional(),
+  bigBlind: z.number().int().positive().nullable().optional(),
+  ante: z.number().int().positive().nullable().optional(),
+  durationMinutes: z.number().int().positive(),
+})
+
+/**
+ * Schema for prize item in override
+ */
+export const prizeItemSchema = z.object({
+  prizeType: z.enum(['percentage', 'fixed_amount', 'custom_prize']),
+  percentage: z.number().nullable().optional(),
+  fixedAmount: z.number().int().nullable().optional(),
+  customPrizeLabel: z.string().nullable().optional(),
+  customPrizeValue: z.number().int().nullable().optional(),
+  sortOrder: z.number().int().default(0),
+})
+
+/**
+ * Schema for prize level in override
+ */
+export const prizeLevelSchema = z.object({
+  minPosition: z.number().int().positive(),
+  maxPosition: z.number().int().positive(),
+  sortOrder: z.number().int().default(0),
+  prizeItems: z.array(prizeItemSchema),
+})
+
+/**
+ * Schema for prize structure in override
+ */
+export const prizeStructureSchema = z.object({
+  minEntrants: z.number().int().positive(),
+  maxEntrants: z.number().int().positive().nullable().optional(),
+  sortOrder: z.number().int().default(0),
+  prizeLevels: z.array(prizeLevelSchema),
+})
+
+/**
+ * Schema for updating tournament basic info override
+ */
+export const updateTournamentOverrideBasicSchema = z.object({
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+  data: tournamentBasicOverrideSchema,
+})
+
+/**
+ * Schema for updating tournament blind levels override
+ */
+export const updateTournamentOverrideBlindsSchema = z.object({
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+  blindLevels: z.array(blindLevelSchema),
+})
+
+/**
+ * Schema for updating tournament prize structures override
+ */
+export const updateTournamentOverridePrizesSchema = z.object({
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+  prizeStructures: z.array(prizeStructureSchema),
+})
+
+/**
+ * Schema for clearing tournament overrides
+ */
+export const clearTournamentOverridesSchema = z.object({
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+  clearBasic: z.boolean().optional(),
+  clearBlinds: z.boolean().optional(),
+  clearPrizes: z.boolean().optional(),
+})
+
+/**
+ * Schema for updating tournament timer start time
+ */
+export const updateTimerStartedAtSchema = z.object({
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+  timerStartedAt: z.date().nullable(),
+})
+
+/**
+ * Schema for updating tournament entries and remaining players
+ */
+export const updateTournamentFieldSchema = z.object({
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+  entries: z.number().int().min(1).optional().nullable(),
+  remaining: z.number().int().min(1).optional().nullable(),
+})
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -359,3 +527,15 @@ export type GetActiveSessionInput = z.infer<typeof getActiveSessionSchema>
 export type ListBySessionInput = z.infer<typeof listBySessionSchema>
 export type DeleteEventInput = z.infer<typeof deleteEventSchema>
 export type UpdateEventInput = z.infer<typeof updateEventSchema>
+
+export type TournamentBasicOverride = z.infer<typeof tournamentBasicOverrideSchema>
+export type BlindLevel = z.infer<typeof blindLevelSchema>
+export type PrizeItem = z.infer<typeof prizeItemSchema>
+export type PrizeLevel = z.infer<typeof prizeLevelSchema>
+export type PrizeStructure = z.infer<typeof prizeStructureSchema>
+export type UpdateTournamentOverrideBasicInput = z.infer<typeof updateTournamentOverrideBasicSchema>
+export type UpdateTournamentOverrideBlindsInput = z.infer<typeof updateTournamentOverrideBlindsSchema>
+export type UpdateTournamentOverridePrizesInput = z.infer<typeof updateTournamentOverridePrizesSchema>
+export type ClearTournamentOverridesInput = z.infer<typeof clearTournamentOverridesSchema>
+export type UpdateTimerStartedAtInput = z.infer<typeof updateTimerStartedAtSchema>
+export type UpdateTournamentFieldInput = z.infer<typeof updateTournamentFieldSchema>

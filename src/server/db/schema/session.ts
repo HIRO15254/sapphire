@@ -88,6 +88,44 @@ export const pokerSessions = createTable(
      * Rich text notes (HTML).
      */
     notes: d.text('notes'),
+    /**
+     * Session-specific tournament basic info override (JSONB).
+     * When set, overrides the linked tournament's basic info for this session only.
+     * Schema: { name?, buyIn, rake?, startingStack?, notes? }
+     */
+    tournamentOverrideBasic: d.jsonb('tournament_override_basic'),
+    /**
+     * Session-specific tournament blind levels override (JSONB).
+     * When set, overrides the linked tournament's blind structure for this session only.
+     * Schema: BlindLevel[]
+     */
+    tournamentOverrideBlinds: d.jsonb('tournament_override_blinds'),
+    /**
+     * Session-specific tournament prize structures override (JSONB).
+     * When set, overrides the linked tournament's prize structure for this session only.
+     * Schema: PrizeStructure[]
+     */
+    tournamentOverridePrizes: d.jsonb('tournament_override_prizes'),
+    /**
+     * Tournament blind timer start time.
+     * When set (along with blind structure), enables blind timer display.
+     */
+    timerStartedAt: d.timestamp('timer_started_at', { withTimezone: true }),
+    /**
+     * Tournament total entries count.
+     * Used for calculating prize pool and average stack.
+     */
+    tournamentEntries: d.integer('tournament_entries'),
+    /**
+     * Tournament remaining players count.
+     * Used for tracking progress and calculating average stack.
+     */
+    tournamentRemaining: d.integer('tournament_remaining'),
+    /**
+     * Tournament final position (1st, 2nd, etc.).
+     * Recorded when session ends.
+     */
+    finalPosition: d.integer('final_position'),
     ...timestampColumns(d),
   }),
   (t) => [
