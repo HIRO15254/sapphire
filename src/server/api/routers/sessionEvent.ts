@@ -1139,9 +1139,11 @@ export const sessionEventRouter = createTRPCRouter({
       } else if (event.eventType === 'rebuy' && data?.amount) {
         // Stack increases by rebuy amount
         currentStack += data.amount as number
-      } else if (event.eventType === 'addon' && data?.amount) {
-        // Stack increases by addon amount
-        currentStack += data.amount as number
+      } else if (event.eventType === 'addon') {
+        // Stack increases by chips amount (or cost if chips not specified for backwards compatibility)
+        const chips = data?.chips as number | undefined
+        const cost = (data?.cost as number) ?? (data?.amount as number) ?? 0
+        currentStack += chips ?? cost
       }
 
       // Track pause/resume for calculating paused duration
