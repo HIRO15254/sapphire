@@ -282,7 +282,7 @@ export function SessionProfitChart({
   }
 
   return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingTop: 'var(--mantine-spacing-xs)' }}>
+    <Box style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, paddingTop: 'var(--mantine-spacing-xs)' }}>
       {enableHandsMode && (
         <Group justify="flex-end" mb={4} style={{ flexShrink: 0 }}>
           <SegmentedControl
@@ -296,7 +296,7 @@ export function SessionProfitChart({
           />
         </Group>
       )}
-      <Box style={{ flex: 1, minHeight: 80 }}>
+      <Box style={{ flex: 1, minHeight: 0 }}>
         <LineChart
           data={chartData}
           dataKey={dataKey}

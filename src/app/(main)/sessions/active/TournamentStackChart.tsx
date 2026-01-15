@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Text } from '@mantine/core'
+import { Text } from '@mantine/core'
 import { LineChart } from '@mantine/charts'
 
 export interface TournamentChartEvent {
@@ -105,32 +105,28 @@ export function TournamentStackChart({
   }
 
   return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box style={{ flex: 1, minHeight: 80 }}>
-        <LineChart
-          data={chartData}
-          dataKey="elapsedMinutes"
-          h={height}
-          series={[
-            { name: 'stack', color: 'blue.6', label: 'スタック' },
-          ]}
-          curveType="linear"
-          connectNulls
-          valueFormatter={(value) => value.toLocaleString()}
-          xAxisProps={{
-            type: 'number',
-            domain: [0, 'dataMax'],
-            tickFormatter: formatElapsedMinutes,
-          }}
-          yAxisProps={{
-            domain: [0, 'auto'],
-          }}
-          tooltipProps={{
-            wrapperStyle: { zIndex: 1000 },
-            labelFormatter: formatElapsedMinutes,
-          }}
-        />
-      </Box>
-    </Box>
+    <LineChart
+      data={chartData}
+      dataKey="elapsedMinutes"
+      h={height}
+      series={[
+        { name: 'stack', color: 'blue.6', label: 'スタック' },
+      ]}
+      curveType="linear"
+      connectNulls
+      valueFormatter={(value) => value.toLocaleString()}
+      xAxisProps={{
+        type: 'number',
+        domain: [0, 'dataMax'],
+        tickFormatter: formatElapsedMinutes,
+      }}
+      yAxisProps={{
+        domain: [0, 'auto'],
+      }}
+      tooltipProps={{
+        wrapperStyle: { zIndex: 1000 },
+        labelFormatter: formatElapsedMinutes,
+      }}
+    />
   )
 }

@@ -612,7 +612,7 @@ export function ActiveSessionContent({
             </Group>
 
             {/* Content area */}
-            <Box style={{ flex: 1, minHeight: 80, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+            <Box style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: sessionView === 'chart' ? 'hidden' : 'auto' }}>
               {/* Summary View */}
               {sessionView === 'summary' && (
                 <>
@@ -673,7 +673,7 @@ export function ActiveSessionContent({
 
               {/* Chart View */}
               {sessionView === 'chart' && (
-                <Box h="100%">
+                <Box style={{ flex: 1, minHeight: 0 }}>
                   {isTournament && (
                     <TournamentStackChart
                       sessionEvents={session.sessionEvents}
