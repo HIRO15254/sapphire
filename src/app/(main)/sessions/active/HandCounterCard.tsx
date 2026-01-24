@@ -107,18 +107,19 @@ export function HandCounterCard({
   }, [availablePositions, selectedPosition])
 
   /**
-   * Get next position in rotation (clockwise: BTN → SB → BB → ...)
+   * Get next position in rotation (clockwise: BTN → SB → BB → UTG → ...)
+   * Array order is [BTN, CO, ..., BB, SB], so next means going forward in array
    */
   const getNextPosition = (currentPos: PokerPosition): PokerPosition => {
     const currentIndex = availablePositions.indexOf(currentPos)
     if (currentIndex === -1) return availablePositions[0] ?? 'BTN'
-    // BTN is last, so next is SB (first)
     const nextIndex = (currentIndex + 1) % availablePositions.length
     return availablePositions[nextIndex] ?? 'BTN'
   }
 
   /**
    * Get previous position in rotation (counter-clockwise)
+   * Array order is [BTN, CO, ..., BB, SB], so prev means going backward in array
    */
   const getPrevPosition = (currentPos: PokerPosition): PokerPosition => {
     const currentIndex = availablePositions.indexOf(currentPos)
@@ -351,7 +352,7 @@ export function HandCounterCard({
         {/* Last recorded info */}
         <Text c="dimmed" size="xs" ta="center">
           {lastHandInfo
-            ? `最終記録: ${formatRelativeTime(lastHandInfo.recordedAt)}${lastHandInfo.position ? ` (${lastHandInfo.position})` : ''}`
+            ? `最終記録: ${formatRelativeTime(lastHandInfo.recordedAt)}`
             : '記録なし'}
         </Text>
       </Stack>
