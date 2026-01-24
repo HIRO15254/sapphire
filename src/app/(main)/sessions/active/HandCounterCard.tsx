@@ -58,11 +58,22 @@ export function HandCounterCard({
     Math.max(2, tablematesCount + 1), // +1 for self
   )
 
+  // Display value for player count input (can be empty while editing)
+  const [playerCountDisplay, setPlayerCountDisplay] = useState<
+    number | string
+  >(playerCount)
+
   // Sync player count when tablemates count changes
   useEffect(() => {
     const newCount = Math.max(2, tablematesCount + 1)
     setPlayerCount(newCount)
+    setPlayerCountDisplay(newCount)
   }, [tablematesCount])
+
+  // Sync display value when playerCount changes from other sources
+  useEffect(() => {
+    setPlayerCountDisplay(playerCount)
+  }, [playerCount])
 
   // Get available positions for current player count
   const availablePositions = getPositionsForPlayerCount(playerCount)
@@ -292,17 +303,37 @@ export function HandCounterCard({
           {/* Player count selector */}
           <Group gap={4}>
             <NumberInput
-              value={playerCount}
-              onChange={(val) =>
-                setPlayerCount(
-                  typeof val === 'number' ? Math.min(9, Math.max(2, val)) : 9,
-                )
-              }
+              value={playerCountDisplay}
+              onChange={(val) => {
+                // Allow empty value temporarily while typing
+                setPlayerCountDisplay(val)
+                // If valid number, update actual state immediately
+                if (typeof val === 'number' && val >= 2 && val <= 9) {
+                  setPlayerCount(val)
+                }
+              }}
+              onFocus={(e) => e.target.select()}
+              onBlur={() => {
+                // On blur, validate and reset to valid value
+                const numVal =
+                  typeof playerCountDisplay === 'number'
+                    ? playerCountDisplay
+                    : parseInt(String(playerCountDisplay), 10)
+                if (!isNaN(numVal) && numVal >= 2 && numVal <= 9) {
+                  setPlayerCount(numVal)
+                  setPlayerCountDisplay(numVal)
+                } else {
+                  // Reset to current valid value
+                  setPlayerCountDisplay(playerCount)
+                }
+              }}
               min={2}
               max={9}
               size="xs"
               w={50}
               hideControls
+              allowDecimal={false}
+              allowNegative={false}
               styles={{
                 input: {
                   textAlign: 'center',
