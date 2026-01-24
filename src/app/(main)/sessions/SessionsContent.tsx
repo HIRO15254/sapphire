@@ -2,7 +2,6 @@
 
 import {
   Alert,
-  Badge,
   Button,
   Card,
   Container,
@@ -17,11 +16,10 @@ import {
   IconAlertCircle,
   IconCalendar,
   IconPlus,
-  IconPokerChip,
   IconTrendingDown,
   IconTrendingUp,
-  IconTrophy,
 } from '@tabler/icons-react'
+import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { RouterOutputs } from '~/trpc/react'
@@ -171,23 +169,7 @@ export function SessionsContent({
                           {formatDate(session.startTime)}
                         </Text>
                       </Group>
-                      {session.gameType === 'tournament' ? (
-                        <Badge
-                          color="grape"
-                          leftSection={<IconTrophy size={10} />}
-                          size="sm"
-                        >
-                          トーナメント
-                        </Badge>
-                      ) : (
-                        <Badge
-                          color="blue"
-                          leftSection={<IconPokerChip size={10} />}
-                          size="sm"
-                        >
-                          キャッシュ
-                        </Badge>
-                      )}
+                      <GameTypeBadge gameType={session.gameType} size="sm" />
                     </Group>
                     {session.store && (
                       <Text fw={500} size="md">

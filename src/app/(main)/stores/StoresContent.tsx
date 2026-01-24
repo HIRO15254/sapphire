@@ -13,13 +13,11 @@ import {
   Text,
   Title,
 } from '@mantine/core'
+import { IconAlertCircle, IconMapPin, IconPlus } from '@tabler/icons-react'
 import {
-  IconAlertCircle,
-  IconMapPin,
-  IconPlus,
-  IconPokerChip,
-  IconTrophy,
-} from '@tabler/icons-react'
+  GameTypeIcon,
+  getGameTypeLabel,
+} from '~/components/sessions/GameTypeBadge'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { RouterOutputs } from '~/trpc/react'
@@ -150,9 +148,9 @@ export function StoresContent({ initialStores }: StoresContentProps) {
                   <Group gap="lg">
                     <Stack align="center" gap={4}>
                       <Group gap={4}>
-                        <IconPokerChip size={16} style={{ color: 'gray' }} />
+                        <GameTypeIcon gameType="cash_game" size={16} />
                         <Text c="dimmed" size="xs">
-                          キャッシュ
+                          {getGameTypeLabel('cash_game')}
                         </Text>
                       </Group>
                       <Text fw={600} size="lg">
@@ -161,9 +159,9 @@ export function StoresContent({ initialStores }: StoresContentProps) {
                     </Stack>
                     <Stack align="center" gap={4}>
                       <Group gap={4}>
-                        <IconTrophy size={16} style={{ color: 'gray' }} />
+                        <GameTypeIcon gameType="tournament" size={16} />
                         <Text c="dimmed" size="xs">
-                          トーナメント
+                          {getGameTypeLabel('tournament')}
                         </Text>
                       </Group>
                       <Text fw={600} size="lg">

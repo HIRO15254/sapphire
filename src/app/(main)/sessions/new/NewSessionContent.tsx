@@ -17,13 +17,8 @@ import {
 import { DateInput, TimeInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
-import {
-  IconArrowLeft,
-  IconCalendar,
-  IconClock,
-  IconPokerChip,
-  IconTrophy,
-} from '@tabler/icons-react'
+import { IconArrowLeft, IconCalendar, IconClock } from '@tabler/icons-react'
+import { GameTypeLabelWithIcon } from '~/components/sessions/GameTypeBadge'
 import { zodResolver } from 'mantine-form-zod-resolver'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -243,21 +238,11 @@ export function NewSessionContent({ stores }: NewSessionContentProps) {
                   data={[
                     {
                       value: 'cash',
-                      label: (
-                        <Group gap={4}>
-                          <IconPokerChip size={16} />
-                          <span>キャッシュ</span>
-                        </Group>
-                      ),
+                      label: <GameTypeLabelWithIcon gameType="cash" />,
                     },
                     {
                       value: 'tournament',
-                      label: (
-                        <Group gap={4}>
-                          <IconTrophy size={16} />
-                          <span>トーナメント</span>
-                        </Group>
-                      ),
+                      label: <GameTypeLabelWithIcon gameType="tournament" />,
                     },
                   ]}
                   fullWidth

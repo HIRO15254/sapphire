@@ -32,11 +32,10 @@ import {
   IconPlayerPause,
   IconPlayerPlay,
   IconPlus,
-  IconPokerChip,
   IconTarget,
-  IconTrophy,
   IconUsers,
 } from '@tabler/icons-react'
+import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { RouterOutputs } from '~/trpc/react'
@@ -574,25 +573,10 @@ export function ActiveSessionContent({
                     LIVE
                   </Badge>
                 )}
-                {isTournament ? (
-                  <Badge
-                    color="grape"
-                    leftSection={<IconTrophy size={10} />}
-                    size="xs"
-                    variant="light"
-                  >
-                    MTT
-                  </Badge>
-                ) : (
-                  <Badge
-                    color="blue"
-                    leftSection={<IconPokerChip size={10} />}
-                    size="xs"
-                    variant="light"
-                  >
-                    Cash
-                  </Badge>
-                )}
+                <GameTypeBadge
+                  gameType={isTournament ? 'tournament' : 'cash_game'}
+                  size="xs"
+                />
                 {gameInfo && (
                   <Text c="dimmed" size="xs" lineClamp={1}>
                     {gameInfo}
@@ -672,7 +656,7 @@ export function ActiveSessionContent({
 
               {/* Chart View */}
               {sessionView === 'chart' && (
-                <Box style={{ flex: 1, minHeight: 0 }}>
+                <Box style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                   <SessionProfitChart
                     sessionEvents={session.sessionEvents}
                     allInRecords={session.allInRecords}
