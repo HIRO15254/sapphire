@@ -37,6 +37,8 @@ interface SessionProfitChartProps {
   height?: number | '100%'
   /** Big blind amount for cash games (used to set default y-axis max to 100bb) */
   bigBlind?: number
+  /** Chart variant: cash (profit/loss) or tournament (absolute stack) */
+  variant?: 'cash' | 'tournament'
 }
 
 interface ChartDataPoint {
@@ -44,12 +46,15 @@ interface ChartDataPoint {
   handCount: number
   profit: number
   adjustedProfit: number
+  stack: number
 }
 
 /**
- * Shared profit chart component for sessions.
+ * Shared chart component for sessions.
  *
- * Used by both live session and session detail pages.
+ * Supports two variants:
+ * - cash: Shows profit/loss with all-in adjustment
+ * - tournament: Shows absolute stack value
  */
 export function SessionProfitChart({
   sessionEvents,
@@ -62,8 +67,11 @@ export function SessionProfitChart({
   withDots = false,
   height = '100%',
   bigBlind,
+  variant = 'cash',
 }: SessionProfitChartProps) {
   const [xAxisMode, setXAxisMode] = useState<'time' | 'hands'>('time')
+
+  const isTournament = variant === 'tournament'
 
   // Find session start event
   const startEvent = sessionEvents.find((e) => e.eventType === 'session_start')
@@ -126,12 +134,19 @@ export function SessionProfitChart({
     return luck
   }
 
+  // Find initial stack for tournament mode
+  const firstStackUpdate = sessionEvents.find((e) => e.eventType === 'stack_update')
+  const initialStack = firstStackUpdate
+    ? ((firstStackUpdate.eventData as Record<string, unknown>)?.amount as number) ?? (currentStack ?? buyIn)
+    : (currentStack ?? buyIn)
+
   // Starting point
   chartData.push({
     elapsedMinutes: 0,
     handCount: 0,
     profit: 0,
     adjustedProfit: 0,
+    stack: initialStack,
   })
 
   // Process events
@@ -168,12 +183,22 @@ export function SessionProfitChart({
       const profit = stackAmount - totalBuyInAtTime
       const luck = getCumulativeLuck(eventTime)
 
-      chartData.push({
-        elapsedMinutes,
-        handCount: cumulativeHandCount,
-        profit,
-        adjustedProfit: profit - luck,
-      })
+      // Skip if same time as previous point (update instead)
+      const lastPoint = chartData[chartData.length - 1]
+      if (lastPoint && lastPoint.elapsedMinutes === elapsedMinutes) {
+        lastPoint.profit = profit
+        lastPoint.adjustedProfit = profit - luck
+        lastPoint.stack = stackAmount
+        lastPoint.handCount = cumulativeHandCount
+      } else {
+        chartData.push({
+          elapsedMinutes,
+          handCount: cumulativeHandCount,
+          profit,
+          adjustedProfit: profit - luck,
+          stack: stackAmount,
+        })
+      }
     }
   }
 
@@ -205,6 +230,7 @@ export function SessionProfitChart({
         handCount: totalHandCount,
         profit: currentProfit,
         adjustedProfit: currentProfit - currentLuck,
+        stack: currentStack,
       })
     }
   } else if (endTime && cashOut !== null && cashOut !== undefined) {
@@ -226,6 +252,7 @@ export function SessionProfitChart({
         handCount: cumulativeHandCount,
         profit: finalProfit,
         adjustedProfit: finalProfit - finalLuck,
+        stack: cashOut,
       })
     }
   }
@@ -240,8 +267,13 @@ export function SessionProfitChart({
 
   const dataKey = xAxisMode === 'time' ? 'elapsedMinutes' : 'handCount'
 
-  // Calculate y-axis domain for cash games (minimum 100bb range)
+  // Calculate y-axis domain
   const yAxisDomain = (() => {
+    if (isTournament) {
+      // Tournament: start from 0
+      return [0, 'auto'] as [number, 'auto']
+    }
+
     if (!bigBlind) return undefined
 
     const minRange = 100 * bigBlind
@@ -281,9 +313,25 @@ export function SessionProfitChart({
     return `${label} hands`
   }
 
+  // Series configuration based on variant
+  const series = isTournament
+    ? [{ name: 'stack', color: 'blue.6', label: 'スタック' }]
+    : [
+        { name: 'profit', color: 'green.6', label: '収支' },
+        { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整' },
+      ]
+
+  // Reference lines (only for cash variant)
+  const referenceLines = isTournament
+    ? undefined
+    : [{ y: 0, label: '±0', color: 'gray.5' }]
+
+  // Show hands mode toggle only for cash variant with enableHandsMode
+  const showHandsToggle = !isTournament && enableHandsMode
+
   return (
-    <Box style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, paddingTop: 'var(--mantine-spacing-xs)' }}>
-      {enableHandsMode && (
+    <Box style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      {showHandsToggle && (
         <Group justify="flex-end" mb={4} style={{ flexShrink: 0 }}>
           <SegmentedControl
             data={[
@@ -301,22 +349,17 @@ export function SessionProfitChart({
           data={chartData}
           dataKey={dataKey}
           h={height}
-          series={[
-            { name: 'profit', color: 'green.6', label: '収支' },
-            { name: 'adjustedProfit', color: 'orange.6', label: 'All-in調整' },
-          ]}
+          series={series}
           curveType="linear"
           withDots={withDots}
           connectNulls
-          referenceLines={[
-            { y: 0, label: '±0', color: 'gray.5' },
-          ]}
+          referenceLines={referenceLines}
           valueFormatter={(value) => value.toLocaleString()}
           xAxisProps={{
             type: 'number',
             domain: [0, 'dataMax'],
-            tick: enableHandsMode ? false : undefined,
-            tickFormatter: enableHandsMode ? undefined : formatElapsedMinutes,
+            tick: showHandsToggle ? false : undefined,
+            tickFormatter: showHandsToggle ? undefined : formatElapsedMinutes,
           }}
           yAxisProps={yAxisDomain ? { domain: yAxisDomain } : undefined}
           tooltipProps={{

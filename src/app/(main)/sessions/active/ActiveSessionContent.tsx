@@ -52,7 +52,6 @@ import { HandCounterCard } from './HandCounterCard'
 import { StartSessionForm } from './StartSessionForm'
 import { TablematesCard } from './TablematesCard'
 import { TournamentInfoTab } from './TournamentInfoTab'
-import { TournamentStackChart } from './TournamentStackChart'
 import { TournamentSummary } from './TournamentSummary'
 
 type ActiveSession = RouterOutputs['sessionEvent']['getActiveSession']
@@ -273,10 +272,10 @@ export function ActiveSessionContent({
    * Handle stack update (cash game only).
    */
   const handleUpdateStack = () => {
-    if (!session) return
+    if (!session || stackAmount === null) return
     updateStack.mutate({
       sessionId: session.id,
-      amount: stackAmount ?? session.currentStack,
+      amount: stackAmount,
     })
   }
 
@@ -674,22 +673,15 @@ export function ActiveSessionContent({
               {/* Chart View */}
               {sessionView === 'chart' && (
                 <Box style={{ flex: 1, minHeight: 0 }}>
-                  {isTournament && (
-                    <TournamentStackChart
-                      sessionEvents={session.sessionEvents}
-                      currentStack={session.currentStack}
-                    />
-                  )}
-                  {isCashGame && (
-                    <SessionProfitChart
-                      sessionEvents={session.sessionEvents}
-                      allInRecords={session.allInRecords}
-                      buyIn={session.buyIn}
-                      currentStack={session.currentStack}
-                      enableHandsMode
-                      bigBlind={session.cashGame?.bigBlind}
-                    />
-                  )}
+                  <SessionProfitChart
+                    sessionEvents={session.sessionEvents}
+                    allInRecords={session.allInRecords}
+                    buyIn={session.buyIn}
+                    currentStack={session.currentStack}
+                    variant={isTournament ? 'tournament' : 'cash'}
+                    enableHandsMode={isCashGame}
+                    bigBlind={session.cashGame?.bigBlind}
+                  />
                 </Box>
               )}
             </Box>
@@ -709,11 +701,11 @@ export function ActiveSessionContent({
                       onChange={(val) =>
                         setStackAmount(typeof val === 'number' ? val : null)
                       }
-                      placeholder="スタック"
+                      placeholder={session.currentStack.toLocaleString()}
                       size="md"
                       styles={{ input: { height: buttonHeight } }}
                       thousandSeparator=","
-                      value={stackAmount ?? session.currentStack}
+                      value={stackAmount ?? ''}
                     />
                     <NumberInput
                       w={70}
@@ -759,11 +751,11 @@ export function ActiveSessionContent({
                       onChange={(val) =>
                         setStackAmount(typeof val === 'number' ? val : null)
                       }
-                      placeholder="スタック額"
+                      placeholder={session.currentStack.toLocaleString()}
                       size="md"
                       styles={{ input: { height: buttonHeight } }}
                       thousandSeparator=","
-                      value={stackAmount ?? session.currentStack}
+                      value={stackAmount ?? ''}
                     />
                     <Button
                       disabled={stackAmount === null}
