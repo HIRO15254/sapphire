@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  Button,
-  Group,
-  Modal,
-  Stack,
-  Text,
-} from '@mantine/core'
+import { Button, Group, Modal, Stack, Text } from '@mantine/core'
 import { IconCopy, IconDatabase } from '@tabler/icons-react'
 
 import type { EditChoice, TournamentEditMode } from './types'
@@ -54,11 +48,11 @@ export function EditChoiceDialog({
             onClick={() => onConfirm('session')}
             variant="light"
           >
-            <Stack gap={0} align="flex-start">
-              <Text size="sm" fw={500}>
+            <Stack align="flex-start" gap={0}>
+              <Text fw={500} size="sm">
                 このセッション用にコピー
               </Text>
-              <Text size="xs" c="dimmed">
+              <Text c="dimmed" size="xs">
                 このセッションのみに反映されます
               </Text>
             </Stack>
@@ -72,11 +66,11 @@ export function EditChoiceDialog({
             onClick={() => onConfirm('store')}
             variant="light"
           >
-            <Stack gap={0} align="flex-start">
-              <Text size="sm" fw={500}>
+            <Stack align="flex-start" gap={0}>
+              <Text fw={500} size="sm">
                 ストア設定を編集
               </Text>
-              <Text size="xs" c="dimmed">
+              <Text c="dimmed" size="xs">
                 すべてのセッションに反映されます
               </Text>
             </Stack>

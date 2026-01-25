@@ -38,7 +38,9 @@ import type {
   TournamentEditMode,
 } from './types'
 
-type ActiveSession = NonNullable<RouterOutputs['sessionEvent']['getActiveSession']>
+type ActiveSession = NonNullable<
+  RouterOutputs['sessionEvent']['getActiveSession']
+>
 
 interface TournamentInfoTabProps {
   session: ActiveSession
@@ -86,19 +88,32 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
       notes?: string | null
     } | null
 
-    const blindsOverride = session.tournamentOverrideBlinds as BlindLevel[] | null
-    const prizesOverride = session.tournamentOverridePrizes as PrizeStructure[] | null
+    const blindsOverride = session.tournamentOverrideBlinds as
+      | BlindLevel[]
+      | null
+    const prizesOverride = session.tournamentOverridePrizes as
+      | PrizeStructure[]
+      | null
 
     // Merge basic info
     const basic = {
-      name: basicOverride?.name !== undefined ? basicOverride.name : tournament.name,
+      name:
+        basicOverride?.name !== undefined
+          ? basicOverride.name
+          : tournament.name,
       buyIn: basicOverride?.buyIn ?? tournament.buyIn,
-      rake: basicOverride?.rake !== undefined ? basicOverride.rake : tournament.rake,
+      rake:
+        basicOverride?.rake !== undefined
+          ? basicOverride.rake
+          : tournament.rake,
       startingStack:
         basicOverride?.startingStack !== undefined
           ? basicOverride.startingStack
           : tournament.startingStack,
-      notes: basicOverride?.notes !== undefined ? basicOverride.notes : tournament.notes,
+      notes:
+        basicOverride?.notes !== undefined
+          ? basicOverride.notes
+          : tournament.notes,
     }
 
     // Convert store blind levels to BlindLevel type
@@ -112,8 +127,8 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
     }))
 
     // Convert store prize structures to PrizeStructure type
-    const storePrizeStructures: PrizeStructure[] = tournament.prizeStructures.map(
-      (ps, sIdx) => ({
+    const storePrizeStructures: PrizeStructure[] =
+      tournament.prizeStructures.map((ps, sIdx) => ({
         minEntrants: ps.minEntrants,
         maxEntrants: ps.maxEntrants,
         sortOrder: ps.sortOrder ?? sIdx,
@@ -122,7 +137,10 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
           maxPosition: pl.maxPosition,
           sortOrder: pl.sortOrder ?? lIdx,
           prizeItems: pl.prizeItems.map((pi, iIdx) => ({
-            prizeType: pi.prizeType as 'percentage' | 'fixed_amount' | 'custom_prize',
+            prizeType: pi.prizeType as
+              | 'percentage'
+              | 'fixed_amount'
+              | 'custom_prize',
             percentage: pi.percentage ? Number(pi.percentage) : null,
             fixedAmount: pi.fixedAmount,
             customPrizeLabel: pi.customPrizeLabel,
@@ -130,8 +148,7 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
             sortOrder: pi.sortOrder ?? iIdx,
           })),
         })),
-      }),
-    )
+      }))
 
     return {
       basic,
@@ -226,7 +243,7 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
               <Text c="dimmed" size="xs">
                 トーナメント名
               </Text>
-              <Text size="sm" fw={500}>
+              <Text fw={500} size="sm">
                 {tournamentData.basic.name || '-'}
               </Text>
             </Box>
@@ -234,10 +251,10 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
               <Text c="dimmed" size="xs">
                 バイイン
               </Text>
-              <Text size="sm" fw={500}>
+              <Text fw={500} size="sm">
                 {tournamentData.basic.buyIn.toLocaleString()}
                 {tournamentData.basic.rake && (
-                  <Text c="dimmed" component="span" size="xs" ml={4}>
+                  <Text c="dimmed" component="span" ml={4} size="xs">
                     (レーキ: {tournamentData.basic.rake.toLocaleString()})
                   </Text>
                 )}
@@ -247,7 +264,7 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
               <Text c="dimmed" size="xs">
                 スターティングスタック
               </Text>
-              <Text size="sm" fw={500}>
+              <Text fw={500} size="sm">
                 {tournamentData.basic.startingStack?.toLocaleString() || '-'}
               </Text>
             </Box>
@@ -256,7 +273,7 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
           {tournamentData.basic.notes && (
             <>
               <Divider my="xs" />
-              <Text c="dimmed" size="xs" mb={4}>
+              <Text c="dimmed" mb={4} size="xs">
                 メモ
               </Text>
               <TypographyStylesProvider>
@@ -362,8 +379,8 @@ export function TournamentInfoTab({ session }: TournamentInfoTabProps) {
           </Group>
 
           <PrizeStructureDisplay
-            prizeStructures={tournamentData.prizeStructures}
             maxHeight={200}
+            prizeStructures={tournamentData.prizeStructures}
           />
         </Card>
       </Stack>

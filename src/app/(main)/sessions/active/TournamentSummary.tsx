@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  Group,
-  Stack,
-  Text,
-} from '@mantine/core'
+import { Group, Stack, Text } from '@mantine/core'
 import { useEffect, useMemo, useState } from 'react'
 
 import type { BlindLevel } from '~/app/(main)/stores/[id]/types'
@@ -97,43 +93,69 @@ export function TournamentSummary({
   // Calculate average stack (total chips / remaining)
   // Total chips = entries × starting stack (if we know both)
   const totalChips = entries && startingStack ? entries * startingStack : null
-  const averageStack = totalChips && remaining ? Math.round(totalChips / remaining) : null
+  const averageStack =
+    totalChips && remaining ? Math.round(totalChips / remaining) : null
 
   // Format field display (remaining/entries)
-  const fieldDisplay = remaining != null || entries != null
-    ? `${remaining?.toLocaleString() ?? '-'} / ${entries?.toLocaleString() ?? '-'}`
-    : '-'
+  const fieldDisplay =
+    remaining != null || entries != null
+      ? `${remaining?.toLocaleString() ?? '-'} / ${entries?.toLocaleString() ?? '-'}`
+      : '-'
 
   // Calculate BB counts
   const stackInBB = currentBB ? Math.round(currentStack / currentBB) : null
-  const averageInBB = currentBB && averageStack ? Math.round(averageStack / currentBB) : null
+  const averageInBB =
+    currentBB && averageStack ? Math.round(averageStack / currentBB) : null
 
   return (
     <Stack gap="xs" h="100%">
       {/* Tournament Stats - compact row */}
-      <Group justify="space-between" gap="xs">
+      <Group gap="xs" justify="space-between">
         <Stack align="center" gap={0}>
-          <Text c="dimmed" size="xs">Field</Text>
-          <Text fw={600} size="sm">{fieldDisplay}</Text>
+          <Text c="dimmed" size="xs">
+            Field
+          </Text>
+          <Text fw={600} size="sm">
+            {fieldDisplay}
+          </Text>
         </Stack>
         <Stack align="center" gap={0}>
-          <Text c="dimmed" size="xs">プライズ</Text>
-          <Text fw={600} size="sm">{prizePool?.toLocaleString() ?? '-'}</Text>
+          <Text c="dimmed" size="xs">
+            プライズ
+          </Text>
+          <Text fw={600} size="sm">
+            {prizePool?.toLocaleString() ?? '-'}
+          </Text>
         </Stack>
         <Stack align="center" gap={0}>
-          <Text c="dimmed" size="xs">平均</Text>
+          <Text c="dimmed" size="xs">
+            平均
+          </Text>
           <Text fw={600} size="sm">
             {averageStack?.toLocaleString() ?? '-'}
-            {averageInBB && <Text span size="xs" c="dimmed"> ({averageInBB}BB)</Text>}
+            {averageInBB && (
+              <Text c="dimmed" size="xs" span>
+                {' '}
+                ({averageInBB}BB)
+              </Text>
+            )}
           </Text>
         </Stack>
       </Group>
 
       {/* Current Stack (prominent) */}
-      <Stack align="center" gap={0} style={{ flex: 1, justifyContent: 'center' }}>
-        <Text fw={700} size="2rem">{currentStack.toLocaleString()}</Text>
+      <Stack
+        align="center"
+        gap={0}
+        style={{ flex: 1, justifyContent: 'center' }}
+      >
+        <Text fw={700} size="2rem">
+          {currentStack.toLocaleString()}
+        </Text>
         {stackInBB && (
-          <Text size="sm" c="dimmed">{stackInBB}BB</Text>
+          <Text c="dimmed" size="sm">
+            {stackInBB}BB
+          </Text>
         )}
       </Stack>
     </Stack>

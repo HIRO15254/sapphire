@@ -11,15 +11,15 @@ import {
   Loader,
   Stack,
   Text,
-  Title,
 } from '@mantine/core'
 import { IconAlertCircle, IconMapPin, IconPlus } from '@tabler/icons-react'
+import Link from 'next/link'
+import { useState } from 'react'
 import {
   GameTypeIcon,
   getGameTypeLabel,
 } from '~/components/sessions/GameTypeBadge'
-import Link from 'next/link'
-import { useState } from 'react'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 
@@ -36,6 +36,8 @@ interface StoresContentProps {
  * Uses initial data from server, allows filtering on client.
  */
 export function StoresContent({ initialStores }: StoresContentProps) {
+  usePageTitle('店舗')
+
   const [includeArchived, setIncludeArchived] = useState(false)
 
   // Fetch archived data only when includeArchived is true
@@ -73,9 +75,8 @@ export function StoresContent({ initialStores }: StoresContentProps) {
   return (
     <Container py="xl" size="md">
       <Stack gap="lg">
-        <Group justify="space-between">
-          <Title order={1}>店舗管理</Title>
-          {stores.length > 0 && (
+        {stores.length > 0 && (
+          <Group justify="flex-end">
             <Button
               component={Link}
               href="/stores/new"
@@ -83,8 +84,8 @@ export function StoresContent({ initialStores }: StoresContentProps) {
             >
               新しい店舗を追加
             </Button>
-          )}
-        </Group>
+          </Group>
+        )}
 
         <Checkbox
           checked={includeArchived}

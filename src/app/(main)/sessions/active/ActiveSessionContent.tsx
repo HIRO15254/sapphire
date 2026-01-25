@@ -35,16 +35,17 @@ import {
   IconTarget,
   IconUsers,
 } from '@tabler/icons-react'
-import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import type { RouterOutputs } from '~/trpc/react'
-import { api } from '~/trpc/react'
+import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 import {
   SessionEventTimeline,
   type TimelineAllInRecord,
 } from '~/components/sessions/SessionEventTimeline'
 import { SessionProfitChart } from '~/components/sessions/SessionProfitChart'
+import { usePageTitle } from '~/contexts/PageTitleContext'
+import type { RouterOutputs } from '~/trpc/react'
+import { api } from '~/trpc/react'
 import { type AllInFormValues, AllInModal } from '../[id]/AllInModal'
 import { BlindTimerCard } from './BlindTimerCard'
 import { HandCounterCard } from './HandCounterCard'
@@ -71,6 +72,8 @@ interface ActiveSessionContentProps {
 export function ActiveSessionContent({
   initialSession,
 }: ActiveSessionContentProps) {
+  usePageTitle('ライブセッション')
+
   const router = useRouter()
   const utils = api.useUtils()
 
@@ -172,12 +175,13 @@ export function ActiveSessionContent({
   })
 
   // Tournament field update mutation
-  const updateTournamentField = api.sessionEvent.updateTournamentField.useMutation({
-    onSuccess: () => {
-      void utils.sessionEvent.getActiveSession.invalidate()
-      void refetch()
-    },
-  })
+  const updateTournamentField =
+    api.sessionEvent.updateTournamentField.useMutation({
+      onSuccess: () => {
+        void utils.sessionEvent.getActiveSession.invalidate()
+        void refetch()
+      },
+    })
 
   // Local state
   const [cashOutAmount, setCashOutAmount] = useState<number | null>(null)
@@ -338,7 +342,9 @@ export function ActiveSessionContent({
       : values.actualResult === 'win'
 
     // Parse recordedAt time
-    const recordedAt = values.recordedAt ? parseTimeToDate(values.recordedAt) : undefined
+    const recordedAt = values.recordedAt
+      ? parseTimeToDate(values.recordedAt)
+      : undefined
 
     if (editingAllIn) {
       // Update existing all-in record
@@ -368,7 +374,9 @@ export function ActiveSessionContent({
    */
   const handleEditAllIn = (timelineAllIn: TimelineAllInRecord) => {
     // Find the full record from session data
-    const fullRecord = session?.allInRecords.find((r) => r.id === timelineAllIn.id)
+    const fullRecord = session?.allInRecords.find(
+      (r) => r.id === timelineAllIn.id,
+    )
     if (fullRecord) {
       setEditingAllIn(fullRecord)
       openAllInModal()
@@ -455,9 +463,13 @@ export function ActiveSessionContent({
   }, 0)
 
   // Calculate minTime (last event time) for time input validation
-  const minTime = session.sessionEvents.length > 0
-    ? new Date(session.sessionEvents[session.sessionEvents.length - 1]?.recordedAt ?? new Date())
-    : undefined
+  const minTime =
+    session.sessionEvents.length > 0
+      ? new Date(
+          session.sessionEvents[session.sessionEvents.length - 1]?.recordedAt ??
+            new Date(),
+        )
+      : undefined
 
   // Format minTime for description
   const minTimeString = minTime
@@ -504,43 +516,73 @@ export function ActiveSessionContent({
       </style>
 
       {/* Tournament Blind Timer - Fixed at top */}
-      {isTournament && (() => {
-        type BlindLevelArray = NonNullable<typeof session.tournament>['blindLevels']
-        const overrideBlinds = session.tournamentOverrideBlinds as BlindLevelArray | null
-        const blindLevels = overrideBlinds ?? session.tournament?.blindLevels ?? []
+      {isTournament &&
+        (() => {
+          type BlindLevelArray = NonNullable<
+            typeof session.tournament
+          >['blindLevels']
+          const overrideBlinds =
+            session.tournamentOverrideBlinds as BlindLevelArray | null
+          const blindLevels =
+            overrideBlinds ?? session.tournament?.blindLevels ?? []
 
-        if (!session.timerStartedAt || blindLevels.length === 0) return null
+          if (!session.timerStartedAt || blindLevels.length === 0) return null
 
-        return (
-          <BlindTimerCard
-            timerStartedAt={new Date(session.timerStartedAt)}
-            blindLevels={blindLevels}
-          />
-        )
-      })()}
+          return (
+            <BlindTimerCard
+              blindLevels={blindLevels}
+              timerStartedAt={new Date(session.timerStartedAt)}
+            />
+          )
+        })()}
 
       {/* Main Card - 3 Tabs */}
-      <Card p="sm" radius="md" shadow="sm" withBorder style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        <Tabs value={activeTab} onChange={(v) => setActiveTab(v ?? 'session')} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Card
+        p="sm"
+        radius="md"
+        shadow="sm"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+        }}
+        withBorder
+      >
+        <Tabs
+          onChange={(v) => setActiveTab(v ?? 'session')}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+          value={activeTab}
+        >
           <Tabs.List>
-            <Tabs.Tab value="session" leftSection={<IconChartLine size={14} />}>
+            <Tabs.Tab leftSection={<IconChartLine size={14} />} value="session">
               セッション
             </Tabs.Tab>
-            <Tabs.Tab value="tablemates" leftSection={<IconUsers size={14} />}>
+            <Tabs.Tab leftSection={<IconUsers size={14} />} value="tablemates">
               同卓者
             </Tabs.Tab>
             {isTournament && (
-              <Tabs.Tab value="info" leftSection={<IconInfoCircle size={14} />}>
+              <Tabs.Tab leftSection={<IconInfoCircle size={14} />} value="info">
                 情報
               </Tabs.Tab>
             )}
-            <Tabs.Tab value="history" leftSection={<IconHistory size={14} />}>
+            <Tabs.Tab leftSection={<IconHistory size={14} />} value="history">
               履歴
             </Tabs.Tab>
           </Tabs.List>
 
           {/* Tab 1: Session (Summary/Chart + Actions) */}
-          <Tabs.Panel value="session" pt="sm" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Tabs.Panel
+            pt="sm"
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+            value="session"
+          >
             {/* Header with status and toggle */}
             <Group justify="space-between" mb="xs">
               <Group gap="xs">
@@ -578,7 +620,7 @@ export function ActiveSessionContent({
                   size="xs"
                 />
                 {gameInfo && (
-                  <Text c="dimmed" size="xs" lineClamp={1}>
+                  <Text c="dimmed" lineClamp={1} size="xs">
                     {gameInfo}
                   </Text>
                 )}
@@ -588,44 +630,70 @@ export function ActiveSessionContent({
                   { label: 'サマリー', value: 'summary' },
                   { label: 'グラフ', value: 'chart' },
                 ]}
-                onChange={(value) => setSessionView(value as 'summary' | 'chart')}
+                onChange={(value) =>
+                  setSessionView(value as 'summary' | 'chart')
+                }
                 size="xs"
                 value={sessionView}
               />
             </Group>
 
             {/* Content area */}
-            <Box style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: sessionView === 'chart' ? 'hidden' : 'auto' }}>
+            <Box
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: sessionView === 'chart' ? 'hidden' : 'auto',
+              }}
+            >
               {/* Summary View */}
               {sessionView === 'summary' && (
                 <>
                   {/* Tournament Summary */}
-                  {isTournament && (() => {
-                    type BlindLevelArray = NonNullable<typeof session.tournament>['blindLevels']
-                    const overrideBlinds = session.tournamentOverrideBlinds as BlindLevelArray | null
-                    const blindLevels = overrideBlinds ?? session.tournament?.blindLevels ?? []
-                    const startingStack = session.tournament?.startingStack ?? null
+                  {isTournament &&
+                    (() => {
+                      type BlindLevelArray = NonNullable<
+                        typeof session.tournament
+                      >['blindLevels']
+                      const overrideBlinds =
+                        session.tournamentOverrideBlinds as BlindLevelArray | null
+                      const blindLevels =
+                        overrideBlinds ?? session.tournament?.blindLevels ?? []
+                      const startingStack =
+                        session.tournament?.startingStack ?? null
 
-                    return (
-                      <TournamentSummary
-                        timerStartedAt={session.timerStartedAt ? new Date(session.timerStartedAt) : null}
-                        blindLevels={blindLevels}
-                        currentStack={session.currentStack}
-                        buyIn={session.buyIn}
-                        entries={session.tournamentEntries}
-                        remaining={session.tournamentRemaining}
-                        startingStack={startingStack}
-                      />
-                    )
-                  })()}
+                      return (
+                        <TournamentSummary
+                          blindLevels={blindLevels}
+                          buyIn={session.buyIn}
+                          currentStack={session.currentStack}
+                          entries={session.tournamentEntries}
+                          remaining={session.tournamentRemaining}
+                          startingStack={startingStack}
+                          timerStartedAt={
+                            session.timerStartedAt
+                              ? new Date(session.timerStartedAt)
+                              : null
+                          }
+                        />
+                      )
+                    })()}
 
                   {/* Cash Game Summary */}
                   {isCashGame && (
-                    <Stack h="100%" justify="center" gap="md">
+                    <Stack gap="md" h="100%" justify="center">
                       {/* Profit/Loss - prominent display */}
                       <Stack align="center" gap={0}>
                         <Text
-                          c={profitLoss > 0 ? 'green' : profitLoss < 0 ? 'red' : 'dimmed'}
+                          c={
+                            profitLoss > 0
+                              ? 'green'
+                              : profitLoss < 0
+                                ? 'red'
+                                : 'dimmed'
+                          }
                           fw={700}
                           size="2rem"
                         >
@@ -637,16 +705,28 @@ export function ActiveSessionContent({
                       {/* Stats row */}
                       <SimpleGrid cols={3}>
                         <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">Buy-in</Text>
-                          <Text fw={600} size="sm">{session.buyIn.toLocaleString()}</Text>
+                          <Text c="dimmed" size="xs">
+                            Buy-in
+                          </Text>
+                          <Text fw={600} size="sm">
+                            {session.buyIn.toLocaleString()}
+                          </Text>
                         </Stack>
                         <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">スタック</Text>
-                          <Text fw={600} size="sm">{session.currentStack.toLocaleString()}</Text>
+                          <Text c="dimmed" size="xs">
+                            スタック
+                          </Text>
+                          <Text fw={600} size="sm">
+                            {session.currentStack.toLocaleString()}
+                          </Text>
                         </Stack>
                         <Stack align="center" gap={0}>
-                          <Text c="dimmed" size="xs">経過</Text>
-                          <Text fw={600} size="sm">{formatElapsedTime(session.elapsedMinutes)}</Text>
+                          <Text c="dimmed" size="xs">
+                            経過
+                          </Text>
+                          <Text fw={600} size="sm">
+                            {formatElapsedTime(session.elapsedMinutes)}
+                          </Text>
                         </Stack>
                       </SimpleGrid>
                     </Stack>
@@ -656,15 +736,22 @@ export function ActiveSessionContent({
 
               {/* Chart View */}
               {sessionView === 'chart' && (
-                <Box style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <Box
+                  style={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
                   <SessionProfitChart
-                    sessionEvents={session.sessionEvents}
                     allInRecords={session.allInRecords}
+                    bigBlind={session.cashGame?.bigBlind}
                     buyIn={session.buyIn}
                     currentStack={session.currentStack}
-                    variant={isTournament ? 'tournament' : 'cash'}
                     enableHandsMode={isCashGame}
-                    bigBlind={session.cashGame?.bigBlind}
+                    sessionEvents={session.sessionEvents}
+                    variant={isTournament ? 'tournament' : 'cash'}
                   />
                 </Box>
               )}
@@ -672,147 +759,129 @@ export function ActiveSessionContent({
 
             <Divider my="sm" />
 
-              {/* Actions Section - fixed at bottom */}
-              <Stack gap="sm" style={{ flexShrink: 0 }}>
-                {/* Row 1: Stack form (cash game) or Stack + Field (tournament) */}
-                {isTournament ? (
-                  <Group gap="xs">
-                    <NumberInput
-                      flex={1}
-                      hideControls
-                      leftSection={<IconCoins size={16} />}
-                      min={0}
-                      onChange={(val) =>
-                        setStackAmount(typeof val === 'number' ? val : null)
-                      }
-                      placeholder={session.currentStack.toLocaleString()}
-                      size="md"
-                      styles={{ input: { height: buttonHeight } }}
-                      thousandSeparator=","
-                      value={stackAmount ?? ''}
-                    />
-                    <NumberInput
-                      w={70}
-                      hideControls
-                      min={1}
-                      onChange={(val) =>
-                        setRemainingInput(typeof val === 'number' ? val : null)
-                      }
-                      placeholder="残り"
-                      size="md"
-                      styles={{ input: { height: buttonHeight, textAlign: 'center' } }}
-                      value={remainingInput ?? session.tournamentRemaining ?? ''}
-                    />
-                    <Text c="dimmed" size="sm">/</Text>
-                    <NumberInput
-                      w={70}
-                      hideControls
-                      min={1}
-                      onChange={(val) =>
-                        setEntriesInput(typeof val === 'number' ? val : null)
-                      }
-                      placeholder="E数"
-                      size="md"
-                      styles={{ input: { height: buttonHeight, textAlign: 'center' } }}
-                      value={entriesInput ?? session.tournamentEntries ?? ''}
-                    />
-                    <Button
-                      h={buttonHeight}
-                      loading={updateStack.isPending || updateTournamentField.isPending}
-                      onClick={handleUpdateStackAndField}
-                      variant="light"
-                    >
-                      更新
-                    </Button>
-                  </Group>
-                ) : (
-                  <Group gap="xs">
-                    <NumberInput
-                      flex={1}
-                      hideControls
-                      leftSection={<IconCoins size={16} />}
-                      min={0}
-                      onChange={(val) =>
-                        setStackAmount(typeof val === 'number' ? val : null)
-                      }
-                      placeholder={session.currentStack.toLocaleString()}
-                      size="md"
-                      styles={{ input: { height: buttonHeight } }}
-                      thousandSeparator=","
-                      value={stackAmount ?? ''}
-                    />
-                    <Button
-                      disabled={stackAmount === null}
-                      h={buttonHeight}
-                      loading={updateStack.isPending}
-                      onClick={handleUpdateStack}
-                      variant="light"
-                    >
-                      更新
-                    </Button>
-                  </Group>
-                )}
+            {/* Actions Section - fixed at bottom */}
+            <Stack gap="sm" style={{ flexShrink: 0 }}>
+              {/* Row 1: Stack form (cash game) or Stack + Field (tournament) */}
+              {isTournament ? (
+                <Group gap="xs">
+                  <NumberInput
+                    flex={1}
+                    hideControls
+                    leftSection={<IconCoins size={16} />}
+                    min={0}
+                    onChange={(val) =>
+                      setStackAmount(typeof val === 'number' ? val : null)
+                    }
+                    placeholder={session.currentStack.toLocaleString()}
+                    size="md"
+                    styles={{ input: { height: buttonHeight } }}
+                    thousandSeparator=","
+                    value={stackAmount ?? ''}
+                  />
+                  <NumberInput
+                    hideControls
+                    min={1}
+                    onChange={(val) =>
+                      setRemainingInput(typeof val === 'number' ? val : null)
+                    }
+                    placeholder="残り"
+                    size="md"
+                    styles={{
+                      input: { height: buttonHeight, textAlign: 'center' },
+                    }}
+                    value={remainingInput ?? session.tournamentRemaining ?? ''}
+                    w={70}
+                  />
+                  <Text c="dimmed" size="sm">
+                    /
+                  </Text>
+                  <NumberInput
+                    hideControls
+                    min={1}
+                    onChange={(val) =>
+                      setEntriesInput(typeof val === 'number' ? val : null)
+                    }
+                    placeholder="E数"
+                    size="md"
+                    styles={{
+                      input: { height: buttonHeight, textAlign: 'center' },
+                    }}
+                    value={entriesInput ?? session.tournamentEntries ?? ''}
+                    w={70}
+                  />
+                  <Button
+                    h={buttonHeight}
+                    loading={
+                      updateStack.isPending || updateTournamentField.isPending
+                    }
+                    onClick={handleUpdateStackAndField}
+                    variant="light"
+                  >
+                    更新
+                  </Button>
+                </Group>
+              ) : (
+                <Group gap="xs">
+                  <NumberInput
+                    flex={1}
+                    hideControls
+                    leftSection={<IconCoins size={16} />}
+                    min={0}
+                    onChange={(val) =>
+                      setStackAmount(typeof val === 'number' ? val : null)
+                    }
+                    placeholder={session.currentStack.toLocaleString()}
+                    size="md"
+                    styles={{ input: { height: buttonHeight } }}
+                    thousandSeparator=","
+                    value={stackAmount ?? ''}
+                  />
+                  <Button
+                    disabled={stackAmount === null}
+                    h={buttonHeight}
+                    loading={updateStack.isPending}
+                    onClick={handleUpdateStack}
+                    variant="light"
+                  >
+                    更新
+                  </Button>
+                </Group>
+              )}
 
-                {/* Row 2: Buy-in / All-in buttons */}
-                <SimpleGrid cols={2}>
-                  {isCashGame && (
-                    <>
-                      <Button
-                        color="orange"
-                        h={buttonHeight}
-                        leftSection={<IconPlus size={16} />}
-                        onClick={openRebuyModal}
-                        variant="light"
-                      >
-                        追加Buy-in
-                      </Button>
-                      <Button
-                        color="pink"
-                        h={buttonHeight}
-                        leftSection={<IconTarget size={16} />}
-                        onClick={openAllInModal}
-                        variant="light"
-                      >
-                        オールイン
-                      </Button>
-                    </>
-                  )}
-                  {isTournament && (
-                    <>
-                      <Button
-                        color="teal"
-                        h={buttonHeight}
-                        leftSection={<IconPlus size={16} />}
-                        onClick={openAddonModal}
-                        variant="light"
-                      >
-                        アドオン
-                      </Button>
-                      <Button
-                        color="red"
-                        h={buttonHeight}
-                        leftSection={<IconLogout size={16} />}
-                        onClick={handleOpenEndModal}
-                        variant="light"
-                      >
-                        終了
-                      </Button>
-                    </>
-                  )}
-                </SimpleGrid>
-
-                {/* Row 3: Pause and Cash-out buttons (cash game only) */}
+              {/* Row 2: Buy-in / All-in buttons */}
+              <SimpleGrid cols={2}>
                 {isCashGame && (
-                  <SimpleGrid cols={2}>
+                  <>
                     <Button
-                      color="gray"
+                      color="orange"
                       h={buttonHeight}
-                      leftSection={<IconPlayerPause size={16} />}
-                      loading={pauseSession.isPending}
-                      onClick={handlePauseSession}
+                      leftSection={<IconPlus size={16} />}
+                      onClick={openRebuyModal}
                       variant="light"
                     >
-                      一時停止
+                      追加Buy-in
+                    </Button>
+                    <Button
+                      color="pink"
+                      h={buttonHeight}
+                      leftSection={<IconTarget size={16} />}
+                      onClick={openAllInModal}
+                      variant="light"
+                    >
+                      オールイン
+                    </Button>
+                  </>
+                )}
+                {isTournament && (
+                  <>
+                    <Button
+                      color="teal"
+                      h={buttonHeight}
+                      leftSection={<IconPlus size={16} />}
+                      onClick={openAddonModal}
+                      variant="light"
+                    >
+                      アドオン
                     </Button>
                     <Button
                       color="red"
@@ -821,32 +890,70 @@ export function ActiveSessionContent({
                       onClick={handleOpenEndModal}
                       variant="light"
                     >
-                      キャッシュアウト
+                      終了
                     </Button>
-                  </SimpleGrid>
+                  </>
                 )}
-              </Stack>
+              </SimpleGrid>
+
+              {/* Row 3: Pause and Cash-out buttons (cash game only) */}
+              {isCashGame && (
+                <SimpleGrid cols={2}>
+                  <Button
+                    color="gray"
+                    h={buttonHeight}
+                    leftSection={<IconPlayerPause size={16} />}
+                    loading={pauseSession.isPending}
+                    onClick={handlePauseSession}
+                    variant="light"
+                  >
+                    一時停止
+                  </Button>
+                  <Button
+                    color="red"
+                    h={buttonHeight}
+                    leftSection={<IconLogout size={16} />}
+                    onClick={handleOpenEndModal}
+                    variant="light"
+                  >
+                    キャッシュアウト
+                  </Button>
+                </SimpleGrid>
+              )}
+            </Stack>
           </Tabs.Panel>
 
           {/* Tab 2: Tablemates */}
-          <Tabs.Panel value="tablemates" pt="sm" style={{ flex: 1, overflow: 'auto' }}>
+          <Tabs.Panel
+            pt="sm"
+            style={{ flex: 1, overflow: 'auto' }}
+            value="tablemates"
+          >
             <TablematesCard sessionId={session.id} />
           </Tabs.Panel>
 
           {/* Tab 3: Info (Tournament only) */}
           {isTournament && (
-            <Tabs.Panel value="info" pt="sm" style={{ flex: 1, overflow: 'auto' }}>
+            <Tabs.Panel
+              pt="sm"
+              style={{ flex: 1, overflow: 'auto' }}
+              value="info"
+            >
               <TournamentInfoTab session={session} />
             </Tabs.Panel>
           )}
 
           {/* Tab 4: History */}
-          <Tabs.Panel value="history" pt="sm" style={{ flex: 1, overflow: 'hidden' }}>
+          <Tabs.Panel
+            pt="sm"
+            style={{ flex: 1, overflow: 'hidden' }}
+            value="history"
+          >
             <SessionEventTimeline
-              events={session.sessionEvents}
               allInRecords={session.allInRecords}
-              sessionId={session.id}
+              events={session.sessionEvents}
               onEditAllIn={handleEditAllIn}
+              sessionId={session.id}
             />
           </Tabs.Panel>
         </Tabs>
@@ -854,16 +961,18 @@ export function ActiveSessionContent({
         {/* Pause overlay for card */}
         {sessionIsPaused && (
           <Overlay
-            color="dark"
             backgroundOpacity={0.6}
             blur={2}
             center
+            color="dark"
             radius="md"
             zIndex={100}
           >
             <Stack align="center" gap="sm">
-              <IconPlayerPause size={32} color="white" />
-              <Text c="white" fw={500}>休憩中{pauseStartTime && ` (${pauseStartTime}〜)`}</Text>
+              <IconPlayerPause color="white" size={32} />
+              <Text c="white" fw={500}>
+                休憩中{pauseStartTime && ` (${pauseStartTime}〜)`}
+              </Text>
               <Button
                 color="green"
                 leftSection={<IconPlayerPlay size={16} />}
@@ -881,21 +990,23 @@ export function ActiveSessionContent({
       {/* Hand Counter Card - Fixed at bottom */}
       <Box style={{ position: 'relative' }}>
         <HandCounterCard
-          sessionId={session.id}
           handCount={handCount}
           lastHandInfo={session.lastHandInfo}
+          sessionId={session.id}
           tablematesCount={tablematesData?.tablemates.length ?? 0}
         />
         {sessionIsPaused && (
           <Overlay
-            color="dark"
             backgroundOpacity={0.6}
             blur={2}
             center
+            color="dark"
             radius="md"
             zIndex={100}
           >
-            <Text c="white" fw={500} size="sm">休憩中</Text>
+            <Text c="white" fw={500} size="sm">
+              休憩中
+            </Text>
           </Overlay>
         )}
       </Box>
@@ -943,7 +1054,11 @@ export function ActiveSessionContent({
       </Modal>
 
       {/* Addon Modal */}
-      <Modal onClose={closeAddonModal} opened={addonModalOpened} title="アドオン">
+      <Modal
+        onClose={closeAddonModal}
+        opened={addonModalOpened}
+        title="アドオン"
+      >
         <Stack gap="md">
           <TimeInput
             description={minTimeString ? `${minTimeString}より後` : undefined}
@@ -1026,6 +1141,11 @@ export function ActiveSessionContent({
           {/* Tournament final position */}
           {isTournament && (
             <NumberInput
+              description={
+                session?.tournamentEntries
+                  ? `${session.tournamentEntries}人中`
+                  : undefined
+              }
               hideControls
               label="順位"
               min={1}
@@ -1035,7 +1155,6 @@ export function ActiveSessionContent({
               placeholder="順位を入力"
               thousandSeparator=","
               value={finalPosition ?? ''}
-              description={session?.tournamentEntries ? `${session.tournamentEntries}人中` : undefined}
             />
           )}
           <NumberInput
@@ -1045,7 +1164,11 @@ export function ActiveSessionContent({
             onChange={(val) =>
               setCashOutAmount(typeof val === 'number' ? val : null)
             }
-            placeholder={isTournament ? '獲得額を入力（0 = バスト）' : 'キャッシュアウト額を入力'}
+            placeholder={
+              isTournament
+                ? '獲得額を入力（0 = バスト）'
+                : 'キャッシュアウト額を入力'
+            }
             required
             thousandSeparator=","
             value={cashOutAmount ?? ''}

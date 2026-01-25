@@ -1,8 +1,8 @@
 'use client'
 
 import {
-  Button,
   Burger,
+  Button,
   Divider,
   Group,
   AppShell as MantineAppShell,
@@ -30,6 +30,7 @@ import type { ReactNode } from 'react'
 
 import { SignOutButton } from '~/components/auth/SignOutButton'
 import { ThemeToggle } from '~/components/ui/ThemeToggle'
+import { usePageTitleValue } from '~/contexts/PageTitleContext'
 import { api } from '~/trpc/react'
 
 interface AppShellProps {
@@ -56,6 +57,7 @@ const navItems = [
 export function AppShell({ children }: AppShellProps) {
   const [opened, { toggle }] = useDisclosure()
   const pathname = usePathname()
+  const pageTitle = usePageTitleValue()
 
   // Query active session for header indicator
   const { data: activeSession } = api.sessionEvent.getActiveSession.useQuery(
@@ -90,7 +92,7 @@ export function AppShell({ children }: AppShellProps) {
               href="/dashboard"
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
-              <Title order={3}>Sapphire</Title>
+              <Title order={3}>{pageTitle || 'Sapphire'}</Title>
             </Link>
           </Group>
           <Group gap="sm">

@@ -9,7 +9,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
@@ -20,6 +19,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { z } from 'zod'
 
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import { createCurrency } from '../actions/index'
 
 const createCurrencySchema = z.object({
@@ -39,6 +39,8 @@ const createCurrencySchema = z.object({
  * Handles form submission and navigation.
  */
 export function NewCurrencyContent() {
+  usePageTitle('通貨を作成')
+
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isCreating, startCreateTransition] = useTransition()
@@ -82,8 +84,6 @@ export function NewCurrencyContent() {
         >
           通貨一覧に戻る
         </Button>
-
-        <Title order={1}>新しい通貨を作成</Title>
         <Text c="dimmed">
           アミューズメントポーカー店舗で使用する通貨を登録します
         </Text>

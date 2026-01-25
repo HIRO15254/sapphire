@@ -42,7 +42,9 @@ import type {
   TournamentEditMode,
 } from './types'
 
-type ActiveSession = NonNullable<RouterOutputs['sessionEvent']['getActiveSession']>
+type ActiveSession = NonNullable<
+  RouterOutputs['sessionEvent']['getActiveSession']
+>
 
 interface TournamentEditModalProps {
   opened: boolean
@@ -79,26 +81,29 @@ export function TournamentEditModal({
   const utils = api.useUtils()
 
   // Mutations for session overrides
-  const updateBasic = api.sessionEvent.updateTournamentOverrideBasic.useMutation({
-    onSuccess: () => {
-      void utils.sessionEvent.getActiveSession.invalidate()
-      onClose()
-    },
-  })
+  const updateBasic =
+    api.sessionEvent.updateTournamentOverrideBasic.useMutation({
+      onSuccess: () => {
+        void utils.sessionEvent.getActiveSession.invalidate()
+        onClose()
+      },
+    })
 
-  const updateBlinds = api.sessionEvent.updateTournamentOverrideBlinds.useMutation({
-    onSuccess: () => {
-      void utils.sessionEvent.getActiveSession.invalidate()
-      onClose()
-    },
-  })
+  const updateBlinds =
+    api.sessionEvent.updateTournamentOverrideBlinds.useMutation({
+      onSuccess: () => {
+        void utils.sessionEvent.getActiveSession.invalidate()
+        onClose()
+      },
+    })
 
-  const updatePrizes = api.sessionEvent.updateTournamentOverridePrizes.useMutation({
-    onSuccess: () => {
-      void utils.sessionEvent.getActiveSession.invalidate()
-      onClose()
-    },
-  })
+  const updatePrizes =
+    api.sessionEvent.updateTournamentOverridePrizes.useMutation({
+      onSuccess: () => {
+        void utils.sessionEvent.getActiveSession.invalidate()
+        onClose()
+      },
+    })
 
   // Mutations for store updates
   const updateStoreBasic = api.tournament.update.useMutation({
@@ -250,9 +255,7 @@ export function TournamentEditModal({
           </Text>
         )}
 
-        {mode === 'basic' && (
-          <BasicInfoForm form={basicForm} />
-        )}
+        {mode === 'basic' && <BasicInfoForm form={basicForm} />}
 
         {mode === 'blind' && (
           <BlindLevelEditor
@@ -284,7 +287,11 @@ export function TournamentEditModal({
 }
 
 // Basic Info Form Component
-function BasicInfoForm({ form }: { form: ReturnType<typeof useForm<BasicFormValues>> }) {
+function BasicInfoForm({
+  form,
+}: {
+  form: ReturnType<typeof useForm<BasicFormValues>>
+}) {
   return (
     <Stack>
       <TextInput
@@ -336,7 +343,10 @@ interface BlindLevelEditorProps {
   setBlindLevels: (levels: BlindLevel[]) => void
 }
 
-function BlindLevelEditor({ blindLevels, setBlindLevels }: BlindLevelEditorProps) {
+function BlindLevelEditor({
+  blindLevels,
+  setBlindLevels,
+}: BlindLevelEditorProps) {
   const addBlindLevel = (isBreak = false) => {
     const nextLevel =
       blindLevels.length > 0
@@ -458,7 +468,11 @@ function BlindLevelEditor({ blindLevels, setBlindLevels }: BlindLevelEditorProps
                         hideControls
                         min={1}
                         onChange={(val) =>
-                          updateBlindLevel(index, 'durationMinutes', val as number)
+                          updateBlindLevel(
+                            index,
+                            'durationMinutes',
+                            val as number,
+                          )
                         }
                         size="xs"
                         styles={{ input: { padding: '2px 6px' } }}
@@ -538,7 +552,11 @@ function BlindLevelEditor({ blindLevels, setBlindLevels }: BlindLevelEditorProps
                         hideControls
                         min={1}
                         onChange={(val) =>
-                          updateBlindLevel(index, 'durationMinutes', val as number)
+                          updateBlindLevel(
+                            index,
+                            'durationMinutes',
+                            val as number,
+                          )
                         }
                         size="xs"
                         styles={{ input: { padding: '2px 6px' } }}
@@ -795,7 +813,11 @@ function PrizeStructureEditor({
               hideControls
               min={1}
               onChange={(val) =>
-                updatePrizeStructure(Number(activePrizeTab), 'minEntrants', val as number)
+                updatePrizeStructure(
+                  Number(activePrizeTab),
+                  'minEntrants',
+                  val as number,
+                )
               }
               size="xs"
               styles={{ input: { padding: '2px 6px' } }}
@@ -844,17 +866,21 @@ function PrizeStructureEditor({
             </Button>
           </Group>
           <ScrollArea h={200}>
-            <Table horizontalSpacing={4} verticalSpacing={4} withRowBorders={false}>
+            <Table
+              horizontalSpacing={4}
+              verticalSpacing={4}
+              withRowBorders={false}
+            >
               <Table.Tbody>
                 {activeStructure.prizeLevels.map((level, lIdx) => (
                   <PrizeLevelRow
+                    addPrizeItem={addPrizeItem}
                     key={`level-${lIdx}`}
                     level={level}
                     lIdx={lIdx}
-                    sIdx={Number(activePrizeTab)}
-                    addPrizeItem={addPrizeItem}
                     removePrizeItem={removePrizeItem}
                     removePrizeLevel={removePrizeLevel}
+                    sIdx={Number(activePrizeTab)}
                     updatePrizeItem={updatePrizeItem}
                     updatePrizeLevel={updatePrizeLevel}
                   />
@@ -873,11 +899,26 @@ interface PrizeLevelRowProps {
   level: PrizeLevel
   sIdx: number
   lIdx: number
-  updatePrizeLevel: (sIdx: number, lIdx: number, field: 'minPosition' | 'maxPosition', value: number) => void
+  updatePrizeLevel: (
+    sIdx: number,
+    lIdx: number,
+    field: 'minPosition' | 'maxPosition',
+    value: number,
+  ) => void
   removePrizeLevel: (sIdx: number, lIdx: number) => void
-  addPrizeItem: (sIdx: number, lIdx: number, prizeType: 'percentage' | 'fixed_amount' | 'custom_prize') => void
+  addPrizeItem: (
+    sIdx: number,
+    lIdx: number,
+    prizeType: 'percentage' | 'fixed_amount' | 'custom_prize',
+  ) => void
   removePrizeItem: (sIdx: number, lIdx: number, iIdx: number) => void
-  updatePrizeItem: (sIdx: number, lIdx: number, iIdx: number, field: keyof PrizeItem, value: number | string | null) => void
+  updatePrizeItem: (
+    sIdx: number,
+    lIdx: number,
+    iIdx: number,
+    field: keyof PrizeItem,
+    value: number | string | null,
+  ) => void
 }
 
 function PrizeLevelRow({
@@ -897,7 +938,9 @@ function PrizeLevelRow({
           <NumberInput
             hideControls
             min={1}
-            onChange={(val) => updatePrizeLevel(sIdx, lIdx, 'minPosition', val as number)}
+            onChange={(val) =>
+              updatePrizeLevel(sIdx, lIdx, 'minPosition', val as number)
+            }
             size="xs"
             styles={{ input: { padding: '2px 4px', textAlign: 'center' } }}
             value={level.minPosition}
@@ -907,7 +950,9 @@ function PrizeLevelRow({
           <NumberInput
             hideControls
             min={1}
-            onChange={(val) => updatePrizeLevel(sIdx, lIdx, 'maxPosition', val as number)}
+            onChange={(val) =>
+              updatePrizeLevel(sIdx, lIdx, 'maxPosition', val as number)
+            }
             size="xs"
             styles={{ input: { padding: '2px 4px', textAlign: 'center' } }}
             value={level.maxPosition}
@@ -920,12 +965,12 @@ function PrizeLevelRow({
         <Stack align="flex-end" gap={2}>
           {level.prizeItems.map((item, iIdx) => (
             <PrizeItemRow
-              key={`item-${iIdx}`}
-              item={item}
-              sIdx={sIdx}
-              lIdx={lIdx}
               iIdx={iIdx}
+              item={item}
+              key={`item-${iIdx}`}
+              lIdx={lIdx}
               removePrizeItem={removePrizeItem}
+              sIdx={sIdx}
               updatePrizeItem={updatePrizeItem}
             />
           ))}
@@ -939,20 +984,29 @@ function PrizeLevelRow({
       <Table.Td style={{ verticalAlign: 'middle', paddingLeft: 12 }} w={50}>
         <Menu position="bottom-end" withinPortal>
           <Menu.Target>
-            <Button px={6} rightSection={<IconChevronDown size={12} />} size="xs" variant="light">
+            <Button
+              px={6}
+              rightSection={<IconChevronDown size={12} />}
+              size="xs"
+              variant="light"
+            >
               <IconPlus size={14} />
             </Button>
           </Menu.Target>
           <Menu.Dropdown>
             <Menu.Item
-              disabled={level.prizeItems.some((item) => item.prizeType === 'percentage')}
+              disabled={level.prizeItems.some(
+                (item) => item.prizeType === 'percentage',
+              )}
               leftSection={<IconPercentage size={14} />}
               onClick={() => addPrizeItem(sIdx, lIdx, 'percentage')}
             >
               パーセンテージ
             </Menu.Item>
             <Menu.Item
-              disabled={level.prizeItems.some((item) => item.prizeType === 'fixed_amount')}
+              disabled={level.prizeItems.some(
+                (item) => item.prizeType === 'fixed_amount',
+              )}
               leftSection={<IconCoins size={14} />}
               onClick={() => addPrizeItem(sIdx, lIdx, 'fixed_amount')}
             >
@@ -968,7 +1022,12 @@ function PrizeLevelRow({
         </Menu>
       </Table.Td>
       <Table.Td style={{ verticalAlign: 'middle' }} w={30}>
-        <ActionIcon color="red" onClick={() => removePrizeLevel(sIdx, lIdx)} size="sm" variant="subtle">
+        <ActionIcon
+          color="red"
+          onClick={() => removePrizeLevel(sIdx, lIdx)}
+          size="sm"
+          variant="subtle"
+        >
           <IconTrash size={14} />
         </ActionIcon>
       </Table.Td>
@@ -982,7 +1041,13 @@ interface PrizeItemRowProps {
   sIdx: number
   lIdx: number
   iIdx: number
-  updatePrizeItem: (sIdx: number, lIdx: number, iIdx: number, field: keyof PrizeItem, value: number | string | null) => void
+  updatePrizeItem: (
+    sIdx: number,
+    lIdx: number,
+    iIdx: number,
+    field: keyof PrizeItem,
+    value: number | string | null,
+  ) => void
   removePrizeItem: (sIdx: number, lIdx: number, iIdx: number) => void
 }
 
@@ -1022,7 +1087,13 @@ function PrizeItemRow({
           max={100}
           min={0}
           onChange={(val) =>
-            updatePrizeItem(sIdx, lIdx, iIdx, 'percentage', val === '' ? null : (val as number))
+            updatePrizeItem(
+              sIdx,
+              lIdx,
+              iIdx,
+              'percentage',
+              val === '' ? null : (val as number),
+            )
           }
           size="xs"
           styles={{ input: { padding: '2px 4px' } }}
@@ -1036,7 +1107,13 @@ function PrizeItemRow({
           hideControls
           min={0}
           onChange={(val) =>
-            updatePrizeItem(sIdx, lIdx, iIdx, 'fixedAmount', val === '' ? null : (val as number))
+            updatePrizeItem(
+              sIdx,
+              lIdx,
+              iIdx,
+              'fixedAmount',
+              val === '' ? null : (val as number),
+            )
           }
           size="xs"
           styles={{ input: { padding: '2px 4px' } }}
@@ -1049,7 +1126,13 @@ function PrizeItemRow({
         <Group gap={2} wrap="wrap">
           <TextInput
             onChange={(e) =>
-              updatePrizeItem(sIdx, lIdx, iIdx, 'customPrizeLabel', e.target.value || null)
+              updatePrizeItem(
+                sIdx,
+                lIdx,
+                iIdx,
+                'customPrizeLabel',
+                e.target.value || null,
+              )
             }
             placeholder="名称"
             size="xs"
@@ -1061,7 +1144,13 @@ function PrizeItemRow({
             hideControls
             min={0}
             onChange={(val) =>
-              updatePrizeItem(sIdx, lIdx, iIdx, 'customPrizeValue', val === '' ? null : (val as number))
+              updatePrizeItem(
+                sIdx,
+                lIdx,
+                iIdx,
+                'customPrizeValue',
+                val === '' ? null : (val as number),
+              )
             }
             placeholder="換算値"
             size="xs"
@@ -1071,7 +1160,12 @@ function PrizeItemRow({
           />
         </Group>
       )}
-      <ActionIcon color="red" onClick={() => removePrizeItem(sIdx, lIdx, iIdx)} size="xs" variant="subtle">
+      <ActionIcon
+        color="red"
+        onClick={() => removePrizeItem(sIdx, lIdx, iIdx)}
+        size="xs"
+        variant="subtle"
+      >
         <IconTrash size={12} />
       </ActionIcon>
     </Group>

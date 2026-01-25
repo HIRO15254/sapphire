@@ -42,8 +42,8 @@ import {
   IconPlus,
   IconTrash,
 } from '@tabler/icons-react'
-import { GameTypeIcon } from '~/components/sessions/GameTypeBadge'
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { GameTypeIcon } from '~/components/sessions/GameTypeBadge'
 
 import { RichTextContent } from '~/components/ui/RichTextContext'
 import type { Tournament } from './types'

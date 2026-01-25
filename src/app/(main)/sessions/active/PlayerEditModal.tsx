@@ -17,9 +17,9 @@ import {
   TextInput,
   useCombobox,
 } from '@mantine/core'
-import { IconPlus } from '@tabler/icons-react'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
+import { IconPlus } from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
@@ -91,7 +91,9 @@ export function PlayerEditModal({
 
   // For temporary players: name search and selected player
   const [nameSearch, setNameSearch] = useState('')
-  const [selectedExistingPlayerId, setSelectedExistingPlayerId] = useState<string | null>(null)
+  const [selectedExistingPlayerId, setSelectedExistingPlayerId] = useState<
+    string | null
+  >(null)
   // Track if user explicitly chose to create a new permanent player
   const [willCreateNew, setWillCreateNew] = useState(false)
 
@@ -195,15 +197,16 @@ export function PlayerEditModal({
     },
   })
 
-  const convertToPlayerMutation = api.sessionTablemate.convertToPlayer.useMutation({
-    onError: (error) => {
-      notifications.show({
-        title: 'エラー',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
+  const convertToPlayerMutation =
+    api.sessionTablemate.convertToPlayer.useMutation({
+      onError: (error) => {
+        notifications.show({
+          title: 'エラー',
+          message: error.message,
+          color: 'red',
+        })
+      },
+    })
 
   const handleSubmit = form.onSubmit(async (values) => {
     if (!player) return
@@ -217,9 +220,14 @@ export function PlayerEditModal({
         })
 
         // Apply tags to target player
-        const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
+        const tagsToAdd = selectedTagIds.filter(
+          (id) => !initialTagIds.includes(id),
+        )
         for (const tagId of tagsToAdd) {
-          await assignTagMutation.mutateAsync({ playerId: selectedExistingPlayerId, tagId })
+          await assignTagMutation.mutateAsync({
+            playerId: selectedExistingPlayerId,
+            tagId,
+          })
         }
 
         // Update notes on target player if provided
@@ -252,8 +260,12 @@ export function PlayerEditModal({
         }
 
         // Apply tag changes
-        const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
-        const tagsToRemove = initialTagIds.filter((id) => !selectedTagIds.includes(id))
+        const tagsToAdd = selectedTagIds.filter(
+          (id) => !initialTagIds.includes(id),
+        )
+        const tagsToRemove = initialTagIds.filter(
+          (id) => !selectedTagIds.includes(id),
+        )
         for (const tagId of tagsToAdd) {
           await assignTagMutation.mutateAsync({ playerId: player.id, tagId })
         }
@@ -276,8 +288,12 @@ export function PlayerEditModal({
         })
 
         // Apply tag changes
-        const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
-        const tagsToRemove = initialTagIds.filter((id) => !selectedTagIds.includes(id))
+        const tagsToAdd = selectedTagIds.filter(
+          (id) => !initialTagIds.includes(id),
+        )
+        const tagsToRemove = initialTagIds.filter(
+          (id) => !selectedTagIds.includes(id),
+        )
         for (const tagId of tagsToAdd) {
           await assignTagMutation.mutateAsync({ playerId: player.id, tagId })
         }
@@ -300,8 +316,12 @@ export function PlayerEditModal({
       })
 
       // Apply tag changes
-      const tagsToAdd = selectedTagIds.filter((id) => !initialTagIds.includes(id))
-      const tagsToRemove = initialTagIds.filter((id) => !selectedTagIds.includes(id))
+      const tagsToAdd = selectedTagIds.filter(
+        (id) => !initialTagIds.includes(id),
+      )
+      const tagsToRemove = initialTagIds.filter(
+        (id) => !selectedTagIds.includes(id),
+      )
       for (const tagId of tagsToAdd) {
         await assignTagMutation.mutateAsync({ playerId: player.id, tagId })
       }
@@ -361,7 +381,7 @@ export function PlayerEditModal({
 
   // Get selected player name for display
   const selectedPlayerName = selectedExistingPlayerId
-    ? allPlayers.find((p) => p.id === selectedExistingPlayerId)?.name ?? ''
+    ? (allPlayers.find((p) => p.id === selectedExistingPlayerId)?.name ?? '')
     : ''
 
   // Handle tag removal from pill
@@ -387,10 +407,10 @@ export function PlayerEditModal({
 
   return (
     <Modal
-      opened={opened}
       onClose={onClose}
-      title={`${player?.name ?? ''} を編集`}
+      opened={opened}
       size="lg"
+      title={`${player?.name ?? ''} を編集`}
     >
       <form onSubmit={handleSubmit}>
         <ScrollArea.Autosize mah="70vh">
@@ -400,7 +420,6 @@ export function PlayerEditModal({
               // Temporary player: combobox to search existing players or create new
               <Stack gap={4}>
                 <Combobox
-                  store={nameCombobox}
                   onOptionSubmit={(val) => {
                     if (val === '$create') {
                       setSelectedExistingPlayerId(null)
@@ -408,17 +427,18 @@ export function PlayerEditModal({
                       nameCombobox.closeDropdown()
                     } else {
                       setSelectedExistingPlayerId(val)
-                      setNameSearch(allPlayers.find((p) => p.id === val)?.name ?? '')
+                      setNameSearch(
+                        allPlayers.find((p) => p.id === val)?.name ?? '',
+                      )
                       setWillCreateNew(false)
                       nameCombobox.closeDropdown()
                     }
                   }}
+                  store={nameCombobox}
                 >
                   <Combobox.Target>
                     <TextInput
                       label="プレイヤー名"
-                      withAsterisk
-                      value={selectedExistingPlayerId ? selectedPlayerName : nameSearch}
                       onChange={(e) => {
                         setNameSearch(e.currentTarget.value)
                         setSelectedExistingPlayerId(null)
@@ -429,6 +449,12 @@ export function PlayerEditModal({
                       onFocus={() => nameCombobox.openDropdown()}
                       placeholder="プレイヤー名を入力..."
                       rightSection={<Combobox.Chevron />}
+                      value={
+                        selectedExistingPlayerId
+                          ? selectedPlayerName
+                          : nameSearch
+                      }
+                      withAsterisk
                     />
                   </Combobox.Target>
                   <Combobox.Dropdown>
@@ -438,7 +464,9 @@ export function PlayerEditModal({
                         <Combobox.Option value="$create">
                           <Group gap="sm">
                             <IconPlus size={14} />
-                            <Text size="sm">「{nameSearch.trim()}」を永続化</Text>
+                            <Text size="sm">
+                              「{nameSearch.trim()}」を永続化
+                            </Text>
                           </Group>
                         </Combobox.Option>
                       )}
@@ -456,7 +484,7 @@ export function PlayerEditModal({
                 </Combobox>
                 {/* Show action description */}
                 {(selectedExistingPlayerId || willCreateNew) && (
-                  <Text size="xs" c="dimmed">
+                  <Text c="dimmed" size="xs">
                     {selectedExistingPlayerId
                       ? `既存のプレイヤー「${selectedPlayerName}」に紐付けます`
                       : `新しいプレイヤー「${nameSearch.trim()}」として永続化します`}
@@ -467,13 +495,13 @@ export function PlayerEditModal({
               // Non-temporary player: read-only name
               <>
                 <TextInput
-                  label="プレイヤー名"
-                  withAsterisk
                   disabled
                   key={form.key('name')}
+                  label="プレイヤー名"
+                  withAsterisk
                   {...form.getInputProps('name')}
                 />
-                <Text size="xs" c="dimmed" mt={-8}>
+                <Text c="dimmed" mt={-8} size="xs">
                   永続プレイヤーの名前はプレイヤー詳細ページから変更できます
                 </Text>
               </>
@@ -485,8 +513,8 @@ export function PlayerEditModal({
                 タグ
               </Text>
               <Combobox
-                store={tagCombobox}
                 onOptionSubmit={handleTagToggle}
+                store={tagCombobox}
                 withinPortal={false}
               >
                 <Combobox.DropdownTarget>
@@ -494,39 +522,43 @@ export function PlayerEditModal({
                     <Pill.Group>
                       {selectedTags.map((tag) => (
                         <Badge
-                          key={tag.id}
                           color={tag.color ?? 'gray'}
-                          variant="light"
-                          size="lg"
-                          style={{ cursor: 'pointer' }}
+                          key={tag.id}
                           rightSection={
                             <Text
-                              size="xs"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleTagRemove(tag.id)
                               }}
+                              size="xs"
                               style={{ cursor: 'pointer' }}
                             >
                               ×
                             </Text>
                           }
+                          size="lg"
+                          style={{ cursor: 'pointer' }}
+                          variant="light"
                         >
                           {tag.name}
                         </Badge>
                       ))}
                       <Combobox.EventsTarget>
                         <PillsInput.Field
-                          value={tagSearch}
+                          onBlur={() => tagCombobox.closeDropdown()}
                           onChange={(e) => {
                             setTagSearch(e.currentTarget.value)
                             tagCombobox.openDropdown()
                             tagCombobox.updateSelectedOptionIndex()
                           }}
                           onFocus={() => tagCombobox.openDropdown()}
-                          onBlur={() => tagCombobox.closeDropdown()}
-                          placeholder={selectedTags.length === 0 ? 'タグを検索または作成...' : ''}
+                          placeholder={
+                            selectedTags.length === 0
+                              ? 'タグを検索または作成...'
+                              : ''
+                          }
                           style={{ minWidth: 80 }}
+                          value={tagSearch}
                         />
                       </Combobox.EventsTarget>
                     </Pill.Group>
@@ -537,7 +569,10 @@ export function PlayerEditModal({
                   <Combobox.Options>
                     {/* Create new tag option */}
                     {tagSearch.trim() && !exactTagMatch && (
-                      <Combobox.Option value="$create" disabled={createTagMutation.isPending}>
+                      <Combobox.Option
+                        disabled={createTagMutation.isPending}
+                        value="$create"
+                      >
                         <Group gap="sm">
                           {createTagMutation.isPending ? (
                             <Loader size={12} />
@@ -554,12 +589,14 @@ export function PlayerEditModal({
                     ) : (
                       filteredTags.map((tag) => (
                         <Combobox.Option
+                          active={selectedTagIds.includes(tag.id)}
                           key={tag.id}
                           value={tag.id}
-                          active={selectedTagIds.includes(tag.id)}
                         >
                           <Group gap="sm">
-                            {selectedTagIds.includes(tag.id) && <CheckIcon size={12} />}
+                            {selectedTagIds.includes(tag.id) && (
+                              <CheckIcon size={12} />
+                            )}
                             <Badge color={tag.color ?? 'gray'} variant="light">
                               {tag.name}
                             </Badge>
@@ -582,8 +619,8 @@ export function PlayerEditModal({
               <RichTextEditor
                 content={form.getValues().generalNotes ?? ''}
                 onChange={(value) => form.setFieldValue('generalNotes', value)}
-                variant="bubble"
                 placeholder="プレイヤーに関するメモ..."
+                variant="bubble"
               />
             </Stack>
 
@@ -591,7 +628,7 @@ export function PlayerEditModal({
               <Button onClick={onClose} variant="subtle">
                 キャンセル
               </Button>
-              <Button type="submit" loading={isLoading}>
+              <Button loading={isLoading} type="submit">
                 保存
               </Button>
             </Group>

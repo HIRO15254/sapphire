@@ -33,10 +33,7 @@ export default async function PlayerDetailPage({
 
     return (
       <HydrateClient>
-        <PlayerDetailContent
-          initialPlayer={player}
-          allTags={tagsData.tags}
-        />
+        <PlayerDetailContent allTags={tagsData.tags} initialPlayer={player} />
       </HydrateClient>
     )
   } catch (error) {

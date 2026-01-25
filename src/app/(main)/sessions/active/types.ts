@@ -12,10 +12,7 @@ export type {
   PrizeStructure,
 } from '~/app/(main)/stores/[id]/types'
 
-import type {
-  BlindLevel,
-  PrizeStructure,
-} from '~/app/(main)/stores/[id]/types'
+import type { BlindLevel, PrizeStructure } from '~/app/(main)/stores/[id]/types'
 
 /**
  * Tournament basic info override for session-specific settings.

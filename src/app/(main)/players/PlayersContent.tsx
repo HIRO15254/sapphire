@@ -12,7 +12,6 @@ import {
   TagsInput,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import {
@@ -24,6 +23,7 @@ import {
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 
@@ -46,6 +46,8 @@ export function PlayersContent({
   initialPlayers,
   initialTags,
 }: PlayersContentProps) {
+  usePageTitle('プレイヤー')
+
   const [search, setSearch] = useState('')
   const [selectedTagNames, setSelectedTagNames] = useState<string[]>([])
   const [tagModalOpen, setTagModalOpen] = useState(false)
@@ -106,26 +108,23 @@ export function PlayersContent({
   return (
     <Container py="xl" size="md">
       <Stack gap="lg">
-        <Group justify="space-between">
-          <Title order={1}>プレイヤー管理</Title>
-          <Group>
+        <Group justify="flex-end">
+          <Button
+            leftSection={<IconSettings size={16} />}
+            onClick={() => setTagModalOpen(true)}
+            variant="light"
+          >
+            タグ管理
+          </Button>
+          {initialPlayers.length > 0 && (
             <Button
-              onClick={() => setTagModalOpen(true)}
-              variant="light"
-              leftSection={<IconSettings size={16} />}
+              component={Link}
+              href="/players/new"
+              leftSection={<IconPlus size={16} />}
             >
-              タグ管理
+              新しいプレイヤーを追加
             </Button>
-            {initialPlayers.length > 0 && (
-              <Button
-                component={Link}
-                href="/players/new"
-                leftSection={<IconPlus size={16} />}
-              >
-                新しいプレイヤーを追加
-              </Button>
-            )}
-          </Group>
+          )}
         </Group>
 
         {/* Search and Filter */}
@@ -195,8 +194,8 @@ export function PlayersContent({
                       <Group gap="xs">
                         {player.tags.map((tag) => (
                           <Badge
-                            key={tag.id}
                             color={tag.color ? undefined : 'gray'}
+                            key={tag.id}
                             size="sm"
                             style={
                               tag.color
@@ -219,8 +218,8 @@ export function PlayersContent({
 
       {/* Tag Management Modal */}
       <PlayerTagModal
-        opened={tagModalOpen}
         onClose={() => setTagModalOpen(false)}
+        opened={tagModalOpen}
         tags={tags}
       />
     </Container>

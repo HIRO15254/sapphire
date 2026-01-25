@@ -12,19 +12,19 @@ import {
   Stack,
   Text,
   Textarea,
-  Title,
 } from '@mantine/core'
 import { DateInput, TimeInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { IconArrowLeft, IconCalendar, IconClock } from '@tabler/icons-react'
-import { GameTypeLabelWithIcon } from '~/components/sessions/GameTypeBadge'
 import { zodResolver } from 'mantine-form-zod-resolver'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { z } from 'zod'
+import { GameTypeLabelWithIcon } from '~/components/sessions/GameTypeBadge'
 
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 import { createArchiveSession } from '../actions'
@@ -94,6 +94,8 @@ interface NewSessionContentProps {
  * Form for creating a new archive session with store/game selection.
  */
 export function NewSessionContent({ stores }: NewSessionContentProps) {
+  usePageTitle('セッション記録')
+
   const router = useRouter()
   const [isCreating, startCreateTransition] = useTransition()
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
@@ -223,8 +225,6 @@ export function NewSessionContent({ stores }: NewSessionContentProps) {
         >
           セッション一覧に戻る
         </Button>
-
-        <Title order={1}>セッションを記録</Title>
 
         <Paper p="lg" radius="md" shadow="sm" withBorder>
           <form onSubmit={handleSubmit}>

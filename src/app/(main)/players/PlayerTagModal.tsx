@@ -161,7 +161,7 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
   }
 
   return (
-    <Modal opened={opened} onClose={handleClose} title="タグ管理" size="md">
+    <Modal onClose={handleClose} opened={opened} size="md" title="タグ管理">
       <Stack gap="lg">
         {/* Tag form */}
         <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -173,27 +173,29 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
               {...form.getInputProps('name')}
             />
             <ColorInput
+              format="hex"
               label="カラー"
               placeholder="カラーを選択"
-              format="hex"
               swatches={TAG_COLOR_SWATCHES}
               swatchesPerRow={8}
               {...form.getInputProps('color')}
             />
-            <Group justify="flex-end" gap="sm">
+            <Group gap="sm" justify="flex-end">
               {editingTag && (
                 <Button
-                  variant="subtle"
-                  onClick={handleCancelEdit}
                   leftSection={<IconX size={16} />}
+                  onClick={handleCancelEdit}
+                  variant="subtle"
                 >
                   キャンセル
                 </Button>
               )}
               <Button
-                type="submit"
+                leftSection={
+                  editingTag ? <IconPencil size={16} /> : <IconPlus size={16} />
+                }
                 loading={createMutation.isPending || updateMutation.isPending}
-                leftSection={editingTag ? <IconPencil size={16} /> : <IconPlus size={16} />}
+                type="submit"
               >
                 {editingTag ? '更新' : '追加'}
               </Button>
@@ -208,7 +210,7 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
               既存のタグ
             </Text>
             {tags.map((tag) => (
-              <Group key={tag.id} justify="space-between">
+              <Group justify="space-between" key={tag.id}>
                 <Badge
                   color={tag.color ? undefined : 'gray'}
                   size="lg"
@@ -222,17 +224,17 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
                 </Badge>
                 <Group gap="xs">
                   <ActionIcon
-                    variant="subtle"
-                    onClick={() => handleEdit(tag)}
                     disabled={editingTag?.id === tag.id}
+                    onClick={() => handleEdit(tag)}
+                    variant="subtle"
                   >
                     <IconPencil size={16} />
                   </ActionIcon>
                   <ActionIcon
-                    variant="subtle"
                     color="red"
-                    onClick={() => handleDelete(tag.id)}
                     loading={deleteMutation.isPending}
+                    onClick={() => handleDelete(tag.id)}
+                    variant="subtle"
                   >
                     <IconTrash size={16} />
                   </ActionIcon>

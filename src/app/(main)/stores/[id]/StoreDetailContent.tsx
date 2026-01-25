@@ -21,6 +21,7 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { z } from 'zod'
 
 import { RichTextEditor } from '~/components/ui/RichTextEditor'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import {
   archiveCashGame,
   archiveStore,
@@ -86,6 +87,8 @@ export function StoreDetailContent({
   initialStore,
   currencies,
 }: StoreDetailContentProps) {
+  usePageTitle(initialStore.name)
+
   const router = useRouter()
   const storeId = initialStore.id
   const store = initialStore
@@ -660,7 +663,6 @@ export function StoreDetailContent({
         <StoreHeader
           isArchived={store.isArchived}
           isArchiving={isArchiving}
-          name={store.name}
           onArchiveToggle={handleArchiveToggle}
           onDeleteClick={openDeleteModal}
           onEditClick={toggleEditMode}

@@ -118,7 +118,9 @@ export function StartSessionForm() {
     setTournamentId(value)
     if (value) {
       // Find the selected tournament and auto-fill values
-      const tournament = tournamentsData?.tournaments.find((t) => t.id === value)
+      const tournament = tournamentsData?.tournaments.find(
+        (t) => t.id === value,
+      )
       if (tournament) {
         setBuyIn(tournament.buyIn)
         setInitialStack(tournament.startingStack ?? null)
@@ -152,7 +154,13 @@ export function StartSessionForm() {
     const parts = timerTime.split(':').map(Number)
     const hours = parts[0]
     const minutes = parts[1]
-    if (hours === undefined || minutes === undefined || isNaN(hours) || isNaN(minutes)) return null
+    if (
+      hours === undefined ||
+      minutes === undefined ||
+      isNaN(hours) ||
+      isNaN(minutes)
+    )
+      return null
     const date = new Date()
     date.setHours(hours, minutes, 0, 0)
     return date
@@ -262,24 +270,24 @@ export function StartSessionForm() {
               onChange={(e) => handleTimerToggle(e.currentTarget.checked)}
             />
             {useTimer && (
-              <Group gap="xs" align="flex-end">
+              <Group align="flex-end" gap="xs">
                 <TimeInput
-                  ref={timerInputRef}
                   label="タイマー開始時刻"
                   leftSection={<IconClock size={16} />}
                   onChange={(e) => setTimerTime(e.currentTarget.value)}
-                  value={timerTime}
+                  ref={timerInputRef}
                   style={{ flex: 1 }}
+                  value={timerTime}
                 />
                 <Button
-                  variant="light"
-                  size="sm"
                   onClick={() => {
                     const now = new Date()
                     const hours = now.getHours().toString().padStart(2, '0')
                     const minutes = now.getMinutes().toString().padStart(2, '0')
                     setTimerTime(`${hours}:${minutes}`)
                   }}
+                  size="sm"
+                  variant="light"
                 >
                   今
                 </Button>
@@ -306,7 +314,9 @@ export function StartSessionForm() {
             hideControls
             label="初期スタック"
             min={1}
-            onChange={(val) => setInitialStack(typeof val === 'number' ? val : null)}
+            onChange={(val) =>
+              setInitialStack(typeof val === 'number' ? val : null)
+            }
             placeholder="初期スタックを入力"
             required
             thousandSeparator=","

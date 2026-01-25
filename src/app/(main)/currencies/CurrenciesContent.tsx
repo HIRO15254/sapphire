@@ -10,11 +10,11 @@ import {
   Loader,
   Stack,
   Text,
-  Title,
 } from '@mantine/core'
 import { IconAlertCircle, IconPlus } from '@tabler/icons-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 
@@ -33,6 +33,8 @@ interface CurrenciesContentProps {
 export function CurrenciesContent({
   initialCurrencies,
 }: CurrenciesContentProps) {
+  usePageTitle('通貨')
+
   const [includeArchived, setIncludeArchived] = useState(false)
 
   // Fetch archived data only when includeArchived is true
@@ -72,9 +74,8 @@ export function CurrenciesContent({
   return (
     <Container py="xl" size="md">
       <Stack gap="lg">
-        <Group justify="space-between">
-          <Title order={1}>通貨管理</Title>
-          {currencies.length > 0 && (
+        {currencies.length > 0 && (
+          <Group justify="flex-end">
             <Button
               component={Link}
               href="/currencies/new"
@@ -82,8 +83,8 @@ export function CurrenciesContent({
             >
               新しい通貨を追加
             </Button>
-          )}
-        </Group>
+          </Group>
+        )}
 
         <Checkbox
           checked={includeArchived}

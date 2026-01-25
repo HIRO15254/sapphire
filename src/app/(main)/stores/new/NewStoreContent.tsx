@@ -1,14 +1,6 @@
 'use client'
 
-import {
-  Button,
-  Container,
-  Paper,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core'
+import { Button, Container, Paper, Stack, Text, TextInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { IconArrowLeft } from '@tabler/icons-react'
@@ -19,6 +11,7 @@ import { useTransition } from 'react'
 import { z } from 'zod'
 
 import { RichTextEditor } from '~/components/ui/RichTextEditor'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import { createStore } from '../actions'
 
 // Schema for form
@@ -45,6 +38,8 @@ const createStoreSchema = z.object({
  * Form for creating a new store.
  */
 export function NewStoreContent() {
+  usePageTitle('店舗を追加')
+
   const router = useRouter()
   const [isCreating, startCreateTransition] = useTransition()
 
@@ -97,8 +92,6 @@ export function NewStoreContent() {
         >
           店舗一覧に戻る
         </Button>
-
-        <Title order={1}>新しい店舗を追加</Title>
 
         <Paper p="lg" radius="md" shadow="sm" withBorder>
           <form onSubmit={handleSubmit}>

@@ -10,7 +10,6 @@ import {
   Pagination,
   Stack,
   Text,
-  Title,
 } from '@mantine/core'
 import {
   IconAlertCircle,
@@ -21,6 +20,7 @@ import {
 import Link from 'next/link'
 import { useState } from 'react'
 import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 import {
@@ -47,6 +47,8 @@ export function SessionsContent({
   initialSessions,
   initialTotal,
 }: SessionsContentProps) {
+  usePageTitle('セッション履歴')
+
   const [page, setPage] = useState(1)
   const limit = 20
 
@@ -104,9 +106,8 @@ export function SessionsContent({
   return (
     <Container py="xl" size="md">
       <Stack gap="lg">
-        <Group justify="space-between">
-          <Title order={1}>セッション履歴</Title>
-          {sessions.length > 0 && (
+        {sessions.length > 0 && (
+          <Group justify="flex-end">
             <Button
               component={Link}
               href="/sessions/new"
@@ -114,8 +115,8 @@ export function SessionsContent({
             >
               新しいセッションを記録
             </Button>
-          )}
-        </Group>
+          </Group>
+        )}
 
         {sessions.length === 0 ? (
           <Card p="xl" radius="md" shadow="sm" withBorder>
@@ -191,8 +192,8 @@ export function SessionsContent({
                       <Text
                         c={getProfitLossColor(session.profitLoss)}
                         fw={700}
-                        size="sm"
                         lh={1.2}
+                        size="sm"
                       >
                         {formatProfitLoss(session.profitLoss)}
                       </Text>
@@ -204,8 +205,8 @@ export function SessionsContent({
                               session.profitLoss -
                                 session.allInSummary.evDifference,
                             )}
-                            size="xs"
                             lh={1.2}
+                            size="xs"
                           >
                             (EV:{' '}
                             {formatProfitLoss(

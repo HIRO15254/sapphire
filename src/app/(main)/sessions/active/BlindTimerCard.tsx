@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  Card,
-  Group,
-  Stack,
-  Text,
-  ThemeIcon,
-} from '@mantine/core'
+import { Card, Group, Stack, Text, ThemeIcon } from '@mantine/core'
 import { IconCoffee } from '@tabler/icons-react'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -140,7 +134,8 @@ export function BlindTimerCard({
 
   if (!levelInfo) return null
 
-  const { currentLevel, remainingSeconds, nextLevel, isBreak, displayLevel } = levelInfo
+  const { currentLevel, remainingSeconds, nextLevel, isBreak, displayLevel } =
+    levelInfo
   const isLowTime = remainingSeconds <= 60 && remainingSeconds > 0
 
   // Get next level's display level number
@@ -154,13 +149,13 @@ export function BlindTimerCard({
     <Card p="sm" radius="md" withBorder>
       <Stack gap="xs">
         {/* Header: Level and Time */}
-        <Group justify="space-between" align="flex-start">
+        <Group align="flex-start" justify="space-between">
           {isBreak ? (
             <Group gap="xs">
-              <ThemeIcon color="orange" variant="light" size="sm">
+              <ThemeIcon color="orange" size="sm" variant="light">
                 <IconCoffee size={14} />
               </ThemeIcon>
-              <Text fw={600} size="sm" c="orange">
+              <Text c="orange" fw={600} size="sm">
                 Break
               </Text>
             </Group>
@@ -170,9 +165,9 @@ export function BlindTimerCard({
             </Text>
           )}
           <Text
+            c={isLowTime ? 'red' : undefined}
             fw={700}
             size="lg"
-            c={isLowTime ? 'red' : undefined}
             style={isLowTime ? { animation: 'pulse 1s infinite' } : undefined}
           >
             {formatTime(remainingSeconds)}
@@ -181,16 +176,18 @@ export function BlindTimerCard({
 
         {/* Current blinds (if not break) */}
         {!isBreak && (
-          <Text size="sm" c="dimmed">
+          <Text c="dimmed" size="sm">
             SB {currentLevel.smallBlind?.toLocaleString() ?? '-'} / BB{' '}
             {currentLevel.bigBlind?.toLocaleString() ?? '-'}
-            {currentLevel.ante ? ` / Ante ${currentLevel.ante.toLocaleString()}` : ''}
+            {currentLevel.ante
+              ? ` / Ante ${currentLevel.ante.toLocaleString()}`
+              : ''}
           </Text>
         )}
 
         {/* Next level info */}
         {nextLevel && (
-          <Text size="xs" c="dimmed">
+          <Text c="dimmed" size="xs">
             Next:{' '}
             {nextLevel.isBreak === true
               ? 'Break'
@@ -200,7 +197,7 @@ export function BlindTimerCard({
 
         {/* Tournament ended */}
         {!nextLevel && remainingSeconds === 0 && (
-          <Text size="xs" c="dimmed">
+          <Text c="dimmed" size="xs">
             ブラインドストラクチャー終了
           </Text>
         )}

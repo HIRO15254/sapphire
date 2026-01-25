@@ -59,9 +59,9 @@ export function HandCounterCard({
   )
 
   // Display value for player count input (can be empty while editing)
-  const [playerCountDisplay, setPlayerCountDisplay] = useState<
-    number | string
-  >(playerCount)
+  const [playerCountDisplay, setPlayerCountDisplay] = useState<number | string>(
+    playerCount,
+  )
 
   // Sync player count when tablemates count changes
   useEffect(() => {
@@ -87,7 +87,7 @@ export function HandCounterCard({
     // Default to BTN or last available position
     return availablePositions.includes('BTN')
       ? 'BTN'
-      : availablePositions[availablePositions.length - 1] ?? 'BTN'
+      : (availablePositions[availablePositions.length - 1] ?? 'BTN')
   }
 
   const [selectedPosition, setSelectedPosition] = useState<PokerPosition>(
@@ -98,10 +98,9 @@ export function HandCounterCard({
   useEffect(() => {
     if (!availablePositions.includes(selectedPosition)) {
       // Find closest valid position
-      const newPos =
-        availablePositions.includes('BTN')
-          ? 'BTN'
-          : availablePositions[availablePositions.length - 1] ?? 'BTN'
+      const newPos = availablePositions.includes('BTN')
+        ? 'BTN'
+        : (availablePositions[availablePositions.length - 1] ?? 'BTN')
       setSelectedPosition(newPos)
     }
   }, [availablePositions, selectedPosition])
@@ -268,7 +267,7 @@ export function HandCounterCard({
         />
 
         {/* Hand counter with player count */}
-        <Group justify="center" gap="md">
+        <Group gap="md" justify="center">
           <Tooltip label="ハンド数を減らす">
             <ActionIcon
               color="red"
@@ -281,7 +280,7 @@ export function HandCounterCard({
             </ActionIcon>
           </Tooltip>
 
-          <Group gap="xs" align="baseline">
+          <Group align="baseline" gap="xs">
             <Text fw={700} size="xl">
               {handCount}
             </Text>
@@ -304,16 +303,11 @@ export function HandCounterCard({
           {/* Player count selector */}
           <Group gap={4}>
             <NumberInput
-              value={playerCountDisplay}
-              onChange={(val) => {
-                // Allow empty value temporarily while typing
-                setPlayerCountDisplay(val)
-                // If valid number, update actual state immediately
-                if (typeof val === 'number' && val >= 2 && val <= 9) {
-                  setPlayerCount(val)
-                }
-              }}
-              onFocus={(e) => e.target.select()}
+              allowDecimal={false}
+              allowNegative={false}
+              hideControls
+              max={9}
+              min={2}
               onBlur={() => {
                 // On blur, validate and reset to valid value
                 const numVal =
@@ -328,13 +322,16 @@ export function HandCounterCard({
                   setPlayerCountDisplay(playerCount)
                 }
               }}
-              min={2}
-              max={9}
+              onChange={(val) => {
+                // Allow empty value temporarily while typing
+                setPlayerCountDisplay(val)
+                // If valid number, update actual state immediately
+                if (typeof val === 'number' && val >= 2 && val <= 9) {
+                  setPlayerCount(val)
+                }
+              }}
+              onFocus={(e) => e.target.select()}
               size="xs"
-              w={50}
-              hideControls
-              allowDecimal={false}
-              allowNegative={false}
               styles={{
                 input: {
                   textAlign: 'center',
@@ -342,6 +339,8 @@ export function HandCounterCard({
                   paddingRight: 4,
                 },
               }}
+              value={playerCountDisplay}
+              w={50}
             />
             <Text c="dimmed" size="xs">
               人
