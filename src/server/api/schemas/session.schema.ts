@@ -92,6 +92,9 @@ export const listSessionsSchema = z
   .object({
     storeId: z.string().uuid().optional(),
     gameType: gameTypeSchema.optional(),
+    currencyId: z.string().uuid().optional(),
+    startFrom: z.coerce.date().optional(),
+    startTo: z.coerce.date().optional(),
     limit: z
       .number()
       .int()

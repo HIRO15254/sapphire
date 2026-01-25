@@ -12,16 +12,22 @@ export const dynamic = 'force-dynamic'
  */
 export default async function SessionsPage() {
   // Fetch initial data on server
-  const initialData = await api.session.list({
-    limit: 20,
-    offset: 0,
-  })
+  const [initialData, storesData, currenciesData] = await Promise.all([
+    api.session.list({
+      limit: 20,
+      offset: 0,
+    }),
+    api.store.list({ includeArchived: false }),
+    api.currency.list({ includeArchived: false }),
+  ])
 
   return (
     <HydrateClient>
       <SessionsContent
+        currencies={currenciesData.currencies}
         initialSessions={initialData.sessions}
         initialTotal={initialData.total}
+        stores={storesData.stores}
       />
     </HydrateClient>
   )

@@ -42,7 +42,7 @@ interface AppShellProps {
  */
 const navItems = [
   { href: '/dashboard', label: 'ダッシュボード', icon: IconHome },
-  { href: '/sessions', label: 'セッション', icon: IconCards },
+  { href: '/sessions', label: 'Sessions', icon: IconCards },
   { href: '/currencies', label: '通貨', icon: IconCoin },
   { href: '/stores', label: '店舗', icon: IconBuildingStore },
   { href: '/players', label: 'プレイヤー', icon: IconUsers },

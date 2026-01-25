@@ -70,6 +70,8 @@ export function GameTypeLabelWithIcon({
 interface GameTypeBadgeProps {
   gameType: GameType
   size?: MantineSize
+  /** Show only icon without text label */
+  iconOnly?: boolean
 }
 
 const ICON_SIZES: Record<MantineSize, number> = {
@@ -84,9 +86,26 @@ const ICON_SIZES: Record<MantineSize, number> = {
  * Unified badge component for displaying game type (Cash/Tournament).
  * Always uses variant="light" and English labels.
  */
-export function GameTypeBadge({ gameType, size = 'sm' }: GameTypeBadgeProps) {
+export function GameTypeBadge({
+  gameType,
+  size = 'sm',
+  iconOnly = false,
+}: GameTypeBadgeProps) {
   const iconSize = ICON_SIZES[size] ?? 12
   const color = getGameTypeColor(gameType)
+
+  if (iconOnly) {
+    return (
+      <Badge
+        color={color}
+        size={size}
+        variant="light"
+        style={{ paddingLeft: 6, paddingRight: 6 }}
+      >
+        <GameTypeIcon gameType={gameType} size={iconSize} colored={false} />
+      </Badge>
+    )
+  }
 
   return (
     <Badge

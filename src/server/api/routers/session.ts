@@ -1,11 +1,13 @@
 import { TRPCError } from '@trpc/server'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lt, or, sql } from 'drizzle-orm'
 
 import {
   allInRecords,
+  cashGames,
   isNotDeleted,
   pokerSessions,
   softDelete,
+  tournaments,
 } from '~/server/db/schema'
 import {
   createArchiveSessionSchema,
@@ -52,6 +54,55 @@ export const sessionRouter = createTRPCRouter({
       }
       if (input?.gameType) {
         conditions.push(eq(pokerSessions.gameType, input.gameType))
+      }
+      if (input?.startFrom) {
+        conditions.push(gte(pokerSessions.startTime, input.startFrom))
+      }
+      if (input?.startTo) {
+        conditions.push(lt(pokerSessions.startTime, input.startTo))
+      }
+
+      // Currency filter: find games with this currency, then filter sessions
+      let currencyGameIds: {
+        cashGameIds: string[]
+        tournamentIds: string[]
+      } | null = null
+      if (input?.currencyId) {
+        const [currencyCashGames, currencyTournaments] = await Promise.all([
+          ctx.db
+            .select({ id: cashGames.id })
+            .from(cashGames)
+            .where(eq(cashGames.currencyId, input.currencyId)),
+          ctx.db
+            .select({ id: tournaments.id })
+            .from(tournaments)
+            .where(eq(tournaments.currencyId, input.currencyId)),
+        ])
+        currencyGameIds = {
+          cashGameIds: currencyCashGames.map((g) => g.id),
+          tournamentIds: currencyTournaments.map((t) => t.id),
+        }
+
+        // Filter sessions that use these games
+        const gameConditions = []
+        if (currencyGameIds.cashGameIds.length > 0) {
+          gameConditions.push(
+            inArray(pokerSessions.cashGameId, currencyGameIds.cashGameIds),
+          )
+        }
+        if (currencyGameIds.tournamentIds.length > 0) {
+          gameConditions.push(
+            inArray(pokerSessions.tournamentId, currencyGameIds.tournamentIds),
+          )
+        }
+        if (gameConditions.length === 0) {
+          // No games with this currency, return empty
+          return { sessions: [], total: 0, hasMore: false }
+        }
+        const orCondition = or(...gameConditions)
+        if (orCondition) {
+          conditions.push(orCondition)
+        }
       }
 
       // Get total count for pagination
