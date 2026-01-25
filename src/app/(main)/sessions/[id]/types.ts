@@ -20,6 +20,23 @@ export function formatTime(date: Date): string {
 }
 
 /**
+ * Format session duration short (e.g., "2.0h").
+ */
+export function formatDurationShort(
+  startTime: Date,
+  endTime: Date | null,
+): string {
+  if (!endTime) return '-'
+
+  const start = new Date(startTime)
+  const end = new Date(endTime)
+  const durationMs = end.getTime() - start.getTime()
+  const durationHours = durationMs / (1000 * 60 * 60)
+
+  return `${durationHours.toFixed(1)}h`
+}
+
+/**
  * Format session duration (e.g., "2.0h (22:30-0:30)").
  */
 export function formatSessionDuration(
@@ -96,7 +113,11 @@ export function formatSessionDurationWithEvents(
   const end = new Date(endTime)
   const endStr = formatTime(end)
 
-  const { durationMs } = calculateActiveDuration(startTime, endTime, sessionEvents)
+  const { durationMs } = calculateActiveDuration(
+    startTime,
+    endTime,
+    sessionEvents,
+  )
   const durationHours = durationMs / (1000 * 60 * 60)
 
   return `${durationHours.toFixed(1)}h (${startStr}-${endStr})`

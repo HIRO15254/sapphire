@@ -15,15 +15,20 @@ import {
 import {
   IconAlertCircle,
   IconCalendar,
+  IconMapPin,
   IconPlus,
-  IconTrendingDown,
-  IconTrendingUp,
 } from '@tabler/icons-react'
-import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 import Link from 'next/link'
 import { useState } from 'react'
+import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
+import {
+  formatDate,
+  formatDurationShort,
+  formatProfitLoss,
+  getProfitLossColor,
+} from './[id]/types'
 
 type Session = RouterOutputs['session']['list']['sessions'][number]
 
@@ -60,35 +65,19 @@ export function SessionsContent({
   const totalPages = Math.ceil(total / limit)
 
   /**
-   * Format date to Japanese locale string.
+   * Get game display name.
    */
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
-
-  /**
-   * Format profit/loss with + or - prefix.
-   */
-  const formatProfitLoss = (profitLoss: number | null) => {
-    if (profitLoss === null) return '-'
-    const formatted = Math.abs(profitLoss).toLocaleString('ja-JP')
-    if (profitLoss > 0) return `+${formatted}`
-    if (profitLoss < 0) return `-${formatted}`
-    return formatted
-  }
-
-  /**
-   * Get color based on profit/loss.
-   */
-  const getProfitLossColor = (profitLoss: number | null) => {
-    if (profitLoss === null) return 'dimmed'
-    if (profitLoss > 0) return 'green'
-    if (profitLoss < 0) return 'red'
-    return 'dimmed'
+  const getGameName = (session: Session) => {
+    if (session.cashGame) {
+      return `${session.cashGame.smallBlind}/${session.cashGame.bigBlind}`
+    }
+    if (session.tournament) {
+      return (
+        session.tournament.name ??
+        `¥${session.tournament.buyIn.toLocaleString()}`
+      )
+    }
+    return '-'
   }
 
   if (page > 1 && isLoading) {
@@ -148,100 +137,90 @@ export function SessionsContent({
             </Stack>
           </Card>
         ) : (
-          <Stack gap="md">
+          <Stack gap="xs">
             {sessions.map((session) => (
               <Card
                 component={Link}
                 href={`/sessions/${session.id}`}
                 key={session.id}
-                p="lg"
-                radius="md"
-                shadow="sm"
+                px="sm"
+                py="xs"
+                radius="sm"
+                shadow="xs"
                 style={{ textDecoration: 'none', cursor: 'pointer' }}
                 withBorder
               >
-                <Group justify="space-between">
-                  <Stack gap="xs">
-                    <Group gap="sm">
-                      <Group gap={4}>
-                        <IconCalendar size={14} style={{ color: 'gray' }} />
-                        <Text c="dimmed" size="sm">
+                <Group justify="space-between" wrap="nowrap">
+                  {/* Left: Badge, Game name + Date, Store */}
+                  <Stack gap={2} style={{ minWidth: 0 }}>
+                    <Group gap="xs" wrap="nowrap">
+                      <GameTypeBadge gameType={session.gameType} size="xs" />
+                      <Text fw={500} size="sm" truncate>
+                        {getGameName(session)}
+                      </Text>
+                    </Group>
+                    <Group gap="sm" wrap="nowrap">
+                      <Group gap={4} wrap="nowrap">
+                        <IconCalendar
+                          size={12}
+                          style={{ color: 'var(--mantine-color-dimmed)' }}
+                        />
+                        <Text c="dimmed" size="xs">
                           {formatDate(session.startTime)}
                         </Text>
                       </Group>
-                      <GameTypeBadge gameType={session.gameType} size="sm" />
-                    </Group>
-                    {session.store && (
-                      <Text fw={500} size="md">
-                        {session.store.name}
-                      </Text>
-                    )}
-                    {session.cashGame && (
-                      <Text c="dimmed" size="sm">
-                        {session.cashGame.smallBlind}/
-                        {session.cashGame.bigBlind}
-                      </Text>
-                    )}
-                    {session.tournament && (
-                      <Text c="dimmed" size="sm">
-                        {session.tournament.name ??
-                          session.tournament.buyIn.toLocaleString()}
-                      </Text>
-                    )}
-                  </Stack>
-                  <Stack align="flex-end" gap="xs">
-                    <Group gap={4}>
-                      {session.profitLoss !== null &&
-                        session.profitLoss > 0 && (
-                          <IconTrendingUp
-                            size={20}
-                            style={{ color: 'var(--mantine-color-green-6)' }}
+                      {session.store && (
+                        <Group gap={4} style={{ minWidth: 0 }} wrap="nowrap">
+                          <IconMapPin
+                            size={12}
+                            style={{
+                              color: 'var(--mantine-color-dimmed)',
+                              flexShrink: 0,
+                            }}
                           />
-                        )}
-                      {session.profitLoss !== null &&
-                        session.profitLoss < 0 && (
-                          <IconTrendingDown
-                            size={20}
-                            style={{ color: 'var(--mantine-color-red-6)' }}
-                          />
-                        )}
-                      <Stack align="flex-end" gap={0}>
-                        <Text
-                          c={getProfitLossColor(session.profitLoss)}
-                          fw={700}
-                          size="xl"
-                        >
-                          {formatProfitLoss(session.profitLoss)}
-                        </Text>
-                        {session.allInSummary &&
-                          session.allInSummary.count > 0 &&
-                          session.profitLoss !== null && (
-                            <Text
-                              c={getProfitLossColor(
-                                session.profitLoss -
-                                  session.allInSummary.evDifference,
-                              )}
-                              size="xs"
-                            >
-                              (EV:{' '}
-                              {formatProfitLoss(
-                                session.profitLoss -
-                                  session.allInSummary.evDifference,
-                              )}
-                              )
-                            </Text>
-                          )}
-                      </Stack>
-                    </Group>
-                    <Group gap="xs">
-                      <Text c="dimmed" size="xs">
-                        Buy-in: {session.buyIn.toLocaleString()}
-                      </Text>
-                      <Text c="dimmed" size="xs">
-                        Cash-out: {(session.cashOut ?? 0).toLocaleString()}
-                      </Text>
+                          <Text c="dimmed" size="xs" truncate>
+                            {session.store.name}
+                          </Text>
+                        </Group>
+                      )}
                     </Group>
                   </Stack>
+                  {/* Right: Profit/Loss (with EV below) / Duration */}
+                  <Group gap="xs" wrap="nowrap">
+                    <Stack align="flex-end" gap={0} style={{ lineHeight: 1.2 }}>
+                      <Text
+                        c={getProfitLossColor(session.profitLoss)}
+                        fw={700}
+                        size="sm"
+                        lh={1.2}
+                      >
+                        {formatProfitLoss(session.profitLoss)}
+                      </Text>
+                      {session.allInSummary &&
+                        session.allInSummary.count > 0 &&
+                        session.profitLoss !== null && (
+                          <Text
+                            c={getProfitLossColor(
+                              session.profitLoss -
+                                session.allInSummary.evDifference,
+                            )}
+                            size="xs"
+                            lh={1.2}
+                          >
+                            (EV:{' '}
+                            {formatProfitLoss(
+                              session.profitLoss -
+                                session.allInSummary.evDifference,
+                            )}
+                            )
+                          </Text>
+                        )}
+                    </Stack>
+                    <Text c="dimmed" size="xs">
+                      /{' '}
+                      {formatDurationShort(session.startTime, session.endTime)}
+                    </Text>
+                  </Group>
                 </Group>
               </Card>
             ))}
