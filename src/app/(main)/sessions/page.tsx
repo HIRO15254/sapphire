@@ -11,12 +11,9 @@ export const dynamic = 'force-dynamic'
  * Fetches initial session data on the server and passes to client component.
  */
 export default async function SessionsPage() {
-  // Fetch initial data on server
-  const [initialData, storesData, currenciesData] = await Promise.all([
-    api.session.list({
-      limit: 20,
-      offset: 0,
-    }),
+  // Fetch all data on server (client-side filtering)
+  const [sessionsData, storesData, currenciesData] = await Promise.all([
+    api.session.list({}), // No limit - fetch all sessions
     api.store.list({ includeArchived: false }),
     api.currency.list({ includeArchived: false }),
   ])
@@ -25,8 +22,7 @@ export default async function SessionsPage() {
     <HydrateClient>
       <SessionsContent
         currencies={currenciesData.currencies}
-        initialSessions={initialData.sessions}
-        initialTotal={initialData.total}
+        sessions={sessionsData.sessions}
         stores={storesData.stores}
       />
     </HydrateClient>

@@ -38,7 +38,7 @@ export const sessionRouter = createTRPCRouter({
     .input(listSessionsSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id
-      const limit = input?.limit ?? 20
+      const limit = input?.limit // undefined means no limit (fetch all)
       const offset = input?.offset ?? 0
 
       const conditions = [
@@ -118,8 +118,16 @@ export const sessionRouter = createTRPCRouter({
         where: and(...conditions),
         with: {
           store: true,
-          cashGame: true,
-          tournament: true,
+          cashGame: {
+            with: {
+              currency: true,
+            },
+          },
+          tournament: {
+            with: {
+              currency: true,
+            },
+          },
           allInRecords: {
             where: isNotDeleted(allInRecords.deletedAt),
           },
