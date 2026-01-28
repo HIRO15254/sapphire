@@ -1,9 +1,11 @@
 'use client'
 
 import { Container, Stack } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { useMemo, useState } from 'react'
 import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
+import { NewSessionDrawer } from './NewSessionDrawer'
 import {
   defaultFilters,
   type FilterState,
@@ -15,11 +17,13 @@ import { SessionList } from './SessionList'
 
 type Session = RouterOutputs['session']['list']['sessions'][number]
 type Store = RouterOutputs['store']['list']['stores'][number]
+type StoreWithGames = RouterOutputs['store']['getById']
 type Currency = RouterOutputs['currency']['list']['currencies'][number]
 
 interface SessionsContentProps {
   sessions: Session[]
   stores: Store[]
+  storesWithGames: StoreWithGames[]
   currencies: Currency[]
 }
 
@@ -136,11 +140,14 @@ function filterSessions(sessions: Session[], filters: FilterState): Session[] {
 export function SessionsContent({
   sessions,
   stores,
+  storesWithGames,
   currencies,
 }: SessionsContentProps) {
   usePageTitle('Sessions')
 
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
+  const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
+    useDisclosure(false)
 
   // Filter sessions client-side
   const filteredSessions = useMemo(
@@ -164,8 +171,18 @@ export function SessionsContent({
           stores={storeOptions}
         />
 
-        <SessionList isFiltered={isFiltered} sessions={filteredSessions} />
+        <SessionList
+          isFiltered={isFiltered}
+          onOpenNewSession={openDrawer}
+          sessions={filteredSessions}
+        />
       </Stack>
+
+      <NewSessionDrawer
+        onClose={closeDrawer}
+        opened={drawerOpened}
+        stores={storesWithGames}
+      />
     </Container>
   )
 }

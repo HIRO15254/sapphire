@@ -18,12 +18,18 @@ export default async function SessionsPage() {
     api.currency.list({ includeArchived: false }),
   ])
 
+  // Fetch store details with games for each store
+  const storesWithGames = await Promise.all(
+    storesData.stores.map((store) => api.store.getById({ id: store.id })),
+  )
+
   return (
     <HydrateClient>
       <SessionsContent
         currencies={currenciesData.currencies}
         sessions={sessionsData.sessions}
         stores={storesData.stores}
+        storesWithGames={storesWithGames}
       />
     </HydrateClient>
   )

@@ -37,6 +37,7 @@ interface Session {
 interface SessionListProps {
   sessions: Session[]
   isFiltered: boolean
+  onOpenNewSession: () => void
 }
 
 /**
@@ -44,7 +45,11 @@ interface SessionListProps {
  *
  * Displays all session cards.
  */
-export function SessionList({ sessions, isFiltered }: SessionListProps) {
+export function SessionList({
+  sessions,
+  isFiltered,
+  onOpenNewSession,
+}: SessionListProps) {
   /**
    * Get game display name.
    */
@@ -79,17 +84,16 @@ export function SessionList({ sessions, isFiltered }: SessionListProps) {
             </Text>
             {!isFiltered && (
               <Button
-                component={Link}
-                href="/sessions/new"
                 leftSection={<IconPlus size={16} />}
                 mt="md"
+                onClick={onOpenNewSession}
               >
                 Record New Session
               </Button>
             )}
           </Stack>
         </Card>
-        <SessionFAB />
+        <SessionFAB onOpen={onOpenNewSession} />
       </>
     )
   }
@@ -188,22 +192,25 @@ export function SessionList({ sessions, isFiltered }: SessionListProps) {
         ))}
       </Stack>
 
-      <SessionFAB />
+      <SessionFAB onOpen={onOpenNewSession} />
     </>
   )
+}
+
+interface SessionFABProps {
+  onOpen: () => void
 }
 
 /**
  * Floating action button for adding new session.
  */
-function SessionFAB() {
+function SessionFAB({ onOpen }: SessionFABProps) {
   return (
     <Affix position={{ bottom: 24, right: 24 }} zIndex={100}>
       <ActionIcon
         aria-label="Record new session"
         color="blue"
-        component={Link}
-        href="/sessions/new"
+        onClick={onOpen}
         radius="xl"
         size={56}
         variant="filled"

@@ -320,7 +320,7 @@ export function SessionFilter({
               onChange={(value) =>
                 setDraftFilters((prev) => ({
                   ...prev,
-                  customDateRange: value,
+                  customDateRange: value as [Date | null, Date | null],
                 }))
               }
               placeholder="Select date range"
