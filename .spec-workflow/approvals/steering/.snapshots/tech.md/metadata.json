@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/steering/tech.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-28T07:47:17.014Z",
+      "trigger": "initial",
+      "approvalId": "approval_1769586436962_2ga8ch441",
+      "approvalTitle": "Tech Document - Sapphire Technology Stack"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-01-28T07:50:08.781Z",
+      "trigger": "approved",
+      "approvalId": "approval_1769586436962_2ga8ch441",
+      "approvalTitle": "Tech Document - Sapphire Technology Stack"
+    }
+  ]
+}

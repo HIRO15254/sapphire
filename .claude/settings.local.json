@@ -23,9 +23,10 @@
       "Bash(bun run db:generate:*)",
       "WebFetch(domain:reactcosmos.org)",
       "Bash(ls:*)",
-      "Bash(npx biome:*)"
+      "Bash(npx biome:*)",
+      "mcp__spec-workflow__approvals"
     ],
-    "deny": [],
-    "ask": []
+    "ask": [],
+    "deny": []
   }
 }
