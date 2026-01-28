@@ -1,11 +1,11 @@
 'use client'
 
-import { Container, Stack } from '@mantine/core'
+import { Container, Drawer, Stack } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useMemo, useState } from 'react'
 import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
-import { NewSessionDrawer } from './NewSessionDrawer'
+import { NewSessionForm } from './NewSessionForm'
 import {
   defaultFilters,
   type FilterState,
@@ -178,11 +178,19 @@ export function SessionsContent({
         />
       </Stack>
 
-      <NewSessionDrawer
+      <Drawer
         onClose={closeDrawer}
         opened={drawerOpened}
-        stores={storesWithGames}
-      />
+        position="bottom"
+        size="auto"
+        title="Record Session"
+      >
+        <NewSessionForm
+          onCancel={closeDrawer}
+          onSuccess={closeDrawer}
+          stores={storesWithGames}
+        />
+      </Drawer>
     </Container>
   )
 }
