@@ -21,12 +21,17 @@
       "Bash(npx playwright test:*)",
       "Bash(wc:*)",
       "Bash(bun run db:generate:*)",
-      "WebFetch(domain:reactcosmos.org)",
       "Bash(ls:*)",
       "Bash(npx biome:*)",
-      "mcp__spec-workflow__approvals"
+      "mcp__spec-workflow__approvals",
+      "mcp__spec-workflow__spec-workflow-guide",
+      "Bash(find:*)",
+      "mcp__spec-workflow__spec-status",
+      "Bash(bunx tsc:*)",
+      "mcp__spec-workflow__log-implementation",
+      "Bash(test:*)"
     ],
-    "ask": [],
-    "deny": []
+    "deny": [],
+    "ask": []
   }
 }
