@@ -1,6 +1,6 @@
 {
   "name": "sapphire",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -29,7 +29,7 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "bun run db:migrate:test playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.2",
