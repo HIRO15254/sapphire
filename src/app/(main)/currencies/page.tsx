@@ -11,9 +11,9 @@ export const dynamic = 'force-dynamic'
  * Fetches initial currency data on the server and passes to client component.
  */
 export default async function CurrenciesPage() {
-  // Fetch initial data (non-archived currencies) on server
+  // Fetch all currencies (including archived) on server — currency count is small (~10)
   const initialData = await api.currency.list({
-    includeArchived: false,
+    includeArchived: true,
   })
 
   return (

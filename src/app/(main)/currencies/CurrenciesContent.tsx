@@ -1,18 +1,10 @@
 'use client'
 
-import {
-  Alert,
-  Container,
-  Drawer,
-  Loader,
-  Stack,
-  Text,
-} from '@mantine/core'
+import { Container, Drawer } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import { IconAlertCircle } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { usePageTitle } from '~/contexts/PageTitleContext'
 import {
   CurrencyFAB,
@@ -21,7 +13,6 @@ import {
   NewCurrencyForm,
 } from '~/features/currencies'
 import type { RouterOutputs } from '~/trpc/react'
-import { api } from '~/trpc/react'
 import { createCurrency } from './actions/index'
 
 type CurrencyData = RouterOutputs['currency']['list']['currencies'][number]
@@ -41,18 +32,14 @@ export function CurrenciesContent({
     useDisclosure(false)
   const [isCreating, startCreateTransition] = useTransition()
 
-  // Fetch archived data only when includeArchived is true
-  const { data, isLoading, error } = api.currency.list.useQuery(
-    { includeArchived: true },
-    {
-      enabled: includeArchived,
-    },
+  // Client-side filtering — all currencies (including archived) are fetched on the server
+  const currencies = useMemo(
+    () =>
+      includeArchived
+        ? initialCurrencies
+        : initialCurrencies.filter((c) => !c.isArchived),
+    [initialCurrencies, includeArchived],
   )
-
-  // Use server data by default, switch to query data when includeArchived is true
-  const currencies = includeArchived
-    ? (data?.currencies ?? [])
-    : initialCurrencies
 
   const handleCreateCurrency = (formData: NewCurrencyFormData) => {
     startCreateTransition(async () => {
@@ -74,27 +61,6 @@ export function CurrenciesContent({
         })
       }
     })
-  }
-
-  if (includeArchived && isLoading) {
-    return (
-      <Container py="xl" size="md">
-        <Stack align="center" gap="lg">
-          <Loader size="lg" />
-          <Text c="dimmed">Loading...</Text>
-        </Stack>
-      </Container>
-    )
-  }
-
-  if (includeArchived && error) {
-    return (
-      <Container py="xl" size="md">
-        <Alert color="red" icon={<IconAlertCircle size={16} />} title="Error">
-          {error.message}
-        </Alert>
-      </Container>
-    )
   }
 
   return (
