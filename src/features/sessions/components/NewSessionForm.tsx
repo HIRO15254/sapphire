@@ -128,7 +128,7 @@ export function NewSessionForm({
           value: game.id,
           label: `${game.smallBlind}/${game.bigBlind}${game.currency ? ` (${game.currency.name})` : ''}`,
         })) ?? [],
-    [selectedStore],
+    [selectedStore?.cashGames],
   )
 
   // Tournament options (from selected store)
@@ -142,7 +142,7 @@ export function NewSessionForm({
             tournament.name ??
             `${tournament.buyIn.toLocaleString()}${tournament.currency ? ` (${tournament.currency.name})` : ''}`,
         })) ?? [],
-    [selectedStore],
+    [selectedStore?.tournaments],
   )
 
   const handleStoreChange = (value: string | null) => {
