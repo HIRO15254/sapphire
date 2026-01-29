@@ -1,10 +1,10 @@
 'use client'
 
 import {
-  Badge,
   Button,
   Drawer,
   Group,
+  Badge,
   SegmentedControl,
   Select,
   Stack,
@@ -14,88 +14,24 @@ import { DatePickerInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import { IconFilter, IconX } from '@tabler/icons-react'
 import { useState } from 'react'
-
-/** Period preset options */
-export type PeriodPreset =
-  | 'all'
-  | 'thisMonth'
-  | 'lastMonth'
-  | 'thisYear'
-  | 'custom'
-
-/** Filter state type */
-export interface FilterState {
-  gameType: 'all' | 'cash' | 'tournament'
-  periodPreset: PeriodPreset
-  customDateRange: [Date | null, Date | null]
-  currencyId: string | null
-  storeId: string | null
-}
-
-/** Default filter state */
-export const defaultFilters: FilterState = {
-  gameType: 'all',
-  periodPreset: 'all',
-  customDateRange: [null, null],
-  currencyId: null,
-  storeId: null,
-}
-
-interface StoreOption {
-  id: string
-  name: string
-}
-
-interface CurrencyOption {
-  id: string
-  name: string
-}
+import {
+  defaultFilters,
+  gameTypeOptions,
+  periodOptions,
+} from '../lib/constants'
+import { hasActiveFilters } from '../lib/filter-utils'
+import type {
+  CurrencyOption,
+  FilterState,
+  PeriodPreset,
+  StoreOption,
+} from '../lib/types'
 
 interface SessionFilterProps {
   stores: StoreOption[]
   currencies: CurrencyOption[]
   filters: FilterState
   onFiltersChange: (filters: FilterState) => void
-}
-
-// Period preset options
-const periodOptions = [
-  { value: 'all', label: 'All Time' },
-  { value: 'thisMonth', label: 'This Month' },
-  { value: 'lastMonth', label: 'Last Month' },
-  { value: 'thisYear', label: 'This Year' },
-  { value: 'custom', label: 'Custom' },
-]
-
-// Game type options
-const gameTypeOptions = [
-  { value: 'all', label: 'All' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'tournament', label: 'Tournament' },
-]
-
-/**
- * Check if filters have any active conditions.
- */
-export function hasActiveFilters(filters: FilterState): boolean {
-  return (
-    filters.gameType !== 'all' ||
-    filters.periodPreset !== 'all' ||
-    filters.currencyId !== null ||
-    filters.storeId !== null
-  )
-}
-
-/**
- * Count active filters.
- */
-function countActiveFilters(filters: FilterState): number {
-  return [
-    filters.gameType !== 'all',
-    filters.periodPreset !== 'all',
-    filters.currencyId !== null,
-    filters.storeId !== null,
-  ].filter(Boolean).length
 }
 
 /**
@@ -118,7 +54,6 @@ export function SessionFilter({
     useDisclosure(false)
 
   const isFiltered = hasActiveFilters(filters)
-  const activeFilterCount = countActiveFilters(filters)
 
   // Open drawer and sync draft with applied
   const handleOpenDrawer = () => {
@@ -157,13 +92,13 @@ export function SessionFilter({
   }
 
   // Store options for select
-  const storeOptions = stores.map((store) => ({
+  const storeSelectOptions = stores.map((store) => ({
     value: store.id,
     label: store.name,
   }))
 
   // Currency options for select
-  const currencyOptions = currencies.map((currency) => ({
+  const currencySelectOptions = currencies.map((currency) => ({
     value: currency.id,
     label: currency.name,
   }))
@@ -175,13 +110,6 @@ export function SessionFilter({
         <Button
           leftSection={<IconFilter size={16} />}
           onClick={handleOpenDrawer}
-          rightSection={
-            activeFilterCount > 0 && (
-              <Badge circle size="xs" variant="filled">
-                {activeFilterCount}
-              </Badge>
-            )
-          }
           size="xs"
           variant="light"
         >
@@ -333,7 +261,7 @@ export function SessionFilter({
           <Select
             clearable
             comboboxProps={{ position: 'bottom', middlewares: { flip: false } }}
-            data={currencyOptions}
+            data={currencySelectOptions}
             label="Currency"
             onChange={(value) =>
               setDraftFilters((prev) => ({ ...prev, currencyId: value }))
@@ -346,7 +274,7 @@ export function SessionFilter({
           <Select
             clearable
             comboboxProps={{ position: 'bottom', middlewares: { flip: false } }}
-            data={storeOptions}
+            data={storeSelectOptions}
             label="Store"
             onChange={(value) =>
               setDraftFilters((prev) => ({ ...prev, storeId: value }))

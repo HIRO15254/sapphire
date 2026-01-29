@@ -1,8 +1,6 @@
 'use client'
 
 import {
-  ActionIcon,
-  Affix,
   Button,
   Card,
   Group,
@@ -15,24 +13,12 @@ import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 import {
   formatDate,
   formatDurationShort,
+  formatGameName,
   formatProfitLoss,
   getProfitLossColor,
-} from './[id]/types'
-
-interface Session {
-  id: string
-  gameType: string | null
-  startTime: Date
-  endTime: Date | null
-  profitLoss: number | null
-  store: { name: string } | null
-  cashGame: { smallBlind: number; bigBlind: number } | null
-  tournament: { name: string | null; buyIn: number } | null
-  allInSummary: {
-    count: number
-    evDifference: number
-  } | null
-}
+} from '../lib/format-utils'
+import type { Session } from '../lib/types'
+import { SessionFAB } from './SessionFAB'
 
 interface SessionListProps {
   sessions: Session[]
@@ -50,22 +36,6 @@ export function SessionList({
   isFiltered,
   onOpenNewSession,
 }: SessionListProps) {
-  /**
-   * Get game display name.
-   */
-  const getGameName = (session: Session) => {
-    if (session.cashGame) {
-      return `${session.cashGame.smallBlind}/${session.cashGame.bigBlind}`
-    }
-    if (session.tournament) {
-      return (
-        session.tournament.name ??
-        `¥${session.tournament.buyIn.toLocaleString()}`
-      )
-    }
-    return '-'
-  }
-
   // Empty state
   if (sessions.length === 0) {
     return (
@@ -123,7 +93,7 @@ export function SessionList({
                     size="xs"
                   />
                   <Text fw={500} size="sm" truncate>
-                    {getGameName(session)}
+                    {formatGameName(session)}
                   </Text>
                 </Group>
                 <Group gap="sm" wrap="nowrap">
@@ -194,29 +164,5 @@ export function SessionList({
 
       <SessionFAB onOpen={onOpenNewSession} />
     </>
-  )
-}
-
-interface SessionFABProps {
-  onOpen: () => void
-}
-
-/**
- * Floating action button for adding new session.
- */
-function SessionFAB({ onOpen }: SessionFABProps) {
-  return (
-    <Affix position={{ bottom: 24, right: 24 }} zIndex={100}>
-      <ActionIcon
-        aria-label="Record new session"
-        color="blue"
-        onClick={onOpen}
-        radius="xl"
-        size={56}
-        variant="filled"
-      >
-        <IconPlus size={28} />
-      </ActionIcon>
-    </Affix>
   )
 }

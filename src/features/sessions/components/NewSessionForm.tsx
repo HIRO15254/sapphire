@@ -13,89 +13,66 @@ import {
 } from '@mantine/core'
 import { DateInput, TimeInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
-import { notifications } from '@mantine/notifications'
 import { IconCalendar, IconClock } from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
-import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, useTransition } from 'react'
-import { z } from 'zod'
+import { useEffect, useMemo, useState } from 'react'
 import { GameTypeLabelWithIcon } from '~/components/sessions/GameTypeBadge'
-import type { RouterOutputs } from '~/trpc/react'
-import { createArchiveSession } from './actions'
-
-// Form validation schema
-const formSchema = z.object({
-  storeId: z
-    .string()
-    .uuid('Select a store')
-    .optional()
-    .or(z.literal('')),
-  gameType: z.enum(['cash', 'tournament']),
-  cashGameId: z.string().uuid().optional().or(z.literal('')),
-  tournamentId: z.string().uuid().optional().or(z.literal('')),
-  sessionDate: z.coerce.date({ required_error: 'Enter a date' }),
-  startTime: z.string().min(1, 'Enter start time'),
-  endTime: z.string().optional(),
-  buyIn: z
-    .number({ required_error: 'Enter buy-in amount' })
-    .int('Buy-in must be an integer')
-    .positive('Buy-in must be at least 1'),
-  cashOut: z
-    .number({ required_error: 'Enter cash-out amount' })
-    .int('Cash-out must be an integer')
-    .min(0, 'Cash-out must be at least 0'),
-  notes: z.string().optional(),
-})
+import { combineDateAndTime, combineEndDateTime } from '../lib/date-utils'
+import { newSessionFormSchema } from '../lib/schemas'
 
 /**
- * Combine date and time string into a Date object.
+ * Data submitted by the form.
  */
-function combineDateAndTime(date: Date, timeStr: string): Date {
-  const [hours, minutes] = timeStr.split(':').map(Number)
-  const result = new Date(date)
-  result.setHours(hours ?? 0, minutes ?? 0, 0, 0)
-  return result
+export interface NewSessionFormData {
+  storeId?: string
+  gameType: 'cash' | 'tournament'
+  cashGameId?: string
+  tournamentId?: string
+  startTime: Date
+  endTime?: Date
+  buyIn: number
+  cashOut: number
+  notes?: string
 }
 
-/**
- * Combine date and end time, adjusting for next day if end time is before start time.
- */
-function combineEndDateTime(
-  date: Date,
-  startTimeStr: string,
-  endTimeStr: string,
-): Date {
-  const startTime = combineDateAndTime(date, startTimeStr)
-  const endTime = combineDateAndTime(date, endTimeStr)
-
-  // If end time is before start time, it's the next day
-  if (endTime <= startTime) {
-    endTime.setDate(endTime.getDate() + 1)
-  }
-
-  return endTime
+interface StoreWithGames {
+  id: string
+  name: string
+  cashGames: Array<{
+    id: string
+    smallBlind: number
+    bigBlind: number
+    currency: { name: string } | null
+    isArchived: boolean
+  }>
+  tournaments: Array<{
+    id: string
+    name: string | null
+    buyIn: number
+    currency: { name: string } | null
+    isArchived: boolean
+  }>
 }
-
-type StoreWithGames = RouterOutputs['store']['getById']
 
 interface NewSessionFormProps {
   stores: StoreWithGames[]
+  onSubmit: (data: NewSessionFormData) => void
+  isSubmitting: boolean
   onCancel: () => void
-  onSuccess?: () => void
 }
 
 /**
  * New session form component.
  *
  * Reusable form for creating a new session.
+ * Delegates submission to parent via onSubmit callback.
  */
 export function NewSessionForm({
   stores,
+  onSubmit,
+  isSubmitting,
   onCancel,
-  onSuccess,
 }: NewSessionFormProps) {
-  const router = useRouter()
-  const [isCreating, startCreateTransition] = useTransition()
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
 
   // Get selected store details from passed data
@@ -118,7 +95,7 @@ export function NewSessionForm({
       cashOut: 0,
       notes: '',
     },
-    validate: zodResolver(formSchema),
+    validate: zodResolver(newSessionFormSchema),
   })
 
   // Reset game selection when store changes
@@ -179,54 +156,35 @@ export function NewSessionForm({
   }
 
   const handleSubmit = form.onSubmit((values) => {
-    startCreateTransition(async () => {
-      // Combine date and time (end time adjusts to next day if before start time)
-      const startDateTime = combineDateAndTime(
-        values.sessionDate,
-        values.startTime,
-      )
-      const endDateTime = values.endTime
-        ? combineEndDateTime(
-            values.sessionDate,
-            values.startTime,
-            values.endTime,
-          )
-        : undefined
+    // Combine date and time (end time adjusts to next day if before start time)
+    const startDateTime = combineDateAndTime(
+      values.sessionDate,
+      values.startTime,
+    )
+    const endDateTime = values.endTime
+      ? combineEndDateTime(
+          values.sessionDate,
+          values.startTime,
+          values.endTime,
+        )
+      : undefined
 
-      const result = await createArchiveSession({
-        storeId: values.storeId || undefined,
-        gameType: values.gameType,
-        cashGameId:
-          values.gameType === 'cash' && values.cashGameId
-            ? values.cashGameId
-            : undefined,
-        tournamentId:
-          values.gameType === 'tournament' && values.tournamentId
-            ? values.tournamentId
-            : undefined,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        buyIn: values.buyIn,
-        cashOut: values.cashOut,
-        notes: values.notes || undefined,
-      })
-
-      if (result.success) {
-        notifications.show({
-          title: 'Session Recorded',
-          message: 'Your session has been saved',
-          color: 'green',
-        })
-        resetForm()
-        onSuccess?.()
-        router.push(`/sessions/${result.data.id}`)
-      } else {
-        notifications.show({
-          title: 'Error',
-          message: result.error,
-          color: 'red',
-        })
-      }
+    onSubmit({
+      storeId: values.storeId || undefined,
+      gameType: values.gameType,
+      cashGameId:
+        values.gameType === 'cash' && values.cashGameId
+          ? values.cashGameId
+          : undefined,
+      tournamentId:
+        values.gameType === 'tournament' && values.tournamentId
+          ? values.tournamentId
+          : undefined,
+      startTime: startDateTime,
+      endTime: endDateTime,
+      buyIn: values.buyIn,
+      cashOut: values.cashOut,
+      notes: values.notes || undefined,
     })
   })
 
@@ -363,7 +321,7 @@ export function NewSessionForm({
           <Button onClick={handleCancel} variant="subtle">
             Cancel
           </Button>
-          <Button loading={isCreating} type="submit">
+          <Button loading={isSubmitting} type="submit">
             Save
           </Button>
         </Group>
