@@ -1,6 +1,6 @@
 {
   "name": "sapphire",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -29,9 +29,7 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "bun run db:migrate:test playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "typecheck": "tsc --noEmit",
-    "cosmos": "cosmos --expose-imports",
-    "cosmos:export": "cosmos-export --expose-imports"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.2",
@@ -86,8 +84,6 @@
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.30.5",
     "jsdom": "^27.3.0",
-    "react-cosmos": "^7.1.0",
-    "react-cosmos-next": "^7.1.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.2",
     "vitest": "^4.0.15"

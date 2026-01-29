@@ -12,24 +12,19 @@ import {
   Stack,
   Text,
   Textarea,
-  Title,
 } from '@mantine/core'
 import { DateInput, TimeInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
-import {
-  IconArrowLeft,
-  IconCalendar,
-  IconClock,
-  IconPokerChip,
-  IconTrophy,
-} from '@tabler/icons-react'
+import { IconArrowLeft, IconCalendar, IconClock } from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { z } from 'zod'
+import { GameTypeLabelWithIcon } from '~/components/sessions/GameTypeBadge'
 
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 import { updateSession } from '../../actions'
@@ -81,6 +76,8 @@ export function EditSessionContent({
   initialSession,
   stores,
 }: EditSessionContentProps) {
+  usePageTitle('セッション編集')
+
   const router = useRouter()
   const [isUpdating, startUpdateTransition] = useTransition()
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(
@@ -226,8 +223,6 @@ export function EditSessionContent({
           セッション詳細に戻る
         </Button>
 
-        <Title order={1}>セッションを編集</Title>
-
         <Paper p="lg" radius="md" shadow="sm" withBorder>
           <form onSubmit={handleSubmit}>
             <Stack gap="lg">
@@ -240,21 +235,11 @@ export function EditSessionContent({
                   data={[
                     {
                       value: 'cash',
-                      label: (
-                        <Group gap={4}>
-                          <IconPokerChip size={16} />
-                          <span>キャッシュ</span>
-                        </Group>
-                      ),
+                      label: <GameTypeLabelWithIcon gameType="cash" />,
                     },
                     {
                       value: 'tournament',
-                      label: (
-                        <Group gap={4}>
-                          <IconTrophy size={16} />
-                          <span>トーナメント</span>
-                        </Group>
-                      ),
+                      label: <GameTypeLabelWithIcon gameType="tournament" />,
                     },
                   ]}
                   fullWidth

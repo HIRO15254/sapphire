@@ -41,9 +41,9 @@ import {
   IconGripVertical,
   IconPlus,
   IconTrash,
-  IconTrophy,
 } from '@tabler/icons-react'
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { GameTypeIcon } from '~/components/sessions/GameTypeBadge'
 
 import { RichTextContent } from '~/components/ui/RichTextContext'
 import type { Tournament } from './types'
@@ -275,7 +275,7 @@ export function TournamentSection({
     <Card p="lg" radius="md" shadow="sm" withBorder>
       <Group justify="space-between" mb="md">
         <Group gap="sm">
-          <IconTrophy size={20} />
+          <GameTypeIcon gameType="tournament" size={20} />
           <Title order={3}>トーナメント</Title>
         </Group>
         <Group gap="md">

@@ -11,6 +11,7 @@ import {
 } from '@mantine/core'
 import { IconCards, IconCoin, IconTrendingUp } from '@tabler/icons-react'
 import Link from 'next/link'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 
 interface DashboardContentProps {
   totalBalance: number
@@ -22,11 +23,11 @@ interface DashboardContentProps {
  * Displays dashboard UI with data passed from server component.
  */
 export function DashboardContent({ totalBalance }: DashboardContentProps) {
+  usePageTitle('ダッシュボード')
+
   return (
     <Container py="xl" size="lg">
       <Stack gap="xl">
-        <Title order={1}>ダッシュボード</Title>
-
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
           <Card
             component={Link}

@@ -1,0 +1,1 @@
+ALTER TABLE "sapphire_poker_session" ADD COLUMN "final_position" integer;

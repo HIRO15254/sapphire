@@ -1,0 +1,30 @@
+{
+  "filePath": ".spec-workflow/steering/structure.md",
+  "currentVersion": 3,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-28T07:51:47.899Z",
+      "trigger": "initial",
+      "approvalId": "approval_1769586707874_fk06nnpm9",
+      "approvalTitle": "Structure Document - Sapphire Project Structure"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-01-28T07:56:32.518Z",
+      "trigger": "revision_requested",
+      "approvalId": "approval_1769586707874_fk06nnpm9",
+      "approvalTitle": "Structure Document - Sapphire Project Structure"
+    },
+    {
+      "version": 3,
+      "filename": "snapshot-003.json",
+      "timestamp": "2026-01-28T14:25:28.000Z",
+      "trigger": "approved",
+      "approvalId": "approval_1769587084304_n272ft8bu",
+      "approvalTitle": "Structure Document - Sapphire (Revised)"
+    }
+  ]
+}

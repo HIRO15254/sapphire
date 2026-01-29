@@ -1,14 +1,6 @@
 'use client'
 
-import {
-  Button,
-  Container,
-  Paper,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core'
+import { Button, Container, Paper, Stack, Text, TextInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { IconArrowLeft } from '@tabler/icons-react'
@@ -19,6 +11,7 @@ import { useTransition } from 'react'
 import { z } from 'zod'
 
 import { RichTextEditor } from '~/components/ui/RichTextEditor'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import { createPlayer } from '../actions'
 
 // Schema for form
@@ -36,6 +29,8 @@ const createPlayerFormSchema = z.object({
  * Form for creating a new player.
  */
 export function NewPlayerContent() {
+  usePageTitle('プレイヤーを追加')
+
   const router = useRouter()
   const [isCreating, startCreateTransition] = useTransition()
 
@@ -85,8 +80,6 @@ export function NewPlayerContent() {
           プレイヤー一覧に戻る
         </Button>
 
-        <Title order={1}>新しいプレイヤーを追加</Title>
-
         <Paper p="lg" radius="md" shadow="sm" withBorder>
           <form onSubmit={handleSubmit}>
             <Stack>
@@ -102,7 +95,9 @@ export function NewPlayerContent() {
                 </Text>
                 <RichTextEditor
                   content={form.getValues().generalNotes ?? ''}
-                  onChange={(value) => form.setFieldValue('generalNotes', value)}
+                  onChange={(value) =>
+                    form.setFieldValue('generalNotes', value)
+                  }
                 />
               </Stack>
               <Button fullWidth loading={isCreating} mt="md" type="submit">

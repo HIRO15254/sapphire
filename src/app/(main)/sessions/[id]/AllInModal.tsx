@@ -165,7 +165,9 @@ export function AllInModal({
       <form onSubmit={handleSubmit}>
         <Stack>
           <TimeInput
-            description={minTime ? `${formatTimeString(minTime)}より後` : undefined}
+            description={
+              minTime ? `${formatTimeString(minTime)}より後` : undefined
+            }
             label="発生時刻"
             leftSection={<IconClock size={16} />}
             withAsterisk

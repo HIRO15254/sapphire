@@ -61,7 +61,9 @@ export async function createPlayer(
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : 'プレイヤーの作成に失敗しました',
+        error instanceof Error
+          ? error.message
+          : 'プレイヤーの作成に失敗しました',
     }
   }
 }
@@ -115,7 +117,9 @@ export async function updatePlayer(
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : 'プレイヤーの更新に失敗しました',
+        error instanceof Error
+          ? error.message
+          : 'プレイヤーの更新に失敗しました',
     }
   }
 }
@@ -165,7 +169,9 @@ export async function deletePlayer(
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : 'プレイヤーの削除に失敗しました',
+        error instanceof Error
+          ? error.message
+          : 'プレイヤーの削除に失敗しました',
     }
   }
 }

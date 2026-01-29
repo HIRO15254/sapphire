@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import {
   addCurrencyBonus,
   addCurrencyPurchase,
@@ -52,6 +53,8 @@ interface CurrencyDetailContentProps {
 export function CurrencyDetailContent({
   initialCurrency,
 }: CurrencyDetailContentProps) {
+  usePageTitle(initialCurrency.name)
+
   const router = useRouter()
   const currencyId = initialCurrency.id
 
@@ -257,7 +260,6 @@ export function CurrencyDetailContent({
         <CurrencyHeader
           isArchived={currency.isArchived}
           isArchiving={isArchiving}
-          name={currency.name}
           onArchiveClick={handleArchiveToggle}
           onDeleteClick={openDeleteModal}
           onEditClick={() => setEditMode(!editMode)}

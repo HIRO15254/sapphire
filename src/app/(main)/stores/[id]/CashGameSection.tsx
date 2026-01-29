@@ -40,10 +40,10 @@ import {
   IconEdit,
   IconGripVertical,
   IconPlus,
-  IconPokerChip,
   IconTrash,
 } from '@tabler/icons-react'
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { GameTypeIcon } from '~/components/sessions/GameTypeBadge'
 
 import { RichTextContent } from '~/components/ui/RichTextContext'
 import type { CashGame } from './types'
@@ -258,7 +258,7 @@ export function CashGameSection({
     <Card p="lg" radius="md" shadow="sm" withBorder>
       <Group justify="space-between" mb="md">
         <Group gap="sm">
-          <IconPokerChip size={20} />
+          <GameTypeIcon gameType="cash_game" size={20} />
           <Title order={3}>キャッシュゲーム</Title>
         </Group>
         <Group gap="md">

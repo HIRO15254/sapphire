@@ -50,14 +50,10 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
   const utils = api.useUtils()
 
   // Modals
-  const [
-    editModalOpened,
-    { open: openEditModal, close: closeEditModal },
-  ] = useDisclosure(false)
-  const [
-    resetModalOpened,
-    { open: openResetModal, close: closeResetModal },
-  ] = useDisclosure(false)
+  const [editModalOpened, { open: openEditModal, close: closeEditModal }] =
+    useDisclosure(false)
+  const [resetModalOpened, { open: openResetModal, close: closeResetModal }] =
+    useDisclosure(false)
 
   // State
   const [selectedTablemate, setSelectedTablemate] = useState<Tablemate | null>(
@@ -66,8 +62,9 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
   const isBulkDeleting = useRef(false)
 
   // Queries
-  const { data: tablematesData } =
-    api.sessionTablemate.list.useQuery({ sessionId })
+  const { data: tablematesData } = api.sessionTablemate.list.useQuery({
+    sessionId,
+  })
 
   const tablemates = tablematesData?.tablemates ?? []
 
@@ -153,7 +150,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
     try {
       // Delete all tablemates in parallel
       await Promise.all(
-        tablemates.map((tm) => deleteMutation.mutateAsync({ id: tm.id }))
+        tablemates.map((tm) => deleteMutation.mutateAsync({ id: tm.id })),
       )
 
       notifications.show({
@@ -180,7 +177,10 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
 
   return (
     <>
-      <Box ref={containerRef} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box
+        ref={containerRef}
+        style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      >
         <Group justify="space-between" mb="xs">
           <Text fw={500} size="sm">
             同卓者 ({tablemates.length}/{SEAT_COUNT})
@@ -214,9 +214,12 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                     key={seatNumber}
                     onClick={() => handleOpenEdit(tablemate)}
                     style={{
-                      borderTop: '1px solid var(--mantine-color-default-border)',
-                      borderRight: '1px solid var(--mantine-color-default-border)',
-                      borderBottom: '1px solid var(--mantine-color-default-border)',
+                      borderTop:
+                        '1px solid var(--mantine-color-default-border)',
+                      borderRight:
+                        '1px solid var(--mantine-color-default-border)',
+                      borderBottom:
+                        '1px solid var(--mantine-color-default-border)',
                       borderLeft: !isTemporary
                         ? '3px solid var(--mantine-color-blue-filled)'
                         : '1px solid var(--mantine-color-default-border)',
@@ -225,28 +228,37 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                       cursor: 'pointer',
                     }}
                   >
-                    <Group justify="space-between" wrap="nowrap" gap="xs">
-                      <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-                        <Badge size="sm" variant="light" color="gray" style={{ flexShrink: 0 }}>
+                    <Group gap="xs" justify="space-between" wrap="nowrap">
+                      <Group
+                        gap="xs"
+                        style={{ flex: 1, minWidth: 0 }}
+                        wrap="nowrap"
+                      >
+                        <Badge
+                          color="gray"
+                          size="sm"
+                          style={{ flexShrink: 0 }}
+                          variant="light"
+                        >
                           {seatNumber}
                         </Badge>
-                        <Text size="sm" fw={500} style={{ flexShrink: 0 }}>
+                        <Text fw={500} size="sm" style={{ flexShrink: 0 }}>
                           {tablemate.player?.name}
                         </Text>
                         {/* Player tags */}
                         {playerTags.slice(0, 3).map((ta) => (
                           <Badge
+                            color={ta.tag.color ?? 'gray'}
                             key={ta.tag.id}
                             size="xs"
-                            variant="light"
-                            color={ta.tag.color ?? 'gray'}
                             style={{ flexShrink: 0 }}
+                            variant="light"
                           >
                             {ta.tag.name}
                           </Badge>
                         ))}
                         {playerTags.length > 3 && (
-                          <Text size="xs" c="dimmed">
+                          <Text c="dimmed" size="xs">
                             +{playerTags.length - 3}
                           </Text>
                         )}
@@ -260,17 +272,17 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                             handleDelete(tablemate)
                           }}
                           size="sm"
-                          variant="subtle"
                           title="離席"
+                          variant="subtle"
                         >
                           <IconDoorExit size={14} />
                         </ActionIcon>
                         <Menu position="bottom-end" withArrow>
                           <Menu.Target>
                             <ActionIcon
-                              variant="subtle"
-                              size="sm"
                               onClick={(e) => e.stopPropagation()}
+                              size="sm"
+                              variant="subtle"
                             >
                               <IconDotsVertical size={14} />
                             </ActionIcon>
@@ -319,13 +331,13 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                   }}
                 >
                   <Group gap="xs">
-                    <Badge size="sm" variant="outline" color="gray">
+                    <Badge color="gray" size="sm" variant="outline">
                       {seatNumber}
                     </Badge>
-                    <Text size="sm" c="dimmed">
+                    <Text c="dimmed" size="sm">
                       空席
                     </Text>
-                    <IconPlus size={14} color="var(--mantine-color-dimmed)" />
+                    <IconPlus color="var(--mantine-color-dimmed)" size={14} />
                   </Group>
                 </Box>
               )
@@ -336,8 +348,8 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
 
       {/* Player Edit Modal */}
       <PlayerEditModal
-        opened={editModalOpened}
         onClose={handleCloseEdit}
+        opened={editModalOpened}
         player={
           selectedTablemate?.player
             ? {
@@ -353,8 +365,8 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
               }
             : null
         }
-        tablemateId={selectedTablemate?.id ?? ''}
         sessionId={sessionId}
+        tablemateId={selectedTablemate?.id ?? ''}
       />
 
       {/* Reset Table Modal */}
@@ -367,7 +379,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
           <Text size="sm">
             すべての同卓者（{tablemates.length}人）を削除しますか？
           </Text>
-          <Text size="xs" c="dimmed">
+          <Text c="dimmed" size="xs">
             この操作は取り消せません。永続プレイヤーとして保存済みのデータは削除されません。
           </Text>
           <Group justify="flex-end">

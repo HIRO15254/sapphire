@@ -88,13 +88,15 @@ export function SessionInfo({ session }: SessionInfoProps) {
                       session.profitLoss !== null && (
                         <Text
                           c={getProfitLossColor(
-                            session.profitLoss - session.allInSummary.evDifference,
+                            session.profitLoss -
+                              session.allInSummary.evDifference,
                           )}
                           size="sm"
                         >
                           (EV:{' '}
                           {formatProfitLoss(
-                            session.profitLoss - session.allInSummary.evDifference,
+                            session.profitLoss -
+                              session.allInSummary.evDifference,
                           )}
                           )
                         </Text>
@@ -125,14 +127,14 @@ export function SessionInfo({ session }: SessionInfoProps) {
             {/* Chart View */}
             {topView === 'chart' && hasEvents && (
               <SessionProfitChart
-                sessionEvents={session.sessionEvents}
                 allInRecords={session.allInRecords}
+                bigBlind={session.cashGame?.bigBlind}
                 buyIn={session.buyIn}
                 cashOut={session.cashOut}
                 endTime={session.endTime}
-                withDots
                 height={180}
-                bigBlind={session.cashGame?.bigBlind}
+                sessionEvents={session.sessionEvents}
+                withDots
               />
             )}
           </Box>

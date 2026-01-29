@@ -58,11 +58,22 @@ export function HandCounterCard({
     Math.max(2, tablematesCount + 1), // +1 for self
   )
 
+  // Display value for player count input (can be empty while editing)
+  const [playerCountDisplay, setPlayerCountDisplay] = useState<number | string>(
+    playerCount,
+  )
+
   // Sync player count when tablemates count changes
   useEffect(() => {
     const newCount = Math.max(2, tablematesCount + 1)
     setPlayerCount(newCount)
+    setPlayerCountDisplay(newCount)
   }, [tablematesCount])
+
+  // Sync display value when playerCount changes from other sources
+  useEffect(() => {
+    setPlayerCountDisplay(playerCount)
+  }, [playerCount])
 
   // Get available positions for current player count
   const availablePositions = getPositionsForPlayerCount(playerCount)
@@ -76,7 +87,7 @@ export function HandCounterCard({
     // Default to BTN or last available position
     return availablePositions.includes('BTN')
       ? 'BTN'
-      : availablePositions[availablePositions.length - 1] ?? 'BTN'
+      : (availablePositions[availablePositions.length - 1] ?? 'BTN')
   }
 
   const [selectedPosition, setSelectedPosition] = useState<PokerPosition>(
@@ -87,27 +98,27 @@ export function HandCounterCard({
   useEffect(() => {
     if (!availablePositions.includes(selectedPosition)) {
       // Find closest valid position
-      const newPos =
-        availablePositions.includes('BTN')
-          ? 'BTN'
-          : availablePositions[availablePositions.length - 1] ?? 'BTN'
+      const newPos = availablePositions.includes('BTN')
+        ? 'BTN'
+        : (availablePositions[availablePositions.length - 1] ?? 'BTN')
       setSelectedPosition(newPos)
     }
   }, [availablePositions, selectedPosition])
 
   /**
-   * Get next position in rotation (clockwise: BTN → SB → BB → ...)
+   * Get next position in rotation (clockwise: BTN → SB → BB → UTG → ...)
+   * Array order is [BTN, CO, ..., BB, SB], so next means going forward in array
    */
   const getNextPosition = (currentPos: PokerPosition): PokerPosition => {
     const currentIndex = availablePositions.indexOf(currentPos)
     if (currentIndex === -1) return availablePositions[0] ?? 'BTN'
-    // BTN is last, so next is SB (first)
     const nextIndex = (currentIndex + 1) % availablePositions.length
     return availablePositions[nextIndex] ?? 'BTN'
   }
 
   /**
    * Get previous position in rotation (counter-clockwise)
+   * Array order is [BTN, CO, ..., BB, SB], so prev means going backward in array
    */
   const getPrevPosition = (currentPos: PokerPosition): PokerPosition => {
     const currentIndex = availablePositions.indexOf(currentPos)
@@ -256,7 +267,7 @@ export function HandCounterCard({
         />
 
         {/* Hand counter with player count */}
-        <Group justify="center" gap="md">
+        <Group gap="md" justify="center">
           <Tooltip label="ハンド数を減らす">
             <ActionIcon
               color="red"
@@ -269,7 +280,7 @@ export function HandCounterCard({
             </ActionIcon>
           </Tooltip>
 
-          <Group gap="xs" align="baseline">
+          <Group align="baseline" gap="xs">
             <Text fw={700} size="xl">
               {handCount}
             </Text>
@@ -292,17 +303,35 @@ export function HandCounterCard({
           {/* Player count selector */}
           <Group gap={4}>
             <NumberInput
-              value={playerCount}
-              onChange={(val) =>
-                setPlayerCount(
-                  typeof val === 'number' ? Math.min(9, Math.max(2, val)) : 9,
-                )
-              }
-              min={2}
-              max={9}
-              size="xs"
-              w={50}
+              allowDecimal={false}
+              allowNegative={false}
               hideControls
+              max={9}
+              min={2}
+              onBlur={() => {
+                // On blur, validate and reset to valid value
+                const numVal =
+                  typeof playerCountDisplay === 'number'
+                    ? playerCountDisplay
+                    : parseInt(String(playerCountDisplay), 10)
+                if (!isNaN(numVal) && numVal >= 2 && numVal <= 9) {
+                  setPlayerCount(numVal)
+                  setPlayerCountDisplay(numVal)
+                } else {
+                  // Reset to current valid value
+                  setPlayerCountDisplay(playerCount)
+                }
+              }}
+              onChange={(val) => {
+                // Allow empty value temporarily while typing
+                setPlayerCountDisplay(val)
+                // If valid number, update actual state immediately
+                if (typeof val === 'number' && val >= 2 && val <= 9) {
+                  setPlayerCount(val)
+                }
+              }}
+              onFocus={(e) => e.target.select()}
+              size="xs"
               styles={{
                 input: {
                   textAlign: 'center',
@@ -310,6 +339,8 @@ export function HandCounterCard({
                   paddingRight: 4,
                 },
               }}
+              value={playerCountDisplay}
+              w={50}
             />
             <Text c="dimmed" size="xs">
               人
@@ -320,7 +351,7 @@ export function HandCounterCard({
         {/* Last recorded info */}
         <Text c="dimmed" size="xs" ta="center">
           {lastHandInfo
-            ? `最終記録: ${formatRelativeTime(lastHandInfo.recordedAt)}${lastHandInfo.position ? ` (${lastHandInfo.position})` : ''}`
+            ? `最終記録: ${formatRelativeTime(lastHandInfo.recordedAt)}`
             : '記録なし'}
         </Text>
       </Stack>

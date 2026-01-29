@@ -23,17 +23,17 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-
+import {
+  SessionEventTimeline,
+  type TimelineAllInRecord,
+} from '~/components/sessions/SessionEventTimeline'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import { api } from '~/trpc/react'
 import {
   createAllInRecord,
   deleteAllInRecord,
   updateAllInRecord,
 } from '../actions'
-import {
-  SessionEventTimeline,
-  type TimelineAllInRecord,
-} from '~/components/sessions/SessionEventTimeline'
 import { type AllInFormValues, AllInModal } from './AllInModal'
 import { AllInSection } from './AllInSection'
 import { SessionHeader } from './SessionHeader'
@@ -52,6 +52,8 @@ interface SessionDetailContentProps {
 export function SessionDetailContent({
   initialSession,
 }: SessionDetailContentProps) {
+  usePageTitle('セッション詳細')
+
   const router = useRouter()
   const session = initialSession
 
@@ -119,7 +121,9 @@ export function SessionDetailContent({
 
   // Handle edit all-in from timeline (finds full record by id)
   const handleEditAllIn = (timelineAllIn: TimelineAllInRecord) => {
-    const fullRecord = session.allInRecords.find((r) => r.id === timelineAllIn.id)
+    const fullRecord = session.allInRecords.find(
+      (r) => r.id === timelineAllIn.id,
+    )
     if (fullRecord) {
       openAllInForEdit(fullRecord)
     }
@@ -281,10 +285,10 @@ export function SessionDetailContent({
             <Collapse in={historyOpened}>
               <Stack gap="md" mt="md">
                 <SessionEventTimeline
-                  events={session.sessionEvents}
                   allInRecords={session.allInRecords}
-                  sessionId={session.id}
+                  events={session.sessionEvents}
                   onEditAllIn={handleEditAllIn}
+                  sessionId={session.id}
                 />
               </Stack>
             </Collapse>

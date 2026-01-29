@@ -1,0 +1,1 @@
+ALTER TABLE "sapphire_poker_session" ADD COLUMN "timer_started_at" timestamp with time zone;

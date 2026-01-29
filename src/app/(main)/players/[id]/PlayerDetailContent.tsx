@@ -12,12 +12,16 @@ import {
   TagsInput,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import { IconArrowLeft, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
+import {
+  IconArrowLeft,
+  IconPencil,
+  IconPlus,
+  IconTrash,
+} from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -26,6 +30,7 @@ import { z } from 'zod'
 
 import { RichTextContent } from '~/components/ui/RichTextContext'
 import { RichTextEditor } from '~/components/ui/RichTextEditor'
+import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
 import { deletePlayer, updatePlayer } from '../actions'
@@ -57,6 +62,8 @@ export function PlayerDetailContent({
   initialPlayer,
   allTags,
 }: PlayerDetailContentProps) {
+  usePageTitle(initialPlayer.name)
+
   const router = useRouter()
   const utils = api.useUtils()
 
@@ -250,9 +257,13 @@ export function PlayerDetailContent({
     const currentTagNames = player.tags.map((t) => t.name)
 
     // Find tags to add (in newTagNames but not in current)
-    const tagsToAdd = newTagNames.filter((name) => !currentTagNames.includes(name))
+    const tagsToAdd = newTagNames.filter(
+      (name) => !currentTagNames.includes(name),
+    )
     // Find tags to remove (in current but not in newTagNames)
-    const tagsToRemove = currentTagNames.filter((name) => !newTagNames.includes(name))
+    const tagsToRemove = currentTagNames.filter(
+      (name) => !newTagNames.includes(name),
+    )
 
     // Add new tags
     for (const tagName of tagsToAdd) {
@@ -276,7 +287,11 @@ export function PlayerDetailContent({
     openNoteModal()
   }
 
-  const handleEditNote = (note: { id: string; noteDate: string; content: string }) => {
+  const handleEditNote = (note: {
+    id: string
+    noteDate: string
+    content: string
+  }) => {
     setEditingNote(note)
     openNoteModal()
   }
@@ -319,16 +334,13 @@ export function PlayerDetailContent({
         </Button>
 
         {/* Header */}
-        <Group justify="space-between">
-          <Title order={1}>{player.name}</Title>
-          <Group>
-            <Button onClick={toggleEditMode} variant="light">
-              編集
-            </Button>
-            <Button color="red" onClick={openDeleteModal} variant="light">
-              削除
-            </Button>
-          </Group>
+        <Group justify="flex-end">
+          <Button onClick={toggleEditMode} variant="light">
+            編集
+          </Button>
+          <Button color="red" onClick={openDeleteModal} variant="light">
+            削除
+          </Button>
         </Group>
 
         {/* Edit Form */}
@@ -382,11 +394,11 @@ export function PlayerDetailContent({
           <Stack gap="md">
             <Text fw={500}>タグ</Text>
             <TagsInput
+              clearable
               data={allTagNames}
-              value={assignedTagNames}
               onChange={handleTagsChange}
               placeholder="タグを選択または入力"
-              clearable
+              value={assignedTagNames}
             />
             {allTagNames.length === 0 && (
               <Text c="dimmed" size="sm">
@@ -402,10 +414,10 @@ export function PlayerDetailContent({
             <Group justify="space-between">
               <Text fw={500}>日付別ノート</Text>
               <Button
-                size="xs"
-                variant="light"
                 leftSection={<IconPlus size={14} />}
                 onClick={handleAddNote}
+                size="xs"
+                variant="light"
               >
                 ノートを追加
               </Button>
@@ -418,27 +430,27 @@ export function PlayerDetailContent({
               <Stack gap="sm">
                 {player.notes.map((note) => (
                   <Card key={note.id} p="md" radius="md" withBorder>
-                    <Group justify="space-between" align="flex-start">
+                    <Group align="flex-start" justify="space-between">
                       <Stack gap="xs" style={{ flex: 1 }}>
-                        <Text size="sm" c="dimmed">
+                        <Text c="dimmed" size="sm">
                           {note.noteDate}
                         </Text>
                         <Text size="sm">{note.content}</Text>
                       </Stack>
                       <Group gap="xs">
                         <ActionIcon
-                          variant="subtle"
-                          onClick={() => handleEditNote(note)}
                           aria-label="ノートを編集"
+                          onClick={() => handleEditNote(note)}
+                          variant="subtle"
                         >
                           <IconPencil size={16} />
                         </ActionIcon>
                         <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          onClick={() => handleDeleteNote(note.id)}
                           aria-label="ノートを削除"
+                          color="red"
                           loading={deleteNoteMutation.isPending}
+                          onClick={() => handleDeleteNote(note.id)}
+                          variant="subtle"
                         >
                           <IconTrash size={16} />
                         </ActionIcon>
@@ -476,14 +488,14 @@ export function PlayerDetailContent({
 
       {/* Note Modal */}
       <PlayerNoteModal
-        opened={noteModalOpened}
+        editingNote={editingNote}
+        isLoading={addNoteMutation.isPending || updateNoteMutation.isPending}
         onClose={() => {
           closeNoteModal()
           setEditingNote(null)
         }}
         onSubmit={handleNoteSubmit}
-        editingNote={editingNote}
-        isLoading={addNoteMutation.isPending || updateNoteMutation.isPending}
+        opened={noteModalOpened}
       />
     </Container>
   )

@@ -4,15 +4,18 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
+  Group,
   NumberInput,
   SegmentedControl,
   Select,
   Stack,
   Text,
 } from '@mantine/core'
-import { IconAlertCircle, IconPlayerPlay } from '@tabler/icons-react'
+import { TimeInput } from '@mantine/dates'
+import { IconAlertCircle, IconClock, IconPlayerPlay } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api } from '~/trpc/react'
 
 /**
@@ -33,6 +36,10 @@ export function StartSessionForm() {
   const [cashGameId, setCashGameId] = useState<string | null>(null)
   const [tournamentId, setTournamentId] = useState<string | null>(null)
   const [buyIn, setBuyIn] = useState<number | null>(null)
+  const [initialStack, setInitialStack] = useState<number | null>(null)
+  const [useTimer, setUseTimer] = useState(false)
+  const [timerTime, setTimerTime] = useState<string>('')
+  const timerInputRef = useRef<HTMLInputElement>(null)
 
   // Query cash games and tournaments for selected store
   const { data: cashGamesData } = api.cashGame.listByStore.useQuery(
@@ -81,6 +88,12 @@ export function StartSessionForm() {
     setGameType(value as 'cash' | 'tournament')
     setCashGameId(null)
     setTournamentId(null)
+    // Reset timer and initial stack when switching away from tournament
+    if (value !== 'tournament') {
+      setUseTimer(false)
+      setTimerTime('')
+      setInitialStack(null)
+    }
   }
 
   /**
@@ -90,6 +103,67 @@ export function StartSessionForm() {
     setStoreId(value)
     setCashGameId(null)
     setTournamentId(null)
+    // Reset buy-in and initial stack when store changes
+    if (gameType === 'tournament') {
+      setBuyIn(null)
+      setInitialStack(null)
+    }
+  }
+
+  /**
+   * Handle tournament selection.
+   * Auto-fills buy-in and initial stack from tournament data.
+   */
+  const handleTournamentChange = (value: string | null) => {
+    setTournamentId(value)
+    if (value) {
+      // Find the selected tournament and auto-fill values
+      const tournament = tournamentsData?.tournaments.find(
+        (t) => t.id === value,
+      )
+      if (tournament) {
+        setBuyIn(tournament.buyIn)
+        setInitialStack(tournament.startingStack ?? null)
+      }
+    } else {
+      // Clear values when tournament is deselected
+      setBuyIn(null)
+      setInitialStack(null)
+    }
+  }
+
+  /**
+   * Handle timer toggle.
+   */
+  const handleTimerToggle = (checked: boolean) => {
+    setUseTimer(checked)
+    if (checked && !timerTime) {
+      // Default to current time when enabling timer
+      const now = new Date()
+      const hours = now.getHours().toString().padStart(2, '0')
+      const minutes = now.getMinutes().toString().padStart(2, '0')
+      setTimerTime(`${hours}:${minutes}`)
+    }
+  }
+
+  /**
+   * Parse timer time string to Date.
+   */
+  const parseTimerStartedAt = (): Date | null => {
+    if (!useTimer || !timerTime) return null
+    const parts = timerTime.split(':').map(Number)
+    const hours = parts[0]
+    const minutes = parts[1]
+    if (
+      hours === undefined ||
+      minutes === undefined ||
+      isNaN(hours) ||
+      isNaN(minutes)
+    )
+      return null
+    const date = new Date()
+    date.setHours(hours, minutes, 0, 0)
+    return date
   }
 
   /**
@@ -97,6 +171,8 @@ export function StartSessionForm() {
    */
   const handleSubmit = () => {
     if (buyIn === null) return
+    // For tournaments, initialStack is required
+    if (gameType === 'tournament' && initialStack === null) return
 
     startSession.mutate({
       storeId: storeId ?? undefined,
@@ -104,10 +180,16 @@ export function StartSessionForm() {
       cashGameId: gameType === 'cash' ? cashGameId : null,
       tournamentId: gameType === 'tournament' ? tournamentId : null,
       buyIn,
+      initialStack: gameType === 'tournament' ? initialStack : null,
+      timerStartedAt: gameType === 'tournament' ? parseTimerStartedAt() : null,
     })
   }
 
-  const isValid = buyIn !== null && buyIn > 0
+  // For tournaments, both buyIn and initialStack are required
+  const isValid =
+    buyIn !== null &&
+    buyIn > 0 &&
+    (gameType !== 'tournament' || (initialStack !== null && initialStack > 0))
 
   return (
     <Card p="lg" radius="md" shadow="sm" withBorder>
@@ -173,11 +255,46 @@ export function StartSessionForm() {
               clearable
               data={tournamentOptions}
               label="トーナメント（任意）"
-              onChange={setTournamentId}
+              onChange={handleTournamentChange}
               placeholder="トーナメントを選択"
               value={tournamentId}
             />
           )}
+
+        {/* Timer start time (tournament only) */}
+        {gameType === 'tournament' && (
+          <Stack gap="xs">
+            <Checkbox
+              checked={useTimer}
+              label="ブラインドタイマーを使用"
+              onChange={(e) => handleTimerToggle(e.currentTarget.checked)}
+            />
+            {useTimer && (
+              <Group align="flex-end" gap="xs">
+                <TimeInput
+                  label="タイマー開始時刻"
+                  leftSection={<IconClock size={16} />}
+                  onChange={(e) => setTimerTime(e.currentTarget.value)}
+                  ref={timerInputRef}
+                  style={{ flex: 1 }}
+                  value={timerTime}
+                />
+                <Button
+                  onClick={() => {
+                    const now = new Date()
+                    const hours = now.getHours().toString().padStart(2, '0')
+                    const minutes = now.getMinutes().toString().padStart(2, '0')
+                    setTimerTime(`${hours}:${minutes}`)
+                  }}
+                  size="sm"
+                  variant="light"
+                >
+                  今
+                </Button>
+              </Group>
+            )}
+          </Stack>
+        )}
 
         {/* Buy-in */}
         <NumberInput
@@ -190,6 +307,22 @@ export function StartSessionForm() {
           thousandSeparator=","
           value={buyIn ?? ''}
         />
+
+        {/* Initial Stack (tournament only) */}
+        {gameType === 'tournament' && (
+          <NumberInput
+            hideControls
+            label="初期スタック"
+            min={1}
+            onChange={(val) =>
+              setInitialStack(typeof val === 'number' ? val : null)
+            }
+            placeholder="初期スタックを入力"
+            required
+            thousandSeparator=","
+            value={initialStack ?? ''}
+          />
+        )}
 
         {/* Submit */}
         <Button

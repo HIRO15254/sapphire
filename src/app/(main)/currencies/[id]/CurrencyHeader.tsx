@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge, Button, Group, Title } from '@mantine/core'
+import { Badge, Button, Group } from '@mantine/core'
 import {
   IconArchive,
   IconArchiveOff,
@@ -9,7 +9,6 @@ import {
 } from '@tabler/icons-react'
 
 interface CurrencyHeaderProps {
-  name: string
   isArchived: boolean
   isArchiving: boolean
   onEditClick: () => void
@@ -18,7 +17,6 @@ interface CurrencyHeaderProps {
 }
 
 export function CurrencyHeader({
-  name,
   isArchived,
   isArchiving,
   onEditClick,
@@ -27,14 +25,13 @@ export function CurrencyHeader({
 }: CurrencyHeaderProps) {
   return (
     <Group justify="space-between">
-      <Group gap="sm">
-        <Title order={1}>{name}</Title>
-        {isArchived && (
-          <Badge color="gray" size="lg">
-            アーカイブ済み
-          </Badge>
-        )}
-      </Group>
+      {isArchived ? (
+        <Badge color="gray" size="lg">
+          アーカイブ済み
+        </Badge>
+      ) : (
+        <div />
+      )}
       <Group>
         <Button
           leftSection={<IconEdit size={16} />}

@@ -46,7 +46,10 @@ export function PlayerNoteModal({
         })
       } else {
         form.reset()
-        form.setFieldValue('noteDate', new Date().toISOString().split('T')[0] ?? '')
+        form.setFieldValue(
+          'noteDate',
+          new Date().toISOString().split('T')[0] ?? '',
+        )
       }
     }
   }, [opened, editingNote])
@@ -57,33 +60,33 @@ export function PlayerNoteModal({
 
   return (
     <Modal
-      opened={opened}
-      onClose={onClose}
-      title={editingNote ? 'ノートを編集' : 'ノートを追加'}
       centered
+      onClose={onClose}
+      opened={opened}
+      title={editingNote ? 'ノートを編集' : 'ノートを追加'}
     >
       <form onSubmit={handleSubmit}>
         <Stack gap="md">
           <TextInput
             label="日付"
-            type="date"
             required
+            type="date"
             {...form.getInputProps('noteDate')}
           />
           <Textarea
+            autosize
             label="内容"
+            maxRows={10}
+            minRows={3}
             placeholder="プレイヤーの観察やメモを入力..."
             required
-            minRows={3}
-            autosize
-            maxRows={10}
             {...form.getInputProps('content')}
           />
-          <Group justify="flex-end" gap="sm">
-            <Button variant="subtle" onClick={onClose}>
+          <Group gap="sm" justify="flex-end">
+            <Button onClick={onClose} variant="subtle">
               キャンセル
             </Button>
-            <Button type="submit" loading={isLoading}>
+            <Button loading={isLoading} type="submit">
               保存
             </Button>
           </Group>

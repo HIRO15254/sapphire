@@ -3,7 +3,7 @@ import '@mantine/core/styles.css'
 import '@mantine/dates/styles.css'
 import '@mantine/notifications/styles.css'
 import '@mantine/tiptap/styles.css'
-import '@mantine/charts/styles.css';
+import '@mantine/charts/styles.css'
 
 import {
   ColorSchemeScript,
@@ -16,6 +16,7 @@ import type { Metadata, Viewport } from 'next'
 import { Noto_Sans_JP } from 'next/font/google'
 import type React from 'react'
 import { ServiceWorkerRegistration } from '~/components/ServiceWorkerRegistration'
+import { PageTitleProvider } from '~/contexts/PageTitleContext'
 import { TRPCReactProvider } from '~/trpc/react'
 
 const notoSansJP = Noto_Sans_JP({
@@ -53,7 +54,12 @@ export const metadata: Metadata = {
   description: 'ライブポーカーセッション・ハンド記録アプリ',
   icons: [
     { rel: 'icon', url: '/icons/favicon.ico' },
-    { rel: 'icon', url: '/icons/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    {
+      rel: 'icon',
+      url: '/icons/favicon-96x96.png',
+      sizes: '96x96',
+      type: 'image/png',
+    },
     { rel: 'apple-touch-icon', url: '/icons/apple-touch-icon.png' },
   ],
   manifest: '/manifest.webmanifest',
@@ -75,7 +81,9 @@ export default function RootLayout({
       <body className={notoSansJP.variable}>
         <MantineProvider defaultColorScheme="auto" theme={theme}>
           <Notifications position="top-right" />
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            <PageTitleProvider>{children}</PageTitleProvider>
+          </TRPCReactProvider>
           <ServiceWorkerRegistration />
         </MantineProvider>
       </body>

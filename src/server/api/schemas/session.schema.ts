@@ -92,12 +92,10 @@ export const listSessionsSchema = z
   .object({
     storeId: z.string().uuid().optional(),
     gameType: gameTypeSchema.optional(),
-    limit: z
-      .number()
-      .int()
-      .positive()
-      .max(100, '1回の取得件数は100件以下に設定してください')
-      .default(20),
+    currencyId: z.string().uuid().optional(),
+    startFrom: z.coerce.date().optional(),
+    startTo: z.coerce.date().optional(),
+    limit: z.number().int().positive().optional(),
     offset: z.number().int().min(0).default(0),
   })
   .optional()

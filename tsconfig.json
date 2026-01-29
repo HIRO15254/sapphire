@@ -23,8 +23,7 @@
 
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"],
-      "../../../../cosmos.imports": ["./cosmos.imports.d.ts"]
+      "~/*": ["./src/*"]
     }
   },
   "include": [
