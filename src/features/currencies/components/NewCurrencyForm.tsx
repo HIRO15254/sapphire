@@ -43,15 +43,15 @@ export function NewCurrencyForm({
     <form onSubmit={handleSubmit}>
       <Stack gap="md" pb="md">
         <TextInput
-          description="例: ABCポーカーチップ、XYZアミューズメント"
-          label="通貨名"
-          placeholder="通貨の名前を入力"
+          description="e.g. ABC Poker Chips, XYZ Amusement"
+          label="Currency Name"
+          placeholder="Enter currency name"
           withAsterisk
           {...form.getInputProps('name')}
         />
         <NumberInput
-          description="この通貨の開始時点での残高を設定します（0以上の整数）"
-          label="初期残高"
+          description="Starting balance for this currency (integer, 0 or above)"
+          label="Initial Balance"
           min={0}
           placeholder="0"
           thousandSeparator=","
@@ -59,10 +59,10 @@ export function NewCurrencyForm({
         />
         <Group gap="sm" justify="flex-end" mt="md">
           <Button onClick={handleCancel} variant="subtle">
-            キャンセル
+            Cancel
           </Button>
           <Button loading={isSubmitting} type="submit">
-            作成
+            Create
           </Button>
         </Group>
       </Stack>

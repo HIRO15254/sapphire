@@ -26,67 +26,65 @@ export function CurrencyList({
   onOpenNewCurrency,
 }: CurrencyListProps) {
   return (
-    <Stack gap="lg">
+    <Stack gap="sm">
       <Checkbox
         checked={includeArchived}
-        label="アーカイブ済みを表示"
+        label="Show archived"
         onChange={(event) => onIncludeArchivedChange(event.currentTarget.checked)}
+        size="xs"
       />
 
       {currencies.length === 0 ? (
         <Card p="xl" radius="md" shadow="sm" withBorder>
           <Stack align="center" gap="md">
             <Text c="dimmed" size="lg">
-              通貨が登録されていません
+              No currencies registered
             </Text>
             <Text c="dimmed" size="sm">
-              新しい通貨を追加して、ポーカーセッションの記録を始めましょう
+              Add a currency to start tracking your poker sessions
             </Text>
             <Button
               leftSection={<IconPlus size={16} />}
               mt="md"
               onClick={onOpenNewCurrency}
             >
-              新しい通貨を追加
+              Add Currency
             </Button>
           </Stack>
         </Card>
       ) : (
-        <Stack gap="md">
+        <Stack gap="xs">
           {currencies.map((currency) => (
             <Card
               component={Link}
               href={`/currencies/${currency.id}`}
               key={currency.id}
-              p="lg"
-              radius="md"
-              shadow="sm"
+              px="sm"
+              py="xs"
+              radius="sm"
+              shadow="xs"
               style={{ textDecoration: 'none', cursor: 'pointer' }}
               withBorder
             >
-              <Group justify="space-between">
-                <Group gap="sm">
-                  <Text fw={600} size="lg">
+              <Group justify="space-between" wrap="nowrap">
+                <Group gap="xs" wrap="nowrap">
+                  <Text fw={500} size="sm" truncate>
                     {currency.name}
                   </Text>
                   {currency.isArchived && (
-                    <Text c="dimmed" size="sm">
-                      （アーカイブ済み）
+                    <Text c="dimmed" size="xs">
+                      (Archived)
                     </Text>
                   )}
                 </Group>
-                <Stack align="flex-end" gap="xs">
-                  <Text c="dimmed" size="sm">
-                    現在残高
-                  </Text>
-                  <Text
-                    c={currency.currentBalance >= 0 ? 'teal' : 'red'}
-                    fw={700}
-                    size="xl"
-                  >
-                    {currency.currentBalance.toLocaleString()}
-                  </Text>
-                </Stack>
+                <Text
+                  c={currency.currentBalance >= 0 ? 'teal' : 'red'}
+                  fw={700}
+                  size="sm"
+                  style={{ flexShrink: 0 }}
+                >
+                  {currency.currentBalance.toLocaleString()}
+                </Text>
               </Group>
             </Card>
           ))}

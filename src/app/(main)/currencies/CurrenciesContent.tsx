@@ -33,7 +33,7 @@ interface CurrenciesContentProps {
 export function CurrenciesContent({
   initialCurrencies,
 }: CurrenciesContentProps) {
-  usePageTitle('通貨')
+  usePageTitle('Currencies')
 
   const router = useRouter()
   const [includeArchived, setIncludeArchived] = useState(false)
@@ -60,15 +60,15 @@ export function CurrenciesContent({
 
       if (result.success) {
         notifications.show({
-          title: '作成完了',
-          message: '通貨を作成しました',
+          title: 'Currency Created',
+          message: 'Your currency has been saved',
           color: 'green',
         })
         closeDrawer()
         router.push(`/currencies/${result.data.id}`)
       } else {
         notifications.show({
-          title: 'エラー',
+          title: 'Error',
           message: result.error,
           color: 'red',
         })
@@ -81,7 +81,7 @@ export function CurrenciesContent({
       <Container py="xl" size="md">
         <Stack align="center" gap="lg">
           <Loader size="lg" />
-          <Text c="dimmed">読み込み中...</Text>
+          <Text c="dimmed">Loading...</Text>
         </Stack>
       </Container>
     )
@@ -90,7 +90,7 @@ export function CurrenciesContent({
   if (includeArchived && error) {
     return (
       <Container py="xl" size="md">
-        <Alert color="red" icon={<IconAlertCircle size={16} />} title="エラー">
+        <Alert color="red" icon={<IconAlertCircle size={16} />} title="Error">
           {error.message}
         </Alert>
       </Container>
@@ -113,7 +113,7 @@ export function CurrenciesContent({
         opened={drawerOpened}
         position="bottom"
         size="auto"
-        title="新しい通貨を作成"
+        title="Add Currency"
       >
         <NewCurrencyForm
           isSubmitting={isCreating}
