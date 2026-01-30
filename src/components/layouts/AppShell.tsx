@@ -88,12 +88,7 @@ export function AppShell({ children }: AppShellProps) {
               opened={opened}
               size="sm"
             />
-            <Link
-              href="/dashboard"
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <Title order={3}>{pageTitle || 'Sapphire'}</Title>
-            </Link>
+            <Title order={3}>{pageTitle || 'Sapphire'}</Title>
           </Group>
           <Group gap="sm">
             {/* Active Session Indicator / Start Session Button */}
