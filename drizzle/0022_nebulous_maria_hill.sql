@@ -1,0 +1,1 @@
+ALTER TABLE "sapphire_session_tablemate" ADD COLUMN "is_self" boolean DEFAULT false NOT NULL;

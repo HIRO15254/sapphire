@@ -26,6 +26,7 @@ interface HandCounterCardProps {
     position?: string
   } | null
   tablematesCount: number
+  isSelfSeated: boolean
 }
 
 /**
@@ -50,12 +51,14 @@ export function HandCounterCard({
   handCount,
   lastHandInfo,
   tablematesCount,
+  isSelfSeated,
 }: HandCounterCardProps) {
   const utils = api.useUtils()
 
   // Player count state - sync with tablemates count, minimum 2
+  // When self is seated, tablematesCount already includes self (no +1 needed)
   const [playerCount, setPlayerCount] = useState<number>(
-    Math.max(2, tablematesCount + 1), // +1 for self
+    Math.max(2, isSelfSeated ? tablematesCount : tablematesCount + 1),
   )
 
   // Display value for player count input (can be empty while editing)
@@ -65,10 +68,13 @@ export function HandCounterCard({
 
   // Sync player count when tablemates count changes
   useEffect(() => {
-    const newCount = Math.max(2, tablematesCount + 1)
+    const newCount = Math.max(
+      2,
+      isSelfSeated ? tablematesCount : tablematesCount + 1,
+    )
     setPlayerCount(newCount)
     setPlayerCountDisplay(newCount)
-  }, [tablematesCount])
+  }, [tablematesCount, isSelfSeated])
 
   // Sync display value when playerCount changes from other sources
   useEffect(() => {

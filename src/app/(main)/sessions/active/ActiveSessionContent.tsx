@@ -991,6 +991,7 @@ export function ActiveSessionContent({
       <Box style={{ position: 'relative' }}>
         <HandCounterCard
           handCount={handCount}
+          isSelfSeated={tablematesData?.tablemates.some((tm) => tm.isSelf) ?? false}
           lastHandInfo={session.lastHandInfo}
           sessionId={session.id}
           tablematesCount={tablematesData?.tablemates.length ?? 0}
