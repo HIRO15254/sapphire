@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 
-import { api, HydrateClient } from '~/trpc/server'
+import { api } from '~/trpc/server'
 
 import { SessionDetailContent } from './SessionDetailContent'
 
@@ -14,7 +14,7 @@ interface SessionDetailPageProps {
 /**
  * Session detail page (Server Component).
  *
- * Fetches session data on the server and passes to client component.
+ * Fetches session data on the server and passes to client component via props.
  */
 export default async function SessionDetailPage({
   params,
@@ -24,11 +24,7 @@ export default async function SessionDetailPage({
   try {
     const session = await api.session.getById({ id })
 
-    return (
-      <HydrateClient>
-        <SessionDetailContent initialSession={session} />
-      </HydrateClient>
-    )
+    return <SessionDetailContent session={session} />
   } catch {
     notFound()
   }
