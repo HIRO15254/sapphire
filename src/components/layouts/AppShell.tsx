@@ -106,7 +106,7 @@ export function AppShell({ children }: AppShellProps) {
                   href="/sessions/active"
                   leftSection={
                     activeSession.isPaused ? (
-                      <IconPlayerPause size={16} />
+                      <IconPlayerPause size={18} />
                     ) : (
                       <span
                         style={{
@@ -119,7 +119,7 @@ export function AppShell({ children }: AppShellProps) {
                       />
                     )
                   }
-                  size="compact-sm"
+                  size="compact-md"
                   variant="filled"
                 >
                   {activeSession.isPaused ? '一時停止中' : 'LIVE'}
@@ -131,8 +131,8 @@ export function AppShell({ children }: AppShellProps) {
                   color="gray"
                   component={Link}
                   href="/sessions/active"
-                  leftSection={<IconPlayerPlay size={16} />}
-                  size="compact-sm"
+                  leftSection={<IconPlayerPlay size={18} />}
+                  size="compact-md"
                   variant="light"
                 >
                   セッション
