@@ -139,7 +139,6 @@ export function AppShell({ children }: AppShellProps) {
                 </Button>
               </Tooltip>
             )}
-            <ThemeToggle />
             {/* CSS for pulse animation */}
             <style>
               {`
@@ -172,6 +171,7 @@ export function AppShell({ children }: AppShellProps) {
 
         <MantineAppShell.Section>
           <Divider my="sm" />
+          <ThemeToggle />
           <SignOutButton
             fullWidth
             justify="flex-start"
