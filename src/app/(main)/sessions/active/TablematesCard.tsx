@@ -20,6 +20,8 @@ import {
   IconPlus,
   IconRefresh,
   IconTrash,
+  IconUser,
+  IconUserPlus,
 } from '@tabler/icons-react'
 import { useRef, useState } from 'react'
 import { RichTextContent } from '~/components/ui/RichTextContext'
@@ -40,11 +42,11 @@ const SEAT_COUNT = 9
  * Card for managing tablemates during a live session.
  * Shows 9 seat slots where each can be empty or occupied.
  *
- * When clicking an empty seat, a temporary player is automatically created.
- * The tablemate can later be:
- * - Converted to a permanent player (via edit modal)
- * - Linked to an existing player (via edit modal)
- * - Deleted (removes tablemate and associated temporary player)
+ * When clicking an empty seat:
+ * - If self is not seated: shows a menu to choose "自分" or "対戦相手"
+ * - If self is seated: directly creates an opponent tablemate
+ *
+ * Self-seating creates a special record with isSelf=true, no player record.
  */
 export function TablematesCard({ sessionId }: TablematesCardProps) {
   const utils = api.useUtils()
@@ -68,6 +70,10 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
 
   const tablemates = tablematesData?.tablemates ?? []
 
+  // Derived: check if self is seated
+  const selfTablemate = tablemates.find((tm) => tm.isSelf)
+  const isSelfSeated = !!selfTablemate
+
   // Build seat map: seatNumber -> tablemate
   const seatMap = new Map<number, Tablemate>()
   for (const tm of tablemates) {
@@ -82,6 +88,24 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
       notifications.show({
         title: '追加完了',
         message: '同卓者を追加しました',
+        color: 'green',
+      })
+      void utils.sessionTablemate.list.invalidate({ sessionId })
+    },
+    onError: (error) => {
+      notifications.show({
+        title: 'エラー',
+        message: error.message,
+        color: 'red',
+      })
+    },
+  })
+
+  const createSelfMutation = api.sessionTablemate.createSelf.useMutation({
+    onSuccess: () => {
+      notifications.show({
+        title: '着席完了',
+        message: '自分を着席させました',
         color: 'green',
       })
       void utils.sessionTablemate.list.invalidate({ sessionId })
@@ -121,14 +145,37 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
   const seats = Array.from({ length: SEAT_COUNT }, (_, i) => i + 1)
 
   // Handlers
-  const handleAddSeat = (seatNumber: number) => {
+  const handleAddOpponent = (seatNumber: number) => {
     createMutation.mutate({
       sessionId,
       seatNumber,
     })
   }
 
+  const handleSeatSelf = (seatNumber: number) => {
+    createSelfMutation.mutate({
+      sessionId,
+      seatNumber,
+    })
+  }
+
+  const handleMoveSelf = async (newSeatNumber: number) => {
+    if (!selfTablemate) return
+    // Delete old self seat, then create new one
+    try {
+      await deleteMutation.mutateAsync({ id: selfTablemate.id })
+      createSelfMutation.mutate({
+        sessionId,
+        seatNumber: newSeatNumber,
+      })
+    } catch {
+      // Error notification handled by mutation
+    }
+  }
+
   const handleOpenEdit = (tablemate: Tablemate) => {
+    // Don't open edit modal for self
+    if (tablemate.isSelf) return
     setSelectedTablemate(tablemate)
     openEditModal()
   }
@@ -170,6 +217,11 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
     }
   }
 
+  const isPending =
+    createMutation.isPending ||
+    createSelfMutation.isPending ||
+    deleteMutation.isPending
+
   // Get container size for dynamic ScrollArea height
   const { ref: containerRef, height: containerHeight } = useElementSize()
   // Header is approximately 28px, subtract with some margin
@@ -204,11 +256,67 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
               const tablemate = seatMap.get(seatNumber)
 
               if (tablemate) {
+                // Self seat - special rendering
+                if (tablemate.isSelf) {
+                  return (
+                    <Box
+                      key={seatNumber}
+                      style={{
+                        borderTop:
+                          '1px solid var(--mantine-color-default-border)',
+                        borderRight:
+                          '1px solid var(--mantine-color-default-border)',
+                        borderBottom:
+                          '1px solid var(--mantine-color-default-border)',
+                        borderLeft:
+                          '3px solid var(--mantine-color-green-filled)',
+                        borderRadius: 'var(--mantine-radius-sm)',
+                        padding: '8px 12px',
+                      }}
+                    >
+                      <Group gap="xs" justify="space-between" wrap="nowrap">
+                        <Group
+                          gap="xs"
+                          style={{ flex: 1, minWidth: 0 }}
+                          wrap="nowrap"
+                        >
+                          <Badge
+                            color="green"
+                            size="sm"
+                            style={{ flexShrink: 0 }}
+                            variant="light"
+                          >
+                            {seatNumber}
+                          </Badge>
+                          <Text
+                            c="green"
+                            fw={600}
+                            size="sm"
+                            style={{ flexShrink: 0 }}
+                          >
+                            自分
+                          </Text>
+                        </Group>
+
+                        <ActionIcon
+                          color="orange"
+                          onClick={() => handleDelete(tablemate)}
+                          size="sm"
+                          title="離席"
+                          variant="subtle"
+                        >
+                          <IconDoorExit size={14} />
+                        </ActionIcon>
+                      </Group>
+                    </Box>
+                  )
+                }
+
+                // Opponent seat - existing behavior
                 const isTemporary = tablemate.player?.isTemporary ?? false
                 const playerTags = tablemate.player?.tagAssignments ?? []
                 const generalNotes = tablemate.player?.generalNotes
 
-                // Occupied seat - entire area is clickable
                 return (
                   <Box
                     key={seatNumber}
@@ -316,30 +424,100 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                 )
               }
 
-              // Empty seat - click to add
+              // Empty seat
+              // If self is not seated: show menu with self/opponent choice
+              // If self is seated: show menu with move-self/opponent choice
+              if (!isSelfSeated) {
+                return (
+                  <Menu key={seatNumber} position="bottom-start" withArrow>
+                    <Menu.Target>
+                      <Box
+                        style={{
+                          border:
+                            '1px dashed var(--mantine-color-default-border)',
+                          borderRadius: 'var(--mantine-radius-sm)',
+                          padding: '8px 12px',
+                          cursor: isPending ? 'wait' : 'pointer',
+                          backgroundColor: 'transparent',
+                          opacity: isPending ? 0.6 : 1,
+                        }}
+                      >
+                        <Group gap="xs">
+                          <Badge color="gray" size="sm" variant="outline">
+                            {seatNumber}
+                          </Badge>
+                          <Text c="dimmed" size="sm">
+                            空席
+                          </Text>
+                          <IconPlus
+                            color="var(--mantine-color-dimmed)"
+                            size={14}
+                          />
+                        </Group>
+                      </Box>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        leftSection={<IconUser size={14} />}
+                        onClick={() => handleSeatSelf(seatNumber)}
+                      >
+                        自分を着席
+                      </Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconUserPlus size={14} />}
+                        onClick={() => handleAddOpponent(seatNumber)}
+                      >
+                        対戦相手を着席
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                )
+              }
+
+              // Self is already seated - show menu with move/opponent
               return (
-                <Box
-                  key={seatNumber}
-                  onClick={() => handleAddSeat(seatNumber)}
-                  style={{
-                    border: '1px dashed var(--mantine-color-default-border)',
-                    borderRadius: 'var(--mantine-radius-sm)',
-                    padding: '8px 12px',
-                    cursor: createMutation.isPending ? 'wait' : 'pointer',
-                    backgroundColor: 'transparent',
-                    opacity: createMutation.isPending ? 0.6 : 1,
-                  }}
-                >
-                  <Group gap="xs">
-                    <Badge color="gray" size="sm" variant="outline">
-                      {seatNumber}
-                    </Badge>
-                    <Text c="dimmed" size="sm">
-                      空席
-                    </Text>
-                    <IconPlus color="var(--mantine-color-dimmed)" size={14} />
-                  </Group>
-                </Box>
+                <Menu key={seatNumber} position="bottom-start" withArrow>
+                  <Menu.Target>
+                    <Box
+                      style={{
+                        border:
+                          '1px dashed var(--mantine-color-default-border)',
+                        borderRadius: 'var(--mantine-radius-sm)',
+                        padding: '8px 12px',
+                        cursor: isPending ? 'wait' : 'pointer',
+                        backgroundColor: 'transparent',
+                        opacity: isPending ? 0.6 : 1,
+                      }}
+                    >
+                      <Group gap="xs">
+                        <Badge color="gray" size="sm" variant="outline">
+                          {seatNumber}
+                        </Badge>
+                        <Text c="dimmed" size="sm">
+                          空席
+                        </Text>
+                        <IconPlus
+                          color="var(--mantine-color-dimmed)"
+                          size={14}
+                        />
+                      </Group>
+                    </Box>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Item
+                      leftSection={<IconUser size={14} />}
+                      onClick={() => handleMoveSelf(seatNumber)}
+                    >
+                      自分を移動
+                    </Menu.Item>
+                    <Menu.Item
+                      leftSection={<IconUserPlus size={14} />}
+                      onClick={() => handleAddOpponent(seatNumber)}
+                    >
+                      対戦相手を着席
+                    </Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
               )
             })}
           </Stack>
