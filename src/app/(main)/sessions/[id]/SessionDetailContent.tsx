@@ -1,47 +1,28 @@
 'use client'
 
-import {
-  Button,
-  Card,
-  Collapse,
-  Container,
-  Group,
-  Modal,
-  Stack,
-  Text,
-  Title,
-  UnstyledButton,
-} from '@mantine/core'
+import { Button, Container, Group, Modal, Stack, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import {
-  IconArrowLeft,
-  IconChevronDown,
-  IconChevronUp,
-  IconHistory,
-} from '@tabler/icons-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import {
-  SessionEventTimeline,
-  type TimelineAllInRecord,
-} from '~/components/sessions/SessionEventTimeline'
+import type { TimelineAllInRecord } from './timelineGrouping'
 import { usePageTitle } from '~/contexts/PageTitleContext'
-import { api } from '~/trpc/react'
 import {
   createAllInRecord,
   deleteAllInRecord,
+  deleteSession,
   updateAllInRecord,
 } from '../actions'
 import { type AllInFormValues, AllInModal } from './AllInModal'
 import { AllInSection } from './AllInSection'
+import { EventTimelineSection } from './EventTimelineSection'
 import { SessionHeader } from './SessionHeader'
-import { SessionInfo } from './SessionInfo'
+import { SessionInfoCard } from './SessionInfoCard'
+import { SessionSummary } from './SessionSummary'
 import type { AllInRecord, Session } from './types'
 
 interface SessionDetailContentProps {
-  initialSession: Session
+  session: Session
 }
 
 /**
@@ -50,12 +31,11 @@ interface SessionDetailContentProps {
  * Shows session details with profit/loss, all-in records, and EV summary.
  */
 export function SessionDetailContent({
-  initialSession,
+  session,
 }: SessionDetailContentProps) {
   usePageTitle('セッション詳細')
 
   const router = useRouter()
-  const session = initialSession
 
   // State for editing all-in record
   const [editingAllIn, setEditingAllIn] = useState<AllInRecord | null>(null)
@@ -73,37 +53,31 @@ export function SessionDetailContent({
     { open: openDeleteAllInModal, close: closeDeleteAllInModal },
   ] = useDisclosure(false)
 
-  // Collapsible sections state
-  const [historyOpened, setHistoryOpened] = useState(false)
-
   // Transition states
   const [isDeleting, startDeleteTransition] = useTransition()
   const [isSavingAllIn, startSaveAllInTransition] = useTransition()
   const [isDeletingAllIn, startDeleteAllInTransition] = useTransition()
 
-  // Delete mutation
-  const deleteMutation = api.session.delete.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: '削除完了',
-        message: 'セッションを削除しました',
-        color: 'green',
-      })
-      router.push('/sessions')
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'エラー',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
-
+  // Delete session using Server Action
   const handleDelete = () => {
     closeDeleteModal()
-    startDeleteTransition(() => {
-      deleteMutation.mutate({ id: session.id })
+    startDeleteTransition(async () => {
+      const result = await deleteSession({ id: session.id })
+
+      if (result.success) {
+        notifications.show({
+          title: '削除完了',
+          message: 'セッションを削除しました',
+          color: 'green',
+        })
+        router.push('/sessions')
+      } else {
+        notifications.show({
+          title: 'エラー',
+          message: result.error,
+          color: 'red',
+        })
+      }
     })
   }
 
@@ -231,18 +205,8 @@ export function SessionDetailContent({
   }
 
   return (
-    <Container py="xl" size="md">
-      <Stack gap="lg">
-        <Button
-          component={Link}
-          href="/sessions"
-          leftSection={<IconArrowLeft size={16} />}
-          variant="subtle"
-          w="fit-content"
-        >
-          セッション一覧に戻る
-        </Button>
-
+    <Container py="md" size="sm">
+      <Stack gap="md">
         {/* Header */}
         <SessionHeader
           gameType={session.gameType}
@@ -250,49 +214,28 @@ export function SessionDetailContent({
           sessionId={session.id}
         />
 
-        {/* Session Info (Profit/Loss + Details) */}
-        <SessionInfo session={session} />
+        {/* Profit/Loss Summary with optional chart */}
+        <SessionSummary session={session} />
 
-        {/* All-In Records (only for archived sessions without events) */}
-        {session.sessionEvents.length === 0 && (
-          <AllInSection
-            allInRecords={session.allInRecords}
-            onAddClick={openAllInForCreate}
-            onDeleteClick={handleAllInDeleteClick}
-            onEditClick={openAllInForEdit}
-          />
-        )}
+        {/* Session Info */}
+        <SessionInfoCard session={session} />
+
+        {/* All-In Records */}
+        <AllInSection
+          allInRecords={session.allInRecords}
+          onAddClick={openAllInForCreate}
+          onDeleteClick={handleAllInDeleteClick}
+          onEditClick={openAllInForEdit}
+        />
 
         {/* Event Timeline (only for live-recorded sessions) */}
         {session.sessionEvents.length > 0 && (
-          <Card p="lg" radius="md" shadow="sm" withBorder>
-            <UnstyledButton
-              onClick={() => setHistoryOpened((o) => !o)}
-              style={{ width: '100%' }}
-            >
-              <Group justify="space-between">
-                <Group gap="xs">
-                  <IconHistory size={20} />
-                  <Title order={4}>イベント履歴</Title>
-                </Group>
-                {historyOpened ? (
-                  <IconChevronUp size={20} />
-                ) : (
-                  <IconChevronDown size={20} />
-                )}
-              </Group>
-            </UnstyledButton>
-            <Collapse in={historyOpened}>
-              <Stack gap="md" mt="md">
-                <SessionEventTimeline
-                  allInRecords={session.allInRecords}
-                  events={session.sessionEvents}
-                  onEditAllIn={handleEditAllIn}
-                  sessionId={session.id}
-                />
-              </Stack>
-            </Collapse>
-          </Card>
+          <EventTimelineSection
+            allInRecords={session.allInRecords}
+            events={session.sessionEvents}
+            onEditAllIn={handleEditAllIn}
+            sessionId={session.id}
+          />
         )}
       </Stack>
 
