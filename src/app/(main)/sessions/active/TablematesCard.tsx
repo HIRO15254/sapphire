@@ -43,8 +43,8 @@ const SEAT_COUNT = 9
  * Shows 9 seat slots where each can be empty or occupied.
  *
  * When clicking an empty seat:
- * - If self is not seated: shows a menu to choose "自分" or "対戦相手"
- * - If self is seated: directly creates an opponent tablemate
+ * - If self is not seated: shows a menu to choose "自分を着席" or "対戦相手を着席"
+ * - If self is seated: directly creates an opponent tablemate (no menu)
  *
  * Self-seating creates a special record with isSelf=true, no player record.
  */
@@ -157,20 +157,6 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
       sessionId,
       seatNumber,
     })
-  }
-
-  const handleMoveSelf = async (newSeatNumber: number) => {
-    if (!selfTablemate) return
-    // Delete old self seat, then create new one
-    try {
-      await deleteMutation.mutateAsync({ id: selfTablemate.id })
-      createSelfMutation.mutate({
-        sessionId,
-        seatNumber: newSeatNumber,
-      })
-    } catch {
-      // Error notification handled by mutation
-    }
   }
 
   const handleOpenEdit = (tablemate: Tablemate) => {
@@ -426,7 +412,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
 
               // Empty seat
               // If self is not seated: show menu with self/opponent choice
-              // If self is seated: show menu with move-self/opponent choice
+              // If self is seated: directly add opponent (no confirmation)
               if (!isSelfSeated) {
                 return (
                   <Menu key={seatNumber} position="bottom-start" withArrow>
@@ -474,50 +460,34 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                 )
               }
 
-              // Self is already seated - show menu with move/opponent
+              // Self is already seated - directly add opponent (no menu)
               return (
-                <Menu key={seatNumber} position="bottom-start" withArrow>
-                  <Menu.Target>
-                    <Box
-                      style={{
-                        border:
-                          '1px dashed var(--mantine-color-default-border)',
-                        borderRadius: 'var(--mantine-radius-sm)',
-                        padding: '8px 12px',
-                        cursor: isPending ? 'wait' : 'pointer',
-                        backgroundColor: 'transparent',
-                        opacity: isPending ? 0.6 : 1,
-                      }}
-                    >
-                      <Group gap="xs">
-                        <Badge color="gray" size="sm" variant="outline">
-                          {seatNumber}
-                        </Badge>
-                        <Text c="dimmed" size="sm">
-                          空席
-                        </Text>
-                        <IconPlus
-                          color="var(--mantine-color-dimmed)"
-                          size={14}
-                        />
-                      </Group>
-                    </Box>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    <Menu.Item
-                      leftSection={<IconUser size={14} />}
-                      onClick={() => handleMoveSelf(seatNumber)}
-                    >
-                      自分を移動
-                    </Menu.Item>
-                    <Menu.Item
-                      leftSection={<IconUserPlus size={14} />}
-                      onClick={() => handleAddOpponent(seatNumber)}
-                    >
-                      対戦相手を着席
-                    </Menu.Item>
-                  </Menu.Dropdown>
-                </Menu>
+                <Box
+                  key={seatNumber}
+                  onClick={() => !isPending && handleAddOpponent(seatNumber)}
+                  style={{
+                    border:
+                      '1px dashed var(--mantine-color-default-border)',
+                    borderRadius: 'var(--mantine-radius-sm)',
+                    padding: '8px 12px',
+                    cursor: isPending ? 'wait' : 'pointer',
+                    backgroundColor: 'transparent',
+                    opacity: isPending ? 0.6 : 1,
+                  }}
+                >
+                  <Group gap="xs">
+                    <Badge color="gray" size="sm" variant="outline">
+                      {seatNumber}
+                    </Badge>
+                    <Text c="dimmed" size="sm">
+                      空席
+                    </Text>
+                    <IconPlus
+                      color="var(--mantine-color-dimmed)"
+                      size={14}
+                    />
+                  </Group>
+                </Box>
               )
             })}
           </Stack>
