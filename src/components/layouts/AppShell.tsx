@@ -106,7 +106,7 @@ export function AppShell({ children }: AppShellProps) {
                   href="/sessions/active"
                   leftSection={
                     activeSession.isPaused ? (
-                      <IconPlayerPause size={18} />
+                      <IconPlayerPause size={16} />
                     ) : (
                       <span
                         style={{
@@ -119,7 +119,7 @@ export function AppShell({ children }: AppShellProps) {
                       />
                     )
                   }
-                  size="compact-md"
+                  size="compact-sm"
                   variant="filled"
                 >
                   {activeSession.isPaused ? '一時停止中' : 'LIVE'}
@@ -131,8 +131,8 @@ export function AppShell({ children }: AppShellProps) {
                   color="gray"
                   component={Link}
                   href="/sessions/active"
-                  leftSection={<IconPlayerPlay size={18} />}
-                  size="compact-md"
+                  leftSection={<IconPlayerPlay size={16} />}
+                  size="compact-sm"
                   variant="light"
                 >
                   セッション
@@ -171,15 +171,16 @@ export function AppShell({ children }: AppShellProps) {
 
         <MantineAppShell.Section>
           <Divider my="sm" />
-          <ThemeToggle />
-          <SignOutButton
-            fullWidth
-            justify="flex-start"
-            leftSection={<IconLogout size={20} stroke={1.5} />}
-            variant="subtle"
-          >
-            ログアウト
-          </SignOutButton>
+          <Group justify="space-between">
+            <SignOutButton
+              justify="flex-start"
+              leftSection={<IconLogout size={20} stroke={1.5} />}
+              variant="subtle"
+            >
+              ログアウト
+            </SignOutButton>
+            <ThemeToggle />
+          </Group>
         </MantineAppShell.Section>
       </MantineAppShell.Navbar>
 
