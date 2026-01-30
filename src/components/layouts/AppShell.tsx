@@ -88,21 +88,16 @@ export function AppShell({ children }: AppShellProps) {
               opened={opened}
               size="sm"
             />
-            <Link
-              href="/dashboard"
-              style={{ textDecoration: 'none', color: 'inherit' }}
+            <Title
+              order={3}
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
             >
-              <Title
-                order={3}
-                style={{
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {pageTitle || 'Sapphire'}
-              </Title>
-            </Link>
+              {pageTitle || 'Sapphire'}
+            </Title>
           </Group>
           <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
             {/* Active Session Indicator / Start Session Button */}
@@ -153,7 +148,6 @@ export function AppShell({ children }: AppShellProps) {
                 </Button>
               </Tooltip>
             )}
-            <ThemeToggle />
             {/* CSS for pulse animation */}
             <style>
               {`
@@ -186,14 +180,16 @@ export function AppShell({ children }: AppShellProps) {
 
         <MantineAppShell.Section>
           <Divider my="sm" />
-          <SignOutButton
-            fullWidth
-            justify="flex-start"
-            leftSection={<IconLogout size={20} stroke={1.5} />}
-            variant="subtle"
-          >
-            Logout
-          </SignOutButton>
+          <Group justify="space-between">
+            <SignOutButton
+              justify="flex-start"
+              leftSection={<IconLogout size={20} stroke={1.5} />}
+              variant="subtle"
+            >
+              ログアウト
+            </SignOutButton>
+            <ThemeToggle />
+          </Group>
         </MantineAppShell.Section>
       </MantineAppShell.Navbar>
 
