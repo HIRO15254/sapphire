@@ -41,13 +41,13 @@ interface AppShellProps {
  * Navigation items for the app.
  */
 const navItems = [
-  { href: '/dashboard', label: 'ダッシュボード', icon: IconHome },
+  { href: '/dashboard', label: 'Dashboard', icon: IconHome },
   { href: '/sessions', label: 'Sessions', icon: IconCards },
-  { href: '/currencies', label: '通貨', icon: IconCoin },
-  { href: '/stores', label: '店舗', icon: IconBuildingStore },
-  { href: '/players', label: 'プレイヤー', icon: IconUsers },
-  { href: '/statistics', label: '統計', icon: IconChartBar },
-  { href: '/help', label: 'ヘルプ', icon: IconHelp },
+  { href: '/currencies', label: 'Currencies', icon: IconCoin },
+  { href: '/stores', label: 'Stores', icon: IconBuildingStore },
+  { href: '/players', label: 'Players', icon: IconUsers },
+  { href: '/statistics', label: 'Statistics', icon: IconChartBar },
+  { href: '/help', label: 'Help', icon: IconHelp },
 ]
 
 /**
@@ -82,7 +82,7 @@ export function AppShell({ children }: AppShellProps) {
         <Group h="100%" justify="space-between" px="md">
           <Group>
             <Burger
-              aria-label="メニューを開く"
+              aria-label="Open menu"
               hiddenFrom="sm"
               onClick={toggle}
               opened={opened}
@@ -101,8 +101,8 @@ export function AppShell({ children }: AppShellProps) {
               <Tooltip
                 label={
                   activeSession.isPaused
-                    ? '一時停止中のセッションを表示'
-                    : '進行中のセッションを表示'
+                    ? 'Show paused session'
+                    : 'Show active session'
                 }
               >
                 <Button
@@ -127,11 +127,11 @@ export function AppShell({ children }: AppShellProps) {
                   size="compact-sm"
                   variant="filled"
                 >
-                  {activeSession.isPaused ? '一時停止中' : 'LIVE'}
+                  {activeSession.isPaused ? 'Paused' : 'LIVE'}
                 </Button>
               </Tooltip>
             ) : (
-              <Tooltip label="ライブセッションを開始">
+              <Tooltip label="Start Live Session">
                 <Button
                   color="gray"
                   component={Link}
@@ -140,7 +140,7 @@ export function AppShell({ children }: AppShellProps) {
                   size="compact-sm"
                   variant="light"
                 >
-                  セッション
+                  Session
                 </Button>
               </Tooltip>
             )}
@@ -183,7 +183,7 @@ export function AppShell({ children }: AppShellProps) {
             leftSection={<IconLogout size={20} stroke={1.5} />}
             variant="subtle"
           >
-            ログアウト
+            Logout
           </SignOutButton>
         </MantineAppShell.Section>
       </MantineAppShell.Navbar>
