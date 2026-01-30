@@ -41,13 +41,13 @@ interface AppShellProps {
  * Navigation items for the app.
  */
 const navItems = [
-  { href: '/dashboard', label: 'ダッシュボード', icon: IconHome },
+  { href: '/dashboard', label: 'Dashboard', icon: IconHome },
   { href: '/sessions', label: 'Sessions', icon: IconCards },
-  { href: '/currencies', label: '通貨', icon: IconCoin },
-  { href: '/stores', label: '店舗', icon: IconBuildingStore },
-  { href: '/players', label: 'プレイヤー', icon: IconUsers },
-  { href: '/statistics', label: '統計', icon: IconChartBar },
-  { href: '/help', label: 'ヘルプ', icon: IconHelp },
+  { href: '/currencies', label: 'Currencies', icon: IconCoin },
+  { href: '/stores', label: 'Stores', icon: IconBuildingStore },
+  { href: '/players', label: 'Players', icon: IconUsers },
+  { href: '/statistics', label: 'Statistics', icon: IconChartBar },
+  { href: '/help', label: 'Help', icon: IconHelp },
 ]
 
 /**
@@ -79,25 +79,34 @@ export function AppShell({ children }: AppShellProps) {
       padding={{ base: 'xs', sm: 'md' }}
     >
       <MantineAppShell.Header>
-        <Group h="100%" justify="space-between" px="md">
-          <Group>
+        <Group h="100%" justify="space-between" px="md" wrap="nowrap">
+          <Group style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <Burger
-              aria-label="メニューを開く"
+              aria-label="Open menu"
               hiddenFrom="sm"
               onClick={toggle}
               opened={opened}
               size="sm"
             />
-            <Title order={3}>{pageTitle || 'Sapphire'}</Title>
+            <Title
+              order={3}
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {pageTitle || 'Sapphire'}
+            </Title>
           </Group>
-          <Group gap="sm">
+          <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
             {/* Active Session Indicator / Start Session Button */}
             {activeSession ? (
               <Tooltip
                 label={
                   activeSession.isPaused
-                    ? '一時停止中のセッションを表示'
-                    : '進行中のセッションを表示'
+                    ? 'Show paused session'
+                    : 'Show active session'
                 }
               >
                 <Button
@@ -122,11 +131,11 @@ export function AppShell({ children }: AppShellProps) {
                   size="compact-sm"
                   variant="filled"
                 >
-                  {activeSession.isPaused ? '一時停止中' : 'LIVE'}
+                  {activeSession.isPaused ? 'Paused' : 'LIVE'}
                 </Button>
               </Tooltip>
             ) : (
-              <Tooltip label="ライブセッションを開始">
+              <Tooltip label="Start Live Session">
                 <Button
                   color="gray"
                   component={Link}
@@ -135,7 +144,7 @@ export function AppShell({ children }: AppShellProps) {
                   size="compact-sm"
                   variant="light"
                 >
-                  セッション
+                  Session
                 </Button>
               </Tooltip>
             )}
