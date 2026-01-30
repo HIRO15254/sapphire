@@ -79,8 +79,8 @@ export function AppShell({ children }: AppShellProps) {
       padding={{ base: 'xs', sm: 'md' }}
     >
       <MantineAppShell.Header>
-        <Group h="100%" justify="space-between" px="md">
-          <Group>
+        <Group h="100%" justify="space-between" px="md" wrap="nowrap">
+          <Group style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <Burger
               aria-label="メニューを開く"
               hiddenFrom="sm"
@@ -92,10 +92,19 @@ export function AppShell({ children }: AppShellProps) {
               href="/dashboard"
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
-              <Title order={3}>{pageTitle || 'Sapphire'}</Title>
+              <Title
+                order={3}
+                style={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {pageTitle || 'Sapphire'}
+              </Title>
             </Link>
           </Group>
-          <Group gap="sm">
+          <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
             {/* Active Session Indicator / Start Session Button */}
             {activeSession ? (
               <Tooltip
