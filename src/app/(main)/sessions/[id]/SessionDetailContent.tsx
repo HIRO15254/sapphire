@@ -5,7 +5,6 @@ import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import type { TimelineAllInRecord } from './timelineGrouping'
 import { usePageTitle } from '~/contexts/PageTitleContext'
 import {
   createAllInRecord,
@@ -91,16 +90,6 @@ export function SessionDetailContent({
   const openAllInForEdit = (record: AllInRecord) => {
     setEditingAllIn(record)
     openAllInModal()
-  }
-
-  // Handle edit all-in from timeline (finds full record by id)
-  const handleEditAllIn = (timelineAllIn: TimelineAllInRecord) => {
-    const fullRecord = session.allInRecords.find(
-      (r) => r.id === timelineAllIn.id,
-    )
-    if (fullRecord) {
-      openAllInForEdit(fullRecord)
-    }
   }
 
   // Handle all-in form submit
@@ -233,8 +222,6 @@ export function SessionDetailContent({
           <EventTimelineSection
             allInRecords={session.allInRecords}
             events={session.sessionEvents}
-            onEditAllIn={handleEditAllIn}
-            sessionId={session.id}
           />
         )}
       </Stack>

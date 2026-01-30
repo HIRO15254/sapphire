@@ -15,10 +15,7 @@ interface SessionSummaryProps {
  * Calculate total buy-in including rebuys and addons from session events.
  */
 function getTotalBuyIn(session: Session): number {
-  let total = session.buyIn
-  // buyIn already includes rebuys/addons on the server side
-  // (session.buyIn is updated when rebuy/addon events are recorded)
-  // But for display purposes, we show the total stored in session.buyIn
+  const total = session.buyIn
   return total
 }
 

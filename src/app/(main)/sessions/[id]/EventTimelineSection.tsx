@@ -39,8 +39,6 @@ import {
 interface EventTimelineSectionProps {
   events: TimelineEvent[]
   allInRecords: AllInRecord[]
-  sessionId: string
-  onEditAllIn: (allIn: TimelineAllInRecord) => void
 }
 
 function getEventIcon(eventType: string) {
@@ -69,8 +67,6 @@ function getEventIcon(eventType: string) {
 export function EventTimelineSection({
   events,
   allInRecords,
-  sessionId,
-  onEditAllIn,
 }: EventTimelineSectionProps) {
   const [opened, setOpened] = useState(false)
 

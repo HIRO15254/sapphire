@@ -17,7 +17,7 @@ import {
 } from '@tabler/icons-react'
 
 import type { AllInRecord } from './types'
-import { formatEV, formatProfitLoss } from './types'
+import { formatProfitLoss } from './types'
 
 interface AllInSectionProps {
   allInRecords: AllInRecord[]
