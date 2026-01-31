@@ -51,6 +51,7 @@ interface PlayerEditModalProps {
   player: PlayerData | null
   tablemateId: string
   sessionId: string
+  seatNumber: number | null
 }
 
 /**
@@ -64,6 +65,7 @@ export function PlayerEditModal({
   player,
   tablemateId,
   sessionId,
+  seatNumber,
 }: PlayerEditModalProps) {
   const utils = api.useUtils()
 
@@ -281,9 +283,10 @@ export function PlayerEditModal({
         })
       } else {
         // Just update the temporary player (no persist)
+        // Skip name update if nameSearch is empty (keep current empty name)
         await updatePlayerMutation.mutateAsync({
           id: player.id,
-          name: nameSearch.trim(),
+          name: nameSearch.trim() || undefined,
           generalNotes: values.generalNotes || undefined,
         })
 
@@ -410,7 +413,7 @@ export function PlayerEditModal({
       onClose={onClose}
       opened={opened}
       size="lg"
-      title={`${player?.name ?? ''} を編集`}
+      title={`${player?.name || (seatNumber ? `Seat ${seatNumber}` : '')} を編集`}
     >
       <form onSubmit={handleSubmit}>
         <ScrollArea.Autosize mah="70vh">
@@ -447,7 +450,7 @@ export function PlayerEditModal({
                       }}
                       onClick={() => nameCombobox.openDropdown()}
                       onFocus={() => nameCombobox.openDropdown()}
-                      placeholder="プレイヤー名を入力..."
+                      placeholder={seatNumber ? `Seat ${seatNumber}` : 'プレイヤー名を入力...'}
                       rightSection={<Combobox.Chevron />}
                       value={
                         selectedExistingPlayerId

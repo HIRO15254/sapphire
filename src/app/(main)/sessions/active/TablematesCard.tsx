@@ -513,6 +513,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
               }
             : null
         }
+        seatNumber={selectedTablemate?.seatNumber ?? null}
         sessionId={sessionId}
         tablemateId={selectedTablemate?.id ?? ''}
       />
