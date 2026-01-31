@@ -7,7 +7,6 @@ import {
   IconEdit,
   IconTrash,
 } from '@tabler/icons-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 
@@ -15,12 +14,13 @@ interface SessionHeaderProps {
   sessionId: string
   gameType: string | null
   onDeleteClick: () => void
+  onEditClick: () => void
 }
 
 export function SessionHeader({
-  sessionId,
   gameType,
   onDeleteClick,
+  onEditClick,
 }: SessionHeaderProps) {
   const router = useRouter()
 
@@ -28,7 +28,7 @@ export function SessionHeader({
     <Group justify="space-between" wrap="nowrap">
       <Group gap="xs" wrap="nowrap">
         <ActionIcon
-          aria-label="セッション一覧に戻る"
+          aria-label="Back to sessions"
           onClick={() => router.push('/sessions')}
           variant="subtle"
         >
@@ -38,24 +38,20 @@ export function SessionHeader({
       </Group>
       <Menu position="bottom-end" shadow="md">
         <Menu.Target>
-          <ActionIcon aria-label="メニュー" variant="subtle">
+          <ActionIcon aria-label="Menu" variant="subtle">
             <IconDotsVertical size={20} />
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>
-          <Menu.Item
-            component={Link}
-            href={`/sessions/${sessionId}/edit`}
-            leftSection={<IconEdit size={16} />}
-          >
-            編集
+          <Menu.Item leftSection={<IconEdit size={16} />} onClick={onEditClick}>
+            Edit
           </Menu.Item>
           <Menu.Item
             color="red"
             leftSection={<IconTrash size={16} />}
             onClick={onDeleteClick}
           >
-            削除
+            Delete
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>

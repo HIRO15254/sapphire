@@ -36,9 +36,9 @@ export function AllInSection({
     <Card radius="sm" shadow="xs" withBorder>
       <Stack gap="sm">
         <Group justify="space-between">
-          <Text fw={500}>オールイン記録</Text>
+          <Text fw={500}>All-In Records</Text>
           <ActionIcon
-            aria-label="オールインを追加"
+            aria-label="Add all-in"
             onClick={onAddClick}
             variant="light"
           >
@@ -70,7 +70,7 @@ export function AllInSection({
                 >
                   <Stack gap={2}>
                     <Text fw={500} size="sm">
-                      ポット: {record.potAmount.toLocaleString()}
+                      Pot: {record.potAmount.toLocaleString()}
                     </Text>
                     <Group gap={4}>
                       <Badge size="xs" variant="light">
@@ -92,18 +92,14 @@ export function AllInSection({
                     </Group>
                   </Stack>
                   <Stack align="flex-end" gap={2}>
-                    <Text
-                      c={evDiff >= 0 ? 'green' : 'red'}
-                      fw={700}
-                      size="sm"
-                    >
+                    <Text c={evDiff >= 0 ? 'green' : 'red'} fw={700} size="sm">
                       EV {formatProfitLoss(evDiff)}
                     </Text>
                     <Group gap={4}>
                       <ActionIcon
                         onClick={() => onEditClick(record)}
                         size="sm"
-                        title="編集"
+                        title="Edit"
                         variant="subtle"
                       >
                         <IconEdit size={14} />
@@ -112,7 +108,7 @@ export function AllInSection({
                         color="red"
                         onClick={() => onDeleteClick(record.id)}
                         size="sm"
-                        title="削除"
+                        title="Delete"
                         variant="subtle"
                       >
                         <IconTrash size={14} />
@@ -127,7 +123,7 @@ export function AllInSection({
           <Stack align="center" gap="xs" py="md">
             <IconPokerChip color="gray" size={32} />
             <Text c="dimmed" size="sm">
-              オールイン記録がありません
+              No all-in records
             </Text>
           </Stack>
         )}

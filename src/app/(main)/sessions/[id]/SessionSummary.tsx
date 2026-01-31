@@ -31,8 +31,8 @@ export function SessionSummary({ session }: SessionSummaryProps) {
         {hasEvents && (
           <SegmentedControl
             data={[
-              { label: 'サマリー', value: 'summary' },
-              { label: 'グラフ', value: 'chart' },
+              { label: 'Summary', value: 'summary' },
+              { label: 'Chart', value: 'chart' },
             ]}
             fullWidth
             onChange={(value) => setTopView(value as 'summary' | 'chart')}
@@ -43,30 +43,24 @@ export function SessionSummary({ session }: SessionSummaryProps) {
 
         {topView === 'summary' && (
           <Stack align="center" gap="xs" py="sm">
-            <Text
-              c={getProfitLossColor(session.profitLoss)}
-              fw={700}
-              fz="2rem"
-            >
+            <Text c={getProfitLossColor(session.profitLoss)} fw={700} fz="2rem">
               {formatProfitLoss(session.profitLoss)}
             </Text>
             {session.allInSummary &&
               session.allInSummary.count > 0 &&
               session.profitLoss !== null && (
                 <Text c="dimmed" size="sm">
-                  EV調整後:{' '}
+                  EV Adjusted:{' '}
                   <Text
                     c={getProfitLossColor(
-                      session.profitLoss -
-                        session.allInSummary.evDifference,
+                      session.profitLoss - session.allInSummary.evDifference,
                     )}
                     component="span"
                     fw={500}
                     size="sm"
                   >
                     {formatProfitLoss(
-                      session.profitLoss -
-                        session.allInSummary.evDifference,
+                      session.profitLoss - session.allInSummary.evDifference,
                     )}
                   </Text>
                 </Text>

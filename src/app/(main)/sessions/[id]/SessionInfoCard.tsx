@@ -86,11 +86,11 @@ export function SessionInfoCard({ session }: SessionInfoCardProps) {
               style={{ flexShrink: 0 }}
             />
             <Text size="sm">
-              {session.tournament.name && `${session.tournament.name} / `}
-              ¥{session.tournament.buyIn.toLocaleString()}
+              {session.tournament.name && `${session.tournament.name} / `}¥
+              {session.tournament.buyIn.toLocaleString()}
               {session.tournament.rake != null && (
                 <Text c="dimmed" component="span" ml={4} size="sm">
-                  (レーキ: ¥{session.tournament.rake.toLocaleString()})
+                  (Rake: ¥{session.tournament.rake.toLocaleString()})
                 </Text>
               )}
             </Text>
