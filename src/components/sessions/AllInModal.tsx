@@ -18,8 +18,6 @@ import { zodResolver } from 'mantine-form-zod-resolver'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
-import type { AllInRecord } from './types'
-
 /**
  * Get current time as HH:MM string.
  */
@@ -81,10 +79,19 @@ const allInFormSchema = z
 
 export type AllInFormValues = z.infer<typeof allInFormSchema>
 
+export interface AllInRecordForModal {
+  potAmount: number
+  winProbability: string
+  actualResult: boolean
+  runItTimes: number | null
+  winsInRunout: number | null
+  recordedAt: Date | string
+}
+
 interface AllInModalProps {
   opened: boolean
   onClose: () => void
-  editingAllIn: AllInRecord | null
+  editingAllIn: AllInRecordForModal | null
   onSubmit: (values: AllInFormValues) => void
   isLoading: boolean
   minTime?: Date
@@ -111,6 +118,13 @@ export function AllInModal({
     },
     validate: zodResolver(allInFormSchema),
   })
+
+  // Track form values for conditional rendering (required in uncontrolled mode)
+  const [useRunIt, setUseRunIt] = useState(false)
+  const [runItTimesValue, setRunItTimesValue] = useState<number | null>(2)
+
+  form.watch('useRunIt', ({ value }) => setUseRunIt(value))
+  form.watch('runItTimes', ({ value }) => setRunItTimesValue(value))
 
   // Reset form when modal opens or editing record changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: form methods are stable
@@ -156,13 +170,6 @@ export function AllInModal({
   const handleSubmit = form.onSubmit((values) => {
     onSubmit(values)
   })
-
-  // Track form values for conditional rendering (required in uncontrolled mode)
-  const [useRunIt, setUseRunIt] = useState(false)
-  const [runItTimesValue, setRunItTimesValue] = useState<number | null>(2)
-
-  form.watch('useRunIt', ({ value }) => setUseRunIt(value))
-  form.watch('runItTimes', ({ value }) => setRunItTimesValue(value))
 
   return (
     <Modal

@@ -34,7 +34,7 @@ import {
   deleteAllInRecord,
   updateAllInRecord,
 } from '../actions'
-import { type AllInFormValues, AllInModal } from './AllInModal'
+import { type AllInFormValues, AllInModal } from '~/components/sessions/AllInModal'
 import { AllInSection } from './AllInSection'
 import { SessionHeader } from './SessionHeader'
 import { SessionInfo } from './SessionInfo'
