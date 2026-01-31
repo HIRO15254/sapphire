@@ -125,7 +125,9 @@ export function PlayerEditModal({
   useEffect(() => {
     if (opened && player) {
       form.setValues({
-        name: player.name,
+        // For temporary players, name field is not used (nameSearch is used instead),
+        // so use a placeholder value to pass validation
+        name: player.isTemporary ? (player.name || 'temp') : player.name,
         generalNotes: player.generalNotes ?? '',
       })
       const tagIds = player.tags.map((t) => t.id)
