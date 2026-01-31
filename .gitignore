@@ -54,5 +54,9 @@ yarn-error.log*
 # git worktrees for parallel implementation
 .worktrees/
 
+# claude session logs & temp prompt files
+.claude/logs/
+.claude/tmp/
+
 # generated version info
 public/version.json

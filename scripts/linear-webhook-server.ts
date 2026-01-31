@@ -17,6 +17,7 @@
 
 import { spawn } from 'node:child_process'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createWriteStream } from 'node:fs'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
@@ -33,6 +34,8 @@ if (!WEBHOOK_SECRET) {
 const PORT = Number(process.env.WEBHOOK_PORT) || 3001
 const PROJECT_DIR = resolve(process.env.PROJECT_DIR || process.cwd())
 const WORKFLOWS_DIR = join(PROJECT_DIR, '.claude', 'workflows')
+const LOGS_DIR = join(PROJECT_DIR, '.claude', 'logs')
+const COMMANDS_DIR = join(PROJECT_DIR, '.claude', 'commands')
 
 // ---------------------------------------------------------------------------
 // Types
@@ -233,6 +236,19 @@ async function createInitialWorkflowJson(
 }
 
 // ---------------------------------------------------------------------------
+// Command file loader
+// ---------------------------------------------------------------------------
+
+async function loadCommand(
+  commandName: string,
+  args: string,
+): Promise<string> {
+  const filePath = join(COMMANDS_DIR, `${commandName}.md`)
+  const content = await readFile(filePath, 'utf-8')
+  return content.replace(/\$ARGUMENTS/g, args)
+}
+
+// ---------------------------------------------------------------------------
 // Status dashboard
 // ---------------------------------------------------------------------------
 
@@ -389,11 +405,11 @@ async function saveSessionId(
 // Claude Code invocation
 // ---------------------------------------------------------------------------
 
-function spawnClaude(
+async function spawnClaude(
   prompt: string,
   opts: { newSessionId: string } | { resumeSessionId: string },
   specName: string,
-): void {
+): Promise<void> {
   // Concurrency check: only one session per spec
   if (runningSessions.has(specName)) {
     const existing = runningSessions.get(specName)!
@@ -407,42 +423,75 @@ function spawnClaude(
   const sessionFlag = isResume
     ? ['--resume', opts.resumeSessionId]
     : ['--session-id', opts.newSessionId]
+
+  // Put -p LAST so it reads the prompt from stdin (avoids cmd.exe quoting issues)
   const args: string[] = [
     ...sessionFlag,
-    '-p',
-    prompt,
     '--dangerously-skip-permissions',
+    '-p',
   ]
 
   const label = isResume ? 'RESUME' : 'SPAWN'
   const sid = isResume ? opts.resumeSessionId : opts.newSessionId
-  console.log(`[${label}] session=${sid} prompt="${prompt}"`)
+  console.log(`[${label}] session=${sid} spec=${specName}`)
+
+  // Set up log file
+  await mkdir(LOGS_DIR, { recursive: true })
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const logPath = join(LOGS_DIR, `${specName}-${timestamp}.log`)
+  const logStream = createWriteStream(logPath)
+  logStream.write(
+    `[${new Date().toISOString()}] ${label} ${specName}\n` +
+      `session=${sid}\nprompt=${prompt.slice(0, 200)}...\n` +
+      `${'─'.repeat(60)}\n`,
+  )
 
   const child = spawn('claude', args, {
     cwd: PROJECT_DIR,
-    stdio: 'inherit',
+    stdio: ['pipe', 'pipe', 'pipe'],
     shell: true,
     detached: false,
+  })
+
+  // Pipe expanded command to stdin
+  child.stdin?.write(prompt)
+  child.stdin?.end()
+
+  // Pipe stdout/stderr to both console and log file
+  child.stdout?.on('data', (data: Buffer) => {
+    process.stdout.write(data)
+    logStream.write(data)
+  })
+  child.stderr?.on('data', (data: Buffer) => {
+    process.stderr.write(data)
+    logStream.write(data)
   })
 
   if (child.pid) {
     runningSessions.set(specName, {
       pid: child.pid,
       startedAt: new Date().toISOString(),
-      prompt,
+      prompt: `(stdin: ${prompt.slice(0, 80)}...)`,
     })
+    console.log(`[${label}] Log file: ${logPath}`)
     printStatus().catch(() => {})
   }
 
   child.on('error', (err) => {
     runningSessions.delete(specName)
-    console.error(`[ERROR] Failed to spawn claude: ${err.message}`)
+    const msg = `[ERROR] Failed to spawn claude: ${err.message}`
+    console.error(msg)
+    logStream.write(`\n${msg}\n`)
+    logStream.end()
     printStatus().catch(() => {})
   })
 
   child.on('exit', (code) => {
     runningSessions.delete(specName)
-    console.log(`[${label}] claude exited with code ${code}`)
+    const msg = `[${label}] claude exited with code ${code}`
+    console.log(msg)
+    logStream.write(`\n${'─'.repeat(60)}\n${msg}\n`)
+    logStream.end()
     printStatus().catch(() => {})
   })
 }
@@ -452,16 +501,16 @@ async function spawnClaudeInit(
   specName: string,
 ): Promise<void> {
   const existingId = await getSessionId(specName)
-  const command = `/linear-workflow-init ${projectId}`
+  const command = await loadCommand('linear-workflow-init', projectId)
 
   if (existingId) {
     // Clarification resume — continue existing session
-    spawnClaude(command, { resumeSessionId: existingId }, specName)
+    await spawnClaude(command, { resumeSessionId: existingId }, specName)
   } else {
     // First time — create session with a pre-generated UUID
     const newId = randomUUID()
     await saveSessionId(specName, newId)
-    spawnClaude(command, { newSessionId: newId }, specName)
+    await spawnClaude(command, { newSessionId: newId }, specName)
   }
 }
 
@@ -470,18 +519,17 @@ async function spawnClaudeResume(
   workflowType: 'spec' | 'fix' | 'pending',
 ): Promise<void> {
   const existingId = await getSessionId(specName)
-  const command =
-    workflowType === 'fix'
-      ? `/linear-fix-workflow ${specName} を再開`
-      : `/linear-spec-workflow ${specName} を再開`
+  const commandName =
+    workflowType === 'fix' ? 'linear-fix-workflow' : 'linear-spec-workflow'
+  const command = await loadCommand(commandName, `${specName} を再開`)
 
   if (existingId) {
-    spawnClaude(command, { resumeSessionId: existingId }, specName)
+    await spawnClaude(command, { resumeSessionId: existingId }, specName)
   } else {
     // Fallback: no session to resume — start fresh
     const newId = randomUUID()
     await saveSessionId(specName, newId)
-    spawnClaude(command, { newSessionId: newId }, specName)
+    await spawnClaude(command, { newSessionId: newId }, specName)
   }
 }
 
@@ -500,17 +548,16 @@ async function spawnClaudeForceResume(
   }
 
   const existingId = await getSessionId(specName)
-  const command =
-    workflowType === 'fix'
-      ? `/linear-fix-workflow ${specName} を強制再開`
-      : `/linear-spec-workflow ${specName} を強制再開`
+  const commandName =
+    workflowType === 'fix' ? 'linear-fix-workflow' : 'linear-spec-workflow'
+  const command = await loadCommand(commandName, `${specName} を強制再開`)
 
   if (existingId) {
-    spawnClaude(command, { resumeSessionId: existingId }, specName)
+    await spawnClaude(command, { resumeSessionId: existingId }, specName)
   } else {
     const newId = randomUUID()
     await saveSessionId(specName, newId)
-    spawnClaude(command, { newSessionId: newId }, specName)
+    await spawnClaude(command, { newSessionId: newId }, specName)
   }
 }
 
@@ -525,9 +572,9 @@ async function spawnClaudeVersionUp(projectId: string): Promise<void> {
     return
   }
 
-  const command = `/version-up ${projectId}`
+  const command = await loadCommand('version-up', projectId)
   const newId = randomUUID()
-  spawnClaude(command, { newSessionId: newId }, specName)
+  await spawnClaude(command, { newSessionId: newId }, specName)
 }
 
 // ---------------------------------------------------------------------------
