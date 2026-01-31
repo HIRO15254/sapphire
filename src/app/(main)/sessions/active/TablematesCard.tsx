@@ -336,8 +336,13 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
                         >
                           {seatNumber}
                         </Badge>
-                        <Text fw={500} size="sm" style={{ flexShrink: 0 }}>
-                          {tablemate.player?.name}
+                        <Text
+                          c={tablemate.player?.name ? undefined : 'dimmed'}
+                          fw={500}
+                          size="sm"
+                          style={{ flexShrink: 0 }}
+                        >
+                          {tablemate.player?.name || `Seat ${seatNumber}`}
                         </Text>
                         {/* Player tags */}
                         {playerTags.slice(0, 3).map((ta) => (
@@ -513,6 +518,7 @@ export function TablematesCard({ sessionId }: TablematesCardProps) {
               }
             : null
         }
+        seatNumber={selectedTablemate?.seatNumber ?? null}
         sessionId={sessionId}
         tablemateId={selectedTablemate?.id ?? ''}
       />
