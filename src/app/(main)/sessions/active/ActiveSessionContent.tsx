@@ -353,6 +353,8 @@ export function ActiveSessionContent({
         potAmount: values.potAmount,
         winProbability,
         actualResult,
+        runItTimes: values.useRunIt ? values.runItTimes : null,
+        winsInRunout: values.useRunIt ? values.winsInRunout : null,
         recordedAt,
       })
     } else {

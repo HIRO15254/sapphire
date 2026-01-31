@@ -138,6 +138,10 @@ export const allInRouter = createTRPCRouter({
         updateData.winProbability = input.winProbability.toString()
       if (input.actualResult !== undefined)
         updateData.actualResult = input.actualResult
+      if (input.runItTimes !== undefined)
+        updateData.runItTimes = input.runItTimes
+      if (input.winsInRunout !== undefined)
+        updateData.winsInRunout = input.winsInRunout
       if (input.recordedAt !== undefined)
         updateData.recordedAt = input.recordedAt
 
