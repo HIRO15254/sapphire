@@ -18,7 +18,7 @@
 import { spawn } from 'node:child_process'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { createWriteStream } from 'node:fs'
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
 // ---------------------------------------------------------------------------
@@ -35,7 +35,6 @@ const PORT = Number(process.env.WEBHOOK_PORT) || 3001
 const PROJECT_DIR = resolve(process.env.PROJECT_DIR || process.cwd())
 const WORKFLOWS_DIR = join(PROJECT_DIR, '.claude', 'workflows')
 const LOGS_DIR = join(PROJECT_DIR, '.claude', 'logs')
-const COMMANDS_DIR = join(PROJECT_DIR, '.claude', 'commands')
 
 // ---------------------------------------------------------------------------
 // Types
@@ -78,7 +77,7 @@ interface LinearWebhookPayload {
 
 interface WorkflowJson {
   version: string
-  workflowType: 'spec' | 'fix' | 'pending'
+  workflowType: 'spec' | 'fix' | 'pending' | 'version-up'
   specName: string
   summary: string
   teamId: string
@@ -117,13 +116,18 @@ interface WorkflowJson {
   claudeSessionId?: string | null
   waitingFor: string | null
   createdAt: string
+  // version-up specific fields
+  oldVersion?: string
+  newVersion?: string
+  bumpLevel?: 'major' | 'minor' | 'patch'
+  changelogContent?: string
 }
 
 type PhaseKey = 'requirements' | 'design' | 'tasks' | 'implementation'
 
 interface MatchResult {
   specName: string
-  workflowType: 'spec' | 'fix' | 'pending'
+  workflowType: 'spec' | 'fix' | 'pending' | 'version-up'
   workflowJson: WorkflowJson
   matchedPhase?: PhaseKey
   isTaskIssue: boolean
@@ -236,19 +240,6 @@ async function createInitialWorkflowJson(
 }
 
 // ---------------------------------------------------------------------------
-// Command file loader
-// ---------------------------------------------------------------------------
-
-async function loadCommand(
-  commandName: string,
-  args: string,
-): Promise<string> {
-  const filePath = join(COMMANDS_DIR, `${commandName}.md`)
-  const content = await readFile(filePath, 'utf-8')
-  return content.replace(/\$ARGUMENTS/g, args)
-}
-
-// ---------------------------------------------------------------------------
 // Status dashboard
 // ---------------------------------------------------------------------------
 
@@ -319,6 +310,17 @@ function findMatchingWorkflow(
       return {
         specName,
         workflowType: 'fix',
+        workflowJson: json,
+        isTaskIssue: false,
+        isClarification: false,
+      }
+    }
+
+    // Version-up workflow: match changelog review issue
+    if (json.workflowType === 'version-up' && json.issueId === issueId) {
+      return {
+        specName,
+        workflowType: 'version-up',
         workflowJson: json,
         isTaskIssue: false,
         isClarification: false,
@@ -442,7 +444,7 @@ async function spawnClaude(
   const logStream = createWriteStream(logPath)
   logStream.write(
     `[${new Date().toISOString()}] ${label} ${specName}\n` +
-      `session=${sid}\nprompt=${prompt.slice(0, 200)}...\n` +
+      `session=${sid}\nprompt=${prompt}\n` +
       `${'─'.repeat(60)}\n`,
   )
 
@@ -471,7 +473,7 @@ async function spawnClaude(
     runningSessions.set(specName, {
       pid: child.pid,
       startedAt: new Date().toISOString(),
-      prompt: `(stdin: ${prompt.slice(0, 80)}...)`,
+      prompt,
     })
     console.log(`[${label}] Log file: ${logPath}`)
     printStatus().catch(() => {})
@@ -501,7 +503,7 @@ async function spawnClaudeInit(
   specName: string,
 ): Promise<void> {
   const existingId = await getSessionId(specName)
-  const command = await loadCommand('linear-workflow-init', projectId)
+  const command = `/linear-workflow-init ${projectId}`
 
   if (existingId) {
     // Clarification resume — continue existing session
@@ -519,9 +521,10 @@ async function spawnClaudeResume(
   workflowType: 'spec' | 'fix' | 'pending',
 ): Promise<void> {
   const existingId = await getSessionId(specName)
-  const commandName =
-    workflowType === 'fix' ? 'linear-fix-workflow' : 'linear-spec-workflow'
-  const command = await loadCommand(commandName, `${specName} を再開`)
+  const command =
+    workflowType === 'fix'
+      ? `/linear-fix-workflow ${specName} を再開`
+      : `/linear-spec-workflow ${specName} を再開`
 
   if (existingId) {
     await spawnClaude(command, { resumeSessionId: existingId }, specName)
@@ -548,9 +551,10 @@ async function spawnClaudeForceResume(
   }
 
   const existingId = await getSessionId(specName)
-  const commandName =
-    workflowType === 'fix' ? 'linear-fix-workflow' : 'linear-spec-workflow'
-  const command = await loadCommand(commandName, `${specName} を強制再開`)
+  const command =
+    workflowType === 'fix'
+      ? `/linear-fix-workflow ${specName} を強制再開`
+      : `/linear-spec-workflow ${specName} を強制再開`
 
   if (existingId) {
     await spawnClaude(command, { resumeSessionId: existingId }, specName)
@@ -572,9 +576,84 @@ async function spawnClaudeVersionUp(projectId: string): Promise<void> {
     return
   }
 
-  const command = await loadCommand('version-up', projectId)
+  // Check existing workflow JSON
+  const workflows = await loadAllWorkflows()
+  const existingWf = workflows.get(specName)
+
+  if (existingWf && existingWf.workflowType === 'version-up') {
+    if (existingWf.waitingFor !== null) {
+      // Workflow in progress — force resume
+      console.log(
+        `[VERSION-UP] Existing workflow found (waitingFor: ${existingWf.waitingFor}) — force resuming`,
+      )
+      await spawnClaudeVersionUpForceResume(specName, projectId)
+      return
+    }
+    // Completed workflow — delete and start fresh
+    const jsonPath = join(WORKFLOWS_DIR, `${specName}.json`)
+    try {
+      await unlink(jsonPath)
+      console.log(`[VERSION-UP] Deleted completed workflow JSON: ${jsonPath}`)
+    } catch {
+      // ignore
+    }
+  }
+
+  // Create initial workflow JSON
+  await mkdir(WORKFLOWS_DIR, { recursive: true })
   const newId = randomUUID()
+  const wfJson: WorkflowJson = {
+    version: '2.0',
+    workflowType: 'version-up',
+    specName,
+    summary: 'Version Up',
+    teamId: '',
+    projectId,
+    projectUrl: '',
+    phases: null,
+    issueId: null,
+    issueIdentifier: null,
+    issueUrl: null,
+    taskIssues: [],
+    claudeSessionId: newId,
+    waitingFor: null,
+    createdAt: new Date().toISOString(),
+  }
+  const jsonPath = join(WORKFLOWS_DIR, `${specName}.json`)
+  await writeFile(jsonPath, JSON.stringify(wfJson, null, 2), 'utf-8')
+  console.log(`[VERSION-UP] Created workflow JSON: ${jsonPath}`)
+
+  const command = `/version-up ${projectId}`
   await spawnClaude(command, { newSessionId: newId }, specName)
+}
+
+async function spawnClaudeVersionUpResume(specName: string): Promise<void> {
+  const existingId = await getSessionId(specName)
+  const command = `/version-up ${specName} を再開`
+
+  if (existingId) {
+    await spawnClaude(command, { resumeSessionId: existingId }, specName)
+  } else {
+    const newId = randomUUID()
+    await saveSessionId(specName, newId)
+    await spawnClaude(command, { newSessionId: newId }, specName)
+  }
+}
+
+async function spawnClaudeVersionUpForceResume(
+  specName: string,
+  projectId: string,
+): Promise<void> {
+  const existingId = await getSessionId(specName)
+  const command = `/version-up ${projectId} を強制再開`
+
+  if (existingId) {
+    await spawnClaude(command, { resumeSessionId: existingId }, specName)
+  } else {
+    const newId = randomUUID()
+    await saveSessionId(specName, newId)
+    await spawnClaude(command, { newSessionId: newId }, specName)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -612,7 +691,7 @@ async function processProjectEvent(
   const workflows = await loadAllWorkflows()
   const existing = findWorkflowByProjectId(projectId, workflows)
 
-  if (existing) {
+  if (existing && existing.workflowJson.workflowType !== 'version-up') {
     console.log(
       `[FORCE RESUME] ${existing.specName} (${existing.workflowJson.workflowType}) triggered by AI Queue re-assignment`,
     )
@@ -689,6 +768,8 @@ async function processIssueEvent(payload: LinearWebhookPayload): Promise<void> {
 
   if (match.isClarification) {
     await spawnClaudeInit(match.workflowJson.projectId, match.specName)
+  } else if (match.workflowType === 'version-up') {
+    await spawnClaudeVersionUpResume(match.specName)
   } else {
     await spawnClaudeResume(match.specName, match.workflowType)
   }

@@ -206,7 +206,7 @@ scripts/
 ```jsonc
 {
   "version": "2.0",
-  "workflowType": "spec",        // "spec" | "fix" | "pending"
+  "workflowType": "spec",        // "spec" | "fix" | "pending" | "version-up"
   "specName": "currency-rework",
   "summary": "通貨ページのリワーク",
   "teamId": "...",
@@ -238,6 +238,7 @@ scripts/
 | `"tasks"` | Tasks レビュー待ち |
 | `"approval"` | Fix ドキュメント一括レビュー待ち |
 | `"pr-review"` | PR レビュー待ち |
+| `"changelog-review"` | CHANGELOG レビュー待ち（version-up） |
 | `null` | 完了済み |
 
 ## Git Worktree
@@ -302,14 +303,31 @@ release/v{version} ブランチ作成 → main への PR 作成
 ### version-up（自動 — Webhook 経由）
 
 Linear の Project Updates に `/version-up` を投稿すると、Webhook サーバーが検知して Claude を起動する。
+CHANGELOG の内容を Linear Issue として作成し、承認/リジェクトのレビューフローを挟んでから release ブランチと PR を作成する。
+
+```
+/version-up 発行
+  ↓
+Phase 1: コミット分析 → CHANGELOG 生成 → Issue 作成（In Review）→ 停止
+  ↓
+User: Issue を Done / Rejected
+  ↓
+Phase 2: release ブランチ作成 → PR 作成 → Linear 報告 → workflow JSON 削除
+```
 
 #### 使い方
 
 1. Linear で任意の **Project** を開く
 2. Project の **Updates** タブに `/version-up` と投稿する
 3. Webhook サーバーが検知し、Claude が自動起動する
+4. Claude がコミットを分析し、CHANGELOG を生成して **[Version Up] v{version}** Issue を作成する
+5. Issue をレビューする:
+   - **承認**: Issue を **Done** にする → release ブランチ + PR が自動作成される
+   - **リジェクト**: Issue にコメントでフィードバックを書き、**Rejected** にする → Claude が CHANGELOG を修正して再提出
 
 #### 処理フロー
+
+**Phase 1（CHANGELOG 生成 + レビュー依頼）:**
 
 1. `main..dev` 間のコミットを取得し、Conventional Commits プレフィックスで分類
 2. バージョンバンプレベルを決定:
@@ -317,15 +335,28 @@ Linear の Project Updates に `/version-up` を投稿すると、Webhook サー
    - `feat` → **マイナー**
    - `fix` / その他 → **パッチ**
 3. CHANGELOG エントリを生成（日本語、Added / Changed / Fixed に分類）
-4. `release/v{version}` ブランチを作成
-5. `package.json` のバージョンと `CHANGELOG.md` を更新してコミット
-6. `main` ブランチへの PR を作成
-7. Linear Project に結果を報告（バージョン、PR URL など）
+4. CHANGELOG レビュー Issue を作成（`state: "In Review"`）
+5. workflow JSON（`.claude/workflows/version-up.json`）を保存して停止
+
+**Phase 2（release ブランチ + PR 作成）:**
+
+6. `release/v{version}` ブランチを git worktree で作成
+7. `package.json` のバージョンと `CHANGELOG.md` を更新してコミット
+8. `main` ブランチへの PR を作成
+9. Linear Project に結果を報告（バージョン、PR URL など）
+10. workflow JSON を削除（次回新規開始のため）
+
+#### ワークフロー状態
+
+version-up は `.claude/workflows/version-up.json` に状態を保存する。`waitingFor` は `"changelog-review"` が設定される。
+
+Phase 2 完了時に workflow JSON は **自動削除** される。これにより次回の `/version-up` で新規開始できる。
 
 #### 注意事項
 
 - 同時実行は1つまで（既に version-up セッションが走っている場合はスキップ）
 - `chore` / `ci` / `docs` のみのコミットは CHANGELOG から除外される
+- Rejected 時はコメントにフィードバックを書いてから Rejected にすること
 
 ### release-notes（手動 — CLI）
 
