@@ -15,7 +15,7 @@ import { TimeInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import { IconClock } from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import type { AllInRecord } from './types'
@@ -128,6 +128,8 @@ export function AllInModal({
           runItTimes: editingAllIn.runItTimes ?? 2,
           winsInRunout: editingAllIn.winsInRunout ?? 1,
         })
+        setUseRunIt(hasRunIt)
+        setRunItTimesValue(editingAllIn.runItTimes ?? 2)
       } else {
         form.setValues({
           recordedAt: getCurrentTimeString(),
@@ -138,12 +140,16 @@ export function AllInModal({
           runItTimes: 2,
           winsInRunout: 1,
         })
+        setUseRunIt(false)
+        setRunItTimesValue(2)
       }
     }
   }, [opened, editingAllIn])
 
   const handleClose = () => {
     form.reset()
+    setUseRunIt(false)
+    setRunItTimesValue(2)
     onClose()
   }
 
@@ -151,8 +157,12 @@ export function AllInModal({
     onSubmit(values)
   })
 
-  // Get form values for conditional rendering
-  const formValues = form.getValues()
+  // Track form values for conditional rendering (required in uncontrolled mode)
+  const [useRunIt, setUseRunIt] = useState(false)
+  const [runItTimesValue, setRunItTimesValue] = useState<number | null>(2)
+
+  form.watch('useRunIt', ({ value }) => setUseRunIt(value))
+  form.watch('runItTimes', ({ value }) => setRunItTimesValue(value))
 
   return (
     <Modal
@@ -200,7 +210,7 @@ export function AllInModal({
             {...form.getInputProps('useRunIt', { type: 'checkbox' })}
           />
 
-          {formValues.useRunIt && (
+          {useRunIt && (
             <Group grow>
               <NumberInput
                 label="Run it回数"
@@ -211,7 +221,7 @@ export function AllInModal({
               />
               <NumberInput
                 label="勝利回数"
-                max={formValues.runItTimes ?? 10}
+                max={runItTimesValue ?? 10}
                 min={0}
                 placeholder="1"
                 {...form.getInputProps('winsInRunout')}
@@ -219,7 +229,7 @@ export function AllInModal({
             </Group>
           )}
 
-          {!formValues.useRunIt && (
+          {!useRunIt && (
             <Stack gap="xs">
               <Text fw={500} size="sm">
                 結果
