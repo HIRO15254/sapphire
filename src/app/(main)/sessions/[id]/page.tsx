@@ -14,7 +14,7 @@ interface SessionDetailPageProps {
 /**
  * Session detail page (Server Component).
  *
- * Fetches session data on the server and passes to client component.
+ * Fetches session and stores data on the server and passes to client component.
  */
 export default async function SessionDetailPage({
   params,
@@ -22,11 +22,14 @@ export default async function SessionDetailPage({
   const { id } = await params
 
   try {
-    const session = await api.session.getById({ id })
+    const [session, { stores }] = await Promise.all([
+      api.session.getById({ id }),
+      api.store.list({ includeArchived: false }),
+    ])
 
     return (
       <HydrateClient>
-        <SessionDetailContent initialSession={session} />
+        <SessionDetailContent session={session} stores={stores} />
       </HydrateClient>
     )
   } catch {

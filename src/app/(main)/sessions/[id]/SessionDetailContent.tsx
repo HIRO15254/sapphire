@@ -9,18 +9,15 @@ import {
   Modal,
   Stack,
   Text,
-  Title,
   UnstyledButton,
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
-  IconArrowLeft,
   IconChevronDown,
   IconChevronUp,
   IconHistory,
 } from '@tabler/icons-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import {
@@ -28,34 +25,35 @@ import {
   type TimelineAllInRecord,
 } from '~/components/sessions/SessionEventTimeline'
 import { usePageTitle } from '~/contexts/PageTitleContext'
-import { api } from '~/trpc/react'
 import {
   createAllInRecord,
   deleteAllInRecord,
+  deleteSession,
   updateAllInRecord,
 } from '../actions'
 import { type AllInFormValues, AllInModal } from './AllInModal'
 import { AllInSection } from './AllInSection'
+import { SessionEditDrawer } from './SessionEditDrawer'
 import { SessionHeader } from './SessionHeader'
-import { SessionInfo } from './SessionInfo'
+import { SessionInfoCard } from './SessionInfoCard'
+import { SessionSummary } from './SessionSummary'
 import type { AllInRecord, Session } from './types'
 
 interface SessionDetailContentProps {
-  initialSession: Session
+  session: Session
+  stores: Array<{
+    id: string
+    name: string
+  }>
 }
 
-/**
- * Session detail content client component.
- *
- * Shows session details with profit/loss, all-in records, and EV summary.
- */
 export function SessionDetailContent({
-  initialSession,
+  session,
+  stores,
 }: SessionDetailContentProps) {
-  usePageTitle('セッション詳細')
+  usePageTitle('Session Details')
 
   const router = useRouter()
-  const session = initialSession
 
   // State for editing all-in record
   const [editingAllIn, setEditingAllIn] = useState<AllInRecord | null>(null)
@@ -72,38 +70,37 @@ export function SessionDetailContent({
     deleteAllInModalOpened,
     { open: openDeleteAllInModal, close: closeDeleteAllInModal },
   ] = useDisclosure(false)
+  const [editDrawerOpened, { open: openEditDrawer, close: closeEditDrawer }] =
+    useDisclosure(false)
 
-  // Collapsible sections state
-  const [historyOpened, setHistoryOpened] = useState(false)
+  // Timeline collapse state
+  const [timelineOpened, setTimelineOpened] = useState(false)
 
   // Transition states
   const [isDeleting, startDeleteTransition] = useTransition()
   const [isSavingAllIn, startSaveAllInTransition] = useTransition()
   const [isDeletingAllIn, startDeleteAllInTransition] = useTransition()
 
-  // Delete mutation
-  const deleteMutation = api.session.delete.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: '削除完了',
-        message: 'セッションを削除しました',
-        color: 'green',
-      })
-      router.push('/sessions')
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'エラー',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
-
+  // Delete session using Server Action
   const handleDelete = () => {
     closeDeleteModal()
-    startDeleteTransition(() => {
-      deleteMutation.mutate({ id: session.id })
+    startDeleteTransition(async () => {
+      const result = await deleteSession({ id: session.id })
+
+      if (result.success) {
+        notifications.show({
+          title: 'Deleted',
+          message: 'Session has been deleted',
+          color: 'green',
+        })
+        router.push('/sessions')
+      } else {
+        notifications.show({
+          title: 'Error',
+          message: result.error,
+          color: 'red',
+        })
+      }
     })
   }
 
@@ -119,7 +116,7 @@ export function SessionDetailContent({
     openAllInModal()
   }
 
-  // Handle edit all-in from timeline (finds full record by id)
+  // Handle edit all-in from timeline
   const handleEditAllIn = (timelineAllIn: TimelineAllInRecord) => {
     const fullRecord = session.allInRecords.find(
       (r) => r.id === timelineAllIn.id,
@@ -134,7 +131,6 @@ export function SessionDetailContent({
     const winProbabilityNum = Number.parseFloat(values.winProbability)
     startSaveAllInTransition(async () => {
       if (editingAllIn) {
-        // Update existing record
         const result = await updateAllInRecord({
           id: editingAllIn.id,
           potAmount: values.potAmount,
@@ -148,8 +144,8 @@ export function SessionDetailContent({
 
         if (result.success) {
           notifications.show({
-            title: '更新完了',
-            message: 'オールイン記録を更新しました',
+            title: 'Updated',
+            message: 'All-in record updated',
             color: 'green',
           })
           closeAllInModal()
@@ -157,13 +153,12 @@ export function SessionDetailContent({
           router.refresh()
         } else {
           notifications.show({
-            title: 'エラー',
+            title: 'Error',
             message: result.error,
             color: 'red',
           })
         }
       } else {
-        // Create new record
         const result = await createAllInRecord({
           sessionId: session.id,
           potAmount: values.potAmount,
@@ -177,15 +172,15 @@ export function SessionDetailContent({
 
         if (result.success) {
           notifications.show({
-            title: '作成完了',
-            message: 'オールイン記録を追加しました',
+            title: 'Created',
+            message: 'All-in record added',
             color: 'green',
           })
           closeAllInModal()
           router.refresh()
         } else {
           notifications.show({
-            title: 'エラー',
+            title: 'Error',
             message: result.error,
             color: 'red',
           })
@@ -194,7 +189,7 @@ export function SessionDetailContent({
     })
   }
 
-  // Handle all-in delete click (for AllInSection)
+  // Handle all-in delete click
   const handleAllInDeleteClick = (recordId: string) => {
     setDeletingAllInId(recordId)
     openDeleteAllInModal()
@@ -209,15 +204,15 @@ export function SessionDetailContent({
 
       if (result.success) {
         notifications.show({
-          title: '削除完了',
-          message: 'オールイン記録を削除しました',
+          title: 'Deleted',
+          message: 'All-in record deleted',
           color: 'green',
         })
         setDeletingAllInId(null)
         router.refresh()
       } else {
         notifications.show({
-          title: 'エラー',
+          title: 'Error',
           message: result.error,
           color: 'red',
         })
@@ -231,58 +226,50 @@ export function SessionDetailContent({
   }
 
   return (
-    <Container py="xl" size="md">
-      <Stack gap="lg">
-        <Button
-          component={Link}
-          href="/sessions"
-          leftSection={<IconArrowLeft size={16} />}
-          variant="subtle"
-          w="fit-content"
-        >
-          セッション一覧に戻る
-        </Button>
-
+    <Container py="md" size="sm">
+      <Stack gap="md">
         {/* Header */}
         <SessionHeader
           gameType={session.gameType}
           onDeleteClick={openDeleteModal}
+          onEditClick={openEditDrawer}
           sessionId={session.id}
         />
 
-        {/* Session Info (Profit/Loss + Details) */}
-        <SessionInfo session={session} />
+        {/* Profit/Loss Summary with optional chart */}
+        <SessionSummary session={session} />
 
-        {/* All-In Records (only for archived sessions without events) */}
-        {session.sessionEvents.length === 0 && (
-          <AllInSection
-            allInRecords={session.allInRecords}
-            onAddClick={openAllInForCreate}
-            onDeleteClick={handleAllInDeleteClick}
-            onEditClick={openAllInForEdit}
-          />
-        )}
+        {/* Session Info */}
+        <SessionInfoCard session={session} />
+
+        {/* All-In Records */}
+        <AllInSection
+          allInRecords={session.allInRecords}
+          onAddClick={openAllInForCreate}
+          onDeleteClick={handleAllInDeleteClick}
+          onEditClick={openAllInForEdit}
+        />
 
         {/* Event Timeline (only for live-recorded sessions) */}
         {session.sessionEvents.length > 0 && (
-          <Card p="lg" radius="md" shadow="sm" withBorder>
+          <Card radius="sm" shadow="xs" withBorder>
             <UnstyledButton
-              onClick={() => setHistoryOpened((o) => !o)}
+              onClick={() => setTimelineOpened((o) => !o)}
               style={{ width: '100%' }}
             >
-              <Group justify="space-between">
+              <Group justify="space-between" wrap="nowrap">
                 <Group gap="xs">
-                  <IconHistory size={20} />
-                  <Title order={4}>イベント履歴</Title>
+                  <IconHistory size={18} />
+                  <Text fw={500}>Event History</Text>
                 </Group>
-                {historyOpened ? (
-                  <IconChevronUp size={20} />
+                {timelineOpened ? (
+                  <IconChevronUp size={18} />
                 ) : (
-                  <IconChevronDown size={20} />
+                  <IconChevronDown size={18} />
                 )}
               </Group>
             </UnstyledButton>
-            <Collapse in={historyOpened}>
+            <Collapse in={timelineOpened}>
               <Stack gap="md" mt="md">
                 <SessionEventTimeline
                   allInRecords={session.allInRecords}
@@ -301,16 +288,19 @@ export function SessionDetailContent({
         centered
         onClose={closeDeleteModal}
         opened={deleteModalOpened}
-        title="セッションの削除"
+        title="Delete Session"
       >
         <Stack>
-          <Text>このセッションを削除しますか？この操作は取り消せません。</Text>
+          <Text>
+            Are you sure you want to delete this session? This action cannot be
+            undone.
+          </Text>
           <Group justify="flex-end">
             <Button onClick={closeDeleteModal} variant="subtle">
-              キャンセル
+              Cancel
             </Button>
             <Button color="red" loading={isDeleting} onClick={handleDelete}>
-              削除を確認
+              Confirm Delete
             </Button>
           </Group>
         </Stack>
@@ -330,24 +320,32 @@ export function SessionDetailContent({
         centered
         onClose={closeDeleteAllInModal}
         opened={deleteAllInModalOpened}
-        title="オールイン記録の削除"
+        title="Delete All-In Record"
       >
         <Stack>
-          <Text>このオールイン記録を削除しますか？</Text>
+          <Text>Are you sure you want to delete this all-in record?</Text>
           <Group justify="flex-end">
             <Button onClick={closeDeleteAllInModal} variant="subtle">
-              キャンセル
+              Cancel
             </Button>
             <Button
               color="red"
               loading={isDeletingAllIn}
               onClick={handleAllInDelete}
             >
-              削除
+              Delete
             </Button>
           </Group>
         </Stack>
       </Modal>
+
+      {/* Session Edit Drawer (Bottom Sheet) */}
+      <SessionEditDrawer
+        onClose={closeEditDrawer}
+        opened={editDrawerOpened}
+        session={session}
+        stores={stores}
+      />
     </Container>
   )
 }
