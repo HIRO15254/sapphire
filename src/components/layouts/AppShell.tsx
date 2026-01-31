@@ -22,6 +22,7 @@ import {
   IconLogout,
   IconPlayerPause,
   IconPlayerPlay,
+  IconUser,
   IconUsers,
 } from '@tabler/icons-react'
 import Link from 'next/link'
@@ -47,6 +48,7 @@ const navItems = [
   { href: '/stores', label: 'Stores', icon: IconBuildingStore },
   { href: '/players', label: 'Players', icon: IconUsers },
   { href: '/statistics', label: 'Statistics', icon: IconChartBar },
+  { href: '/account', label: 'Account', icon: IconUser },
   { href: '/help', label: 'Help', icon: IconHelp },
 ]
 

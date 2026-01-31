@@ -113,7 +113,13 @@ export const authConfig = {
      * Only configured if environment variables are set.
      */
     ...(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET
-      ? [DiscordProvider]
+      ? [
+          DiscordProvider({
+            clientId: process.env.AUTH_DISCORD_ID,
+            clientSecret: process.env.AUTH_DISCORD_SECRET,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
       : []),
   ],
   adapter: DrizzleAdapter(db, {
