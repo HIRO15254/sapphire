@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Card, Group, SegmentedControl, Stack, Text } from '@mantine/core'
+import { Card, Group, SegmentedControl, Stack, Text } from '@mantine/core'
 import { useState } from 'react'
 
 import { SessionProfitChart } from '~/components/sessions/SessionProfitChart'
@@ -87,27 +87,17 @@ export function SessionSummary({ session }: SessionSummaryProps) {
         )}
 
         {topView === 'chart' && hasEvents && (
-          <Box
-            style={{
-              flex: 1,
-              minHeight: 200,
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <SessionProfitChart
-              allInRecords={session.allInRecords}
-              bigBlind={session.cashGame?.bigBlind}
-              buyIn={session.buyIn}
-              cashOut={session.cashOut}
-              enableHandsMode={session.gameType === 'cash'}
-              endTime={session.endTime}
-              sessionEvents={session.sessionEvents}
-              variant={
-                session.gameType === 'tournament' ? 'tournament' : 'cash'
-              }
-            />
-          </Box>
+          <SessionProfitChart
+            allInRecords={session.allInRecords}
+            bigBlind={session.cashGame?.bigBlind}
+            buyIn={session.buyIn}
+            cashOut={session.cashOut}
+            enableHandsMode={session.gameType === 'cash'}
+            endTime={session.endTime}
+            height={250}
+            sessionEvents={session.sessionEvents}
+            variant={session.gameType === 'tournament' ? 'tournament' : 'cash'}
+          />
         )}
       </Stack>
     </Card>
