@@ -46,7 +46,7 @@ import { SessionProfitChart } from '~/components/sessions/SessionProfitChart'
 import { usePageTitle } from '~/contexts/PageTitleContext'
 import type { RouterOutputs } from '~/trpc/react'
 import { api } from '~/trpc/react'
-import { type AllInFormValues, AllInModal } from '../[id]/AllInModal'
+import { type AllInFormValues, AllInModal } from '~/components/sessions/AllInModal'
 import { BlindTimerCard } from './BlindTimerCard'
 import { HandCounterCard } from './HandCounterCard'
 import { StartSessionForm } from './StartSessionForm'
@@ -353,6 +353,8 @@ export function ActiveSessionContent({
         potAmount: values.potAmount,
         winProbability,
         actualResult,
+        runItTimes: values.useRunIt ? values.runItTimes : null,
+        winsInRunout: values.useRunIt ? values.winsInRunout : null,
         recordedAt,
       })
     } else {

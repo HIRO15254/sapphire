@@ -15,10 +15,8 @@ import { TimeInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import { IconClock } from '@tabler/icons-react'
 import { zodResolver } from 'mantine-form-zod-resolver'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { z } from 'zod'
-
-import type { AllInRecord } from './types'
 
 /**
  * Get current time as HH:MM string.
@@ -81,10 +79,19 @@ const allInFormSchema = z
 
 export type AllInFormValues = z.infer<typeof allInFormSchema>
 
+export interface AllInRecordForModal {
+  potAmount: number
+  winProbability: string
+  actualResult: boolean
+  runItTimes: number | null
+  winsInRunout: number | null
+  recordedAt: Date | string
+}
+
 interface AllInModalProps {
   opened: boolean
   onClose: () => void
-  editingAllIn: AllInRecord | null
+  editingAllIn: AllInRecordForModal | null
   onSubmit: (values: AllInFormValues) => void
   isLoading: boolean
   minTime?: Date
@@ -112,6 +119,13 @@ export function AllInModal({
     validate: zodResolver(allInFormSchema),
   })
 
+  // Track form values for conditional rendering (required in uncontrolled mode)
+  const [useRunIt, setUseRunIt] = useState(false)
+  const [runItTimesValue, setRunItTimesValue] = useState<number | null>(2)
+
+  form.watch('useRunIt', ({ value }) => setUseRunIt(value))
+  form.watch('runItTimes', ({ value }) => setRunItTimesValue(value))
+
   // Reset form when modal opens or editing record changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: form methods are stable
   useEffect(() => {
@@ -128,6 +142,8 @@ export function AllInModal({
           runItTimes: editingAllIn.runItTimes ?? 2,
           winsInRunout: editingAllIn.winsInRunout ?? 1,
         })
+        setUseRunIt(hasRunIt)
+        setRunItTimesValue(editingAllIn.runItTimes ?? 2)
       } else {
         form.setValues({
           recordedAt: getCurrentTimeString(),
@@ -138,21 +154,22 @@ export function AllInModal({
           runItTimes: 2,
           winsInRunout: 1,
         })
+        setUseRunIt(false)
+        setRunItTimesValue(2)
       }
     }
   }, [opened, editingAllIn])
 
   const handleClose = () => {
     form.reset()
+    setUseRunIt(false)
+    setRunItTimesValue(2)
     onClose()
   }
 
   const handleSubmit = form.onSubmit((values) => {
     onSubmit(values)
   })
-
-  // Get form values for conditional rendering
-  const formValues = form.getValues()
 
   return (
     <Modal
@@ -200,7 +217,7 @@ export function AllInModal({
             {...form.getInputProps('useRunIt', { type: 'checkbox' })}
           />
 
-          {formValues.useRunIt && (
+          {useRunIt && (
             <Group grow>
               <NumberInput
                 label="Run it回数"
@@ -211,7 +228,7 @@ export function AllInModal({
               />
               <NumberInput
                 label="勝利回数"
-                max={formValues.runItTimes ?? 10}
+                max={runItTimesValue ?? 10}
                 min={0}
                 placeholder="1"
                 {...form.getInputProps('winsInRunout')}
@@ -219,7 +236,7 @@ export function AllInModal({
             </Group>
           )}
 
-          {!formValues.useRunIt && (
+          {!useRunIt && (
             <Stack gap="xs">
               <Text fw={500} size="sm">
                 結果
