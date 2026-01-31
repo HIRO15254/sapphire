@@ -101,6 +101,8 @@ export const allInRouter = createTRPCRouter({
           potAmount: input.potAmount,
           winProbability: input.winProbability.toString(),
           actualResult: input.actualResult,
+          runItTimes: input.runItTimes ?? null,
+          winsInRunout: input.winsInRunout ?? null,
           recordedAt: input.recordedAt ?? new Date(),
         })
         .returning()
