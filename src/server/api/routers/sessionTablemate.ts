@@ -122,8 +122,8 @@ export const sessionTablemateRouter = createTRPCRouter({
         })
       }
 
-      // Create temporary player
-      const playerName = `Seat ${input.seatNumber}`
+      // Create temporary player with empty name (UI shows "Seat X" as placeholder)
+      const playerName = ''
       const [player] = await ctx.db
         .insert(players)
         .values({
