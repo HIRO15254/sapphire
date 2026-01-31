@@ -18,7 +18,7 @@
 import { spawn } from 'node:child_process'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { createWriteStream } from 'node:fs'
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
 // ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ interface LinearWebhookPayload {
 
 interface WorkflowJson {
   version: string
-  workflowType: 'spec' | 'fix' | 'pending'
+  workflowType: 'spec' | 'fix' | 'pending' | 'version-up'
   specName: string
   summary: string
   teamId: string
@@ -116,13 +116,18 @@ interface WorkflowJson {
   claudeSessionId?: string | null
   waitingFor: string | null
   createdAt: string
+  // version-up specific fields
+  oldVersion?: string
+  newVersion?: string
+  bumpLevel?: 'major' | 'minor' | 'patch'
+  changelogContent?: string
 }
 
 type PhaseKey = 'requirements' | 'design' | 'tasks' | 'implementation'
 
 interface MatchResult {
   specName: string
-  workflowType: 'spec' | 'fix' | 'pending'
+  workflowType: 'spec' | 'fix' | 'pending' | 'version-up'
   workflowJson: WorkflowJson
   matchedPhase?: PhaseKey
   isTaskIssue: boolean
@@ -305,6 +310,17 @@ function findMatchingWorkflow(
       return {
         specName,
         workflowType: 'fix',
+        workflowJson: json,
+        isTaskIssue: false,
+        isClarification: false,
+      }
+    }
+
+    // Version-up workflow: match changelog review issue
+    if (json.workflowType === 'version-up' && json.issueId === issueId) {
+      return {
+        specName,
+        workflowType: 'version-up',
         workflowJson: json,
         isTaskIssue: false,
         isClarification: false,
@@ -560,9 +576,84 @@ async function spawnClaudeVersionUp(projectId: string): Promise<void> {
     return
   }
 
-  const command = `/version-up ${projectId}`
+  // Check existing workflow JSON
+  const workflows = await loadAllWorkflows()
+  const existingWf = workflows.get(specName)
+
+  if (existingWf && existingWf.workflowType === 'version-up') {
+    if (existingWf.waitingFor !== null) {
+      // Workflow in progress — force resume
+      console.log(
+        `[VERSION-UP] Existing workflow found (waitingFor: ${existingWf.waitingFor}) — force resuming`,
+      )
+      await spawnClaudeVersionUpForceResume(specName, projectId)
+      return
+    }
+    // Completed workflow — delete and start fresh
+    const jsonPath = join(WORKFLOWS_DIR, `${specName}.json`)
+    try {
+      await unlink(jsonPath)
+      console.log(`[VERSION-UP] Deleted completed workflow JSON: ${jsonPath}`)
+    } catch {
+      // ignore
+    }
+  }
+
+  // Create initial workflow JSON
+  await mkdir(WORKFLOWS_DIR, { recursive: true })
   const newId = randomUUID()
+  const wfJson: WorkflowJson = {
+    version: '2.0',
+    workflowType: 'version-up',
+    specName,
+    summary: 'Version Up',
+    teamId: '',
+    projectId,
+    projectUrl: '',
+    phases: null,
+    issueId: null,
+    issueIdentifier: null,
+    issueUrl: null,
+    taskIssues: [],
+    claudeSessionId: newId,
+    waitingFor: null,
+    createdAt: new Date().toISOString(),
+  }
+  const jsonPath = join(WORKFLOWS_DIR, `${specName}.json`)
+  await writeFile(jsonPath, JSON.stringify(wfJson, null, 2), 'utf-8')
+  console.log(`[VERSION-UP] Created workflow JSON: ${jsonPath}`)
+
+  const command = `/version-up ${projectId}`
   await spawnClaude(command, { newSessionId: newId }, specName)
+}
+
+async function spawnClaudeVersionUpResume(specName: string): Promise<void> {
+  const existingId = await getSessionId(specName)
+  const command = `/version-up ${specName} を再開`
+
+  if (existingId) {
+    await spawnClaude(command, { resumeSessionId: existingId }, specName)
+  } else {
+    const newId = randomUUID()
+    await saveSessionId(specName, newId)
+    await spawnClaude(command, { newSessionId: newId }, specName)
+  }
+}
+
+async function spawnClaudeVersionUpForceResume(
+  specName: string,
+  projectId: string,
+): Promise<void> {
+  const existingId = await getSessionId(specName)
+  const command = `/version-up ${projectId} を強制再開`
+
+  if (existingId) {
+    await spawnClaude(command, { resumeSessionId: existingId }, specName)
+  } else {
+    const newId = randomUUID()
+    await saveSessionId(specName, newId)
+    await spawnClaude(command, { newSessionId: newId }, specName)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -600,7 +691,7 @@ async function processProjectEvent(
   const workflows = await loadAllWorkflows()
   const existing = findWorkflowByProjectId(projectId, workflows)
 
-  if (existing) {
+  if (existing && existing.workflowJson.workflowType !== 'version-up') {
     console.log(
       `[FORCE RESUME] ${existing.specName} (${existing.workflowJson.workflowType}) triggered by AI Queue re-assignment`,
     )
@@ -677,6 +768,8 @@ async function processIssueEvent(payload: LinearWebhookPayload): Promise<void> {
 
   if (match.isClarification) {
     await spawnClaudeInit(match.workflowJson.projectId, match.specName)
+  } else if (match.workflowType === 'version-up') {
+    await spawnClaudeVersionUpResume(match.specName)
   } else {
     await spawnClaudeResume(match.specName, match.workflowType)
   }
