@@ -237,6 +237,11 @@ export const playerRouter = createTRPCRouter({
       if (input.generalNotes !== undefined)
         updateData.generalNotes = input.generalNotes
 
+      // If no fields to update, return existing record
+      if (Object.keys(updateData).length === 0) {
+        return existing
+      }
+
       const [updated] = await ctx.db
         .update(players)
         .set(updateData)
