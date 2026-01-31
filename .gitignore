@@ -51,5 +51,8 @@ yarn-error.log*
 # spec-workflow
 .spec-workflow/
 
+# git worktrees for parallel implementation
+.worktrees/
+
 # generated version info
 public/version.json

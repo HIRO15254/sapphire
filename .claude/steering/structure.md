@@ -217,9 +217,9 @@ Database
 ```
 
 ### UIレイヤーの責務分担
-- **Server Components**: データフェッチを担当。DBからデータを取得しクライアントに渡す
-- **Client Components**: データ表示とユーザーインタラクション。クエリ用パラメータの作成
-- **Server Actions**: Mutation処理（現在はtRPC mutation使用、順次Server Actionへ移行予定）
+- **Server Components**: データフェッチを担当。tRPC server caller でDBからデータを取得し、Client Component に props で渡す
+- **Client Components**: データ表示とユーザーインタラクション。データは props 経由で受け取り、`useQuery` は使用しない
+- **Server Actions**: 全 Mutation 処理を担当。`'use server'` ディレクティブ付き関数で実装し、`useTransition()` 経由で呼び出す。`useMutation` は使用しない
 
 ### 依存関係の方向
 - UIレイヤー → APIレイヤー → データレイヤー（単方向）

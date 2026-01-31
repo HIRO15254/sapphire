@@ -1,0 +1,49 @@
+{
+  "version": "2.0",
+  "workflowType": "fix",
+  "specName": "fix-tablemate-name-default",
+  "summary": "同卓者編集画面のプレイヤー名デフォルト値を「Seat X」からplaceholderに変更し、空欄なら変更なしとする修正",
+  "teamId": "a1f73b50-5c3c-4d04-b700-3124ea1f64a6",
+  "projectId": "969ef471-a1d0-4695-9b91-d1cf9e3fc06f",
+  "projectUrl": "https://linear.app/sapphire-poker/project/ライブセッション記録の同卓者編集画面における名前のデフォルト値-320c6ef71657",
+  "clarificationIssueId": null,
+  "phases": null,
+  "issueId": "e4438160-b9ee-406c-be7f-bf460e1bcfd5",
+  "issueIdentifier": "SAP-138",
+  "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-138/fix-fix-tablemate-name-default",
+  "prReviewIssue": {
+    "issueId": "502c7b95-e68d-405f-990b-2acd314e7afb",
+    "issueIdentifier": "SAP-146",
+    "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-146/pr-review-fix-tablemate-name-default"
+  },
+  "prUrl": "https://github.com/HIRO15254/sapphire/pull/25",
+  "taskIssues": [
+    {
+      "taskNumber": 1,
+      "issueId": "0b17dac7-0e10-42d3-91c0-99e00b8ecd9f",
+      "issueIdentifier": "SAP-139",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-139/1-サーバーサイド-createプロシージャのデフォルト名を空文字列に変更"
+    },
+    {
+      "taskNumber": 2,
+      "issueId": "0696d44e-68b2-41e9-bf74-be426dfeee75",
+      "issueIdentifier": "SAP-140",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-140/2-ui-playereditmodalの名前フィールド初期化・placeholder修正"
+    },
+    {
+      "taskNumber": 3,
+      "issueId": "071285a8-e8c2-4057-a46e-f2a72d149d38",
+      "issueIdentifier": "SAP-141",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-141/3-ui-tablematescardの表示名フォールバック"
+    },
+    {
+      "taskNumber": 4,
+      "issueId": "56444905-d64b-44a9-87fe-acf811a2e643",
+      "issueIdentifier": "SAP-142",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-142/4-ビルド検証"
+    }
+  ],
+  "waitingFor": null,
+  "createdAt": "2026-01-30T13:18:31.968Z",
+  "claudeSessionId": "a3c5f2dd-a962-4d52-b235-fd80e35f2a16"
+}

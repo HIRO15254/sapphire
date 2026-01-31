@@ -1,0 +1,100 @@
+{
+  "version": "2.0",
+  "workflowType": "spec",
+  "specName": "session-detail-page-rework",
+  "summary": "セッション詳細ページをモバイル向けに最適化されたUIにリワーク。セッション一覧との一貫性を保ちつつ、モバイルフレンドリーなデザインに再構築する",
+  "teamId": "a1f73b50-5c3c-4d04-b700-3124ea1f64a6",
+  "projectId": "ebb77246-6cdf-4a25-9c60-1839b50828fd",
+  "projectUrl": "https://linear.app/sapphire-poker/project/session-detail-page-rework-f4480600640d",
+  "clarificationIssueId": null,
+  "phases": [
+    {
+      "phase": "requirements",
+      "issueId": "177ea59a-425b-49cc-9622-fbff9b1fd626",
+      "issueIdentifier": "SAP-94",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-94/requirements-session-detail-page-rework"
+    },
+    {
+      "phase": "design",
+      "issueId": "99ce9785-94b8-402b-8429-0eddf40d4c30",
+      "issueIdentifier": "SAP-95",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-95/design-session-detail-page-rework"
+    },
+    {
+      "phase": "tasks",
+      "issueId": "10f86c36-9da9-4e16-ab02-4c1025bb80f8",
+      "issueIdentifier": "SAP-96",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-96/tasks-session-detail-page-rework"
+    },
+    {
+      "phase": "implementation",
+      "issueId": "67d0d8d7-4583-43fc-a4be-4fbd4da5f8c0",
+      "issueIdentifier": "SAP-97",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-97/implementation-session-detail-page-rework"
+    }
+  ],
+  "issueId": null,
+  "issueIdentifier": null,
+  "issueUrl": null,
+  "taskIssues": [
+    {
+      "taskNumber": 1,
+      "issueId": "f2f406c3-20c4-4ff6-80c7-6ee73841a744",
+      "issueIdentifier": "SAP-111"
+    },
+    {
+      "taskNumber": 2,
+      "issueId": "6e86bf6e-64e0-47e9-a3ec-cf3ab00068ce",
+      "issueIdentifier": "SAP-112"
+    },
+    {
+      "taskNumber": 3,
+      "issueId": "f1c59d0b-618b-4854-894a-7bc958ae8ef6",
+      "issueIdentifier": "SAP-113"
+    },
+    {
+      "taskNumber": 4,
+      "issueId": "32053828-e3ff-4396-994a-d913e0401278",
+      "issueIdentifier": "SAP-114"
+    },
+    {
+      "taskNumber": 5,
+      "issueId": "60ed3677-ba56-4bba-818a-cc752de92b3a",
+      "issueIdentifier": "SAP-115"
+    },
+    {
+      "taskNumber": 6,
+      "issueId": "59088b55-2f0c-4c39-8fea-c63b93e20029",
+      "issueIdentifier": "SAP-116"
+    },
+    {
+      "taskNumber": 7,
+      "issueId": "db4b74ff-7199-4bec-ae90-6f15be116447",
+      "issueIdentifier": "SAP-117"
+    },
+    {
+      "taskNumber": 8,
+      "issueId": "373002f4-cc79-4c24-bcdf-b431a69e19ae",
+      "issueIdentifier": "SAP-118"
+    },
+    {
+      "taskNumber": 9,
+      "issueId": "7fbc9391-c94f-4f06-906a-ea9020417862",
+      "issueIdentifier": "SAP-119"
+    },
+    {
+      "taskNumber": 10,
+      "issueId": "2b7f1501-cbaa-4bef-a612-f0141d659589",
+      "issueIdentifier": "SAP-120"
+    }
+  ],
+  "prReviewIssue": {
+    "issueId": "cc58a13f-b345-49cc-ad78-8b4700e13a4f",
+    "issueIdentifier": "SAP-129",
+    "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-129/pr-review-session-detail-page-rework"
+  },
+  "waitingFor": null,
+  "prUrl": "https://github.com/HIRO15254/sapphire/pull/23",
+  "createdAt": "2026-01-30T06:05:47.980Z",
+  "claudeSessionId": "52e5bb46-449d-4478-b6d1-ae39f1711c4f"
+}

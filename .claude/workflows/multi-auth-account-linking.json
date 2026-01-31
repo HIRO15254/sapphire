@@ -1,0 +1,91 @@
+{
+  "version": "2.0",
+  "workflowType": "spec",
+  "specName": "multi-auth-account-linking",
+  "summary": "複数のログイン方法（Google OAuth、Discord OAuth、メール/パスワード）を1つのアカウントにリンクし、どの方法でもログインできるようにする機能",
+  "teamId": "a1f73b50-5c3c-4d04-b700-3124ea1f64a6",
+  "projectId": "24333b85-7665-4e9a-93e2-74543d642431",
+  "projectUrl": "https://linear.app/sapphire-poker/project/multi-auth-account-linking-4d47eecaeffa",
+  "clarificationIssueId": null,
+  "phases": [
+    {
+      "phase": "requirements",
+      "issueId": "8e03aaef-e3be-4739-b546-b4111c1328ef",
+      "issueIdentifier": "SAP-125",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-125/requirements-multi-auth-account-linking"
+    },
+    {
+      "phase": "design",
+      "issueId": "8e3a10ac-6cc4-408e-a609-36f19f03689f",
+      "issueIdentifier": "SAP-126",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-126/design-multi-auth-account-linking"
+    },
+    {
+      "phase": "tasks",
+      "issueId": "609f9b11-8222-4346-b586-30939be8fa95",
+      "issueIdentifier": "SAP-127",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-127/tasks-multi-auth-account-linking"
+    },
+    {
+      "phase": "implementation",
+      "issueId": "fc1778a5-413d-475b-94bd-1c5b479fbbf4",
+      "issueIdentifier": "SAP-128",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-128/implementation-multi-auth-account-linking"
+    }
+  ],
+  "issueId": null,
+  "issueIdentifier": null,
+  "issueUrl": null,
+  "taskIssues": [
+    {
+      "taskId": "1",
+      "title": "tRPC Account Router の作成",
+      "issueId": "c2c470b2-2703-4096-a43f-9a268937e087",
+      "issueIdentifier": "SAP-131",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-131/1-trpc-account-router-の作成"
+    },
+    {
+      "taskId": "2",
+      "title": "Server Actions の作成",
+      "issueId": "eb836617-77a4-43c9-9188-9003d443c632",
+      "issueIdentifier": "SAP-132",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-132/2-server-actions-の作成"
+    },
+    {
+      "taskId": "3",
+      "title": "OAuth リンク API ルートの作成",
+      "issueId": "0c461de6-39f2-4459-a19e-d9efe39933e5",
+      "issueIdentifier": "SAP-133",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-133/3-oauth-リンク-api-ルートの作成"
+    },
+    {
+      "taskId": "4",
+      "title": "NextAuth 設定の更新",
+      "issueId": "5f5c0bee-8cbb-4ea1-b5ca-8bab633c79c5",
+      "issueIdentifier": "SAP-134",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-134/4-nextauth-設定の更新"
+    },
+    {
+      "taskId": "5",
+      "title": "Account ページの作成",
+      "issueId": "709dae29-1ed8-4c40-a59d-92979ab8d267",
+      "issueIdentifier": "SAP-135",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-135/5-account-ページの作成"
+    },
+    {
+      "taskId": "6",
+      "title": "AppShell ナビゲーション更新",
+      "issueId": "f13cd8cc-1101-42d9-95e5-eb0318e3a5c8",
+      "issueIdentifier": "SAP-136",
+      "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-136/6-appshell-ナビゲーション更新"
+    }
+  ],
+  "prReviewIssue": {
+    "issueId": "37cf24f1-d607-4952-bdf4-342fa894e8a8",
+    "issueIdentifier": "SAP-137",
+    "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-137/pr-review-multi-auth-account-linking"
+  },
+  "waitingFor": null,
+  "createdAt": "2026-01-30T07:36:11.554Z",
+  "claudeSessionId": "64f2383a-7d6b-4f6c-9a25-7ec917eb51a2"
+}

@@ -29,7 +29,8 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "bun run db:migrate:test playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "webhook:linear": "bun run scripts/linear-webhook-server.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.2",

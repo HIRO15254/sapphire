@@ -36,8 +36,14 @@ Progressive Web Application (PWA) - ライブポーカーセッション追跡�
 **フルスタックモノリス with App Router:**
 - Next.js App Routerによるファイルベースルーティング
 - Server Components (RSC) とClient Componentsのハイブリッド
-- tRPCによる型安全なクライアント-サーバー通信
+- tRPCによる型安全なクライアント-サーバー通信（データ読み取り用）
+- Server Actionsによるミューテーション処理（データ書き込み用）
 - React Queryによるデータフェッチングと状態同期
+
+**データフロー原則:**
+- **読み取り（Query）**: Server Component → tRPC server caller でデータ取得 → Client Component に props で渡す
+- **書き込み（Mutation）**: Client Component → Server Actions（`'use server'`）→ DB操作 → `revalidateTag()` でキャッシュ無効化 → `router.refresh()` で再取得
+- Client Componentでは `useMutation` / `useQuery` を使用しない。Mutation は Server Actions、表示データは props 経由で受け取る
 
 **レイヤー構造:**
 ```
