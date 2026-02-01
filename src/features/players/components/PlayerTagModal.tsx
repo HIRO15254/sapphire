@@ -5,8 +5,8 @@ import {
   Badge,
   Button,
   ColorInput,
+  Drawer,
   Group,
-  Modal,
   Stack,
   Text,
   TextInput,
@@ -162,8 +162,14 @@ export function PlayerTagModal({
   }
 
   return (
-    <Modal onClose={handleClose} opened={opened} size="md" title="タグ管理">
-      <Stack gap="lg">
+    <Drawer
+      onClose={handleClose}
+      opened={opened}
+      position="bottom"
+      size="auto"
+      title="タグ管理"
+    >
+      <Stack gap="lg" pb="md">
         {/* Tag form */}
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="sm">
@@ -178,7 +184,7 @@ export function PlayerTagModal({
               label="カラー"
               placeholder="カラーを選択"
               swatches={TAG_COLOR_SWATCHES}
-              swatchesPerRow={8}
+              swatchesPerRow={5}
               {...form.getInputProps('color')}
             />
             <Group gap="sm" justify="flex-end">
@@ -249,6 +255,6 @@ export function PlayerTagModal({
           </Stack>
         )}
       </Stack>
-    </Modal>
+    </Drawer>
   )
 }

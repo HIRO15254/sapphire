@@ -175,7 +175,7 @@ export function PlayerFilter({
 
           <MultiSelect
             clearable
-            comboboxProps={{ position: 'bottom', middlewares: { flip: false } }}
+            comboboxProps={{ position: 'top', middlewares: { flip: true } }}
             data={tagSelectOptions}
             label="Tags"
             onChange={(value) =>

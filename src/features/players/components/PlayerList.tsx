@@ -78,12 +78,13 @@ export function PlayerList({
                 {player.name}
               </Text>
               {player.tags.length > 0 && (
-                <Group gap={4} wrap="wrap">
+                <Group gap={4} style={{ overflow: 'hidden' }} wrap="nowrap">
                   {player.tags.map((tag) => (
                     <Badge
                       color={tag.color ?? undefined}
                       key={tag.id}
                       size="xs"
+                      style={{ flexShrink: 0 }}
                       variant="light"
                     >
                       {tag.name}
