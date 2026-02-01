@@ -16,6 +16,7 @@ import { useState } from 'react'
 import { defaultPlayerFilters } from '../lib/constants'
 import { hasActivePlayerFilters } from '../lib/filter-utils'
 import type { PlayerFilterState, TagOption } from '../lib/types'
+import { PlayerTagBadge } from './PlayerTagBadge'
 
 interface PlayerFilterProps {
   tags: TagOption[]
@@ -124,8 +125,7 @@ export function PlayerFilter({
             const tag = tags.find((t) => t.id === tagId)
             if (!tag) return null
             return (
-              <Badge
-                color={tag.color ?? undefined}
+              <PlayerTagBadge
                 key={tagId}
                 rightSection={
                   <IconX
@@ -134,11 +134,8 @@ export function PlayerFilter({
                     style={{ cursor: 'pointer' }}
                   />
                 }
-                size="sm"
-                variant="light"
-              >
-                {tag.name}
-              </Badge>
+                tag={tag}
+              />
             )
           })}
           <Button

@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  Badge,
   Button,
   Card,
   Group,
@@ -12,6 +11,7 @@ import { IconPlus } from '@tabler/icons-react'
 import Link from 'next/link'
 import { formatPlayerDate } from '../lib/format-utils'
 import type { PlayerListItem } from '../lib/types'
+import { PlayerTagBadge } from './PlayerTagBadge'
 
 interface PlayerListProps {
   players: PlayerListItem[]
@@ -80,15 +80,12 @@ export function PlayerList({
               {player.tags.length > 0 && (
                 <Group gap={4} style={{ overflow: 'hidden' }} wrap="nowrap">
                   {player.tags.map((tag) => (
-                    <Badge
-                      color={tag.color ?? undefined}
+                    <PlayerTagBadge
                       key={tag.id}
                       size="xs"
                       style={{ flexShrink: 0 }}
-                      variant="light"
-                    >
-                      {tag.name}
-                    </Badge>
+                      tag={tag}
+                    />
                   ))}
                 </Group>
               )}

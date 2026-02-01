@@ -2,6 +2,7 @@
 export { PlayerFilter } from './components/PlayerFilter'
 export { PlayerList } from './components/PlayerList'
 export { PlayerFAB } from './components/PlayerFAB'
+export { PlayerTagBadge } from './components/PlayerTagBadge'
 export { PlayerTagModal } from './components/PlayerTagModal'
 
 // Types

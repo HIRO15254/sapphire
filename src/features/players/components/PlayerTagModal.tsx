@@ -2,7 +2,6 @@
 
 import {
   ActionIcon,
-  Badge,
   Button,
   ColorInput,
   Drawer,
@@ -22,6 +21,7 @@ import {
   updateTag,
 } from '~/app/(main)/players/actions'
 import type { TagOption } from '../lib/types'
+import { PlayerTagBadge } from './PlayerTagBadge'
 
 /**
  * Default color swatches for player tags.
@@ -66,10 +66,10 @@ export function PlayerTagModal({
     },
     validate: {
       name: (value) =>
-        value.trim().length === 0 ? 'タグ名を入力してください' : null,
+        value.trim().length === 0 ? 'Please enter a tag name' : null,
       color: (value) =>
         value && !/^#[0-9A-Fa-f]{6}$/.test(value)
-          ? '有効なカラーコードを入力してください'
+          ? 'Please enter a valid hex color code'
           : null,
     },
   })
@@ -84,8 +84,8 @@ export function PlayerTagModal({
         })
         if (result.success) {
           notifications.show({
-            title: '成功',
-            message: 'タグを更新しました',
+            title: 'Success',
+            message: 'Tag updated',
             color: 'green',
           })
           setEditingTag(null)
@@ -93,7 +93,7 @@ export function PlayerTagModal({
           router.refresh()
         } else {
           notifications.show({
-            title: 'エラー',
+            title: 'Error',
             message: result.error,
             color: 'red',
           })
@@ -105,15 +105,15 @@ export function PlayerTagModal({
         })
         if (result.success) {
           notifications.show({
-            title: '成功',
-            message: 'タグを作成しました',
+            title: 'Success',
+            message: 'Tag created',
             color: 'green',
           })
           form.reset()
           router.refresh()
         } else {
           notifications.show({
-            title: 'エラー',
+            title: 'Error',
             message: result.error,
             color: 'red',
           })
@@ -140,14 +140,14 @@ export function PlayerTagModal({
       const result = await deleteTag({ id: tagId })
       if (result.success) {
         notifications.show({
-          title: '成功',
-          message: 'タグを削除しました',
+          title: 'Success',
+          message: 'Tag deleted',
           color: 'green',
         })
         router.refresh()
       } else {
         notifications.show({
-          title: 'エラー',
+          title: 'Error',
           message: result.error,
           color: 'red',
         })
@@ -167,22 +167,22 @@ export function PlayerTagModal({
       opened={opened}
       position="bottom"
       size="auto"
-      title="タグ管理"
+      title="Manage Tags"
     >
       <Stack gap="lg" pb="md">
         {/* Tag form */}
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="sm">
             <TextInput
-              label="タグ名"
-              placeholder="例: アグレッシブ"
+              label="Tag Name"
+              placeholder="e.g. Aggressive"
               required
               {...form.getInputProps('name')}
             />
             <ColorInput
               format="hex"
-              label="カラー"
-              placeholder="カラーを選択"
+              label="Color"
+              placeholder="Pick a color"
               swatches={TAG_COLOR_SWATCHES}
               swatchesPerRow={5}
               {...form.getInputProps('color')}
@@ -194,7 +194,7 @@ export function PlayerTagModal({
                   onClick={handleCancelEdit}
                   variant="subtle"
                 >
-                  キャンセル
+                  Cancel
                 </Button>
               )}
               <Button
@@ -208,7 +208,7 @@ export function PlayerTagModal({
                 loading={isPending}
                 type="submit"
               >
-                {editingTag ? '更新' : '追加'}
+                {editingTag ? 'Update' : 'Add'}
               </Button>
             </Group>
           </Stack>
@@ -218,21 +218,11 @@ export function PlayerTagModal({
         {tags.length > 0 && (
           <Stack gap="xs">
             <Text fw={500} size="sm">
-              既存のタグ
+              Existing Tags
             </Text>
             {tags.map((tag) => (
               <Group justify="space-between" key={tag.id}>
-                <Badge
-                  color={tag.color ? undefined : 'gray'}
-                  size="lg"
-                  style={
-                    tag.color
-                      ? { backgroundColor: tag.color, color: '#fff' }
-                      : undefined
-                  }
-                >
-                  {tag.name}
-                </Badge>
+                <PlayerTagBadge size="lg" tag={tag} />
                 <Group gap="xs">
                   <ActionIcon
                     disabled={editingTag?.id === tag.id}

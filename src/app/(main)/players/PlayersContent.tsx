@@ -123,7 +123,7 @@ export function PlayersContent({ players, tags }: PlayersContentProps) {
             size="xs"
             variant="light"
           >
-            タグ管理
+            Manage Tags
           </Button>
         </Group>
 
