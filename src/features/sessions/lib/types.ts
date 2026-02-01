@@ -34,6 +34,9 @@ export interface CurrencyOption {
   name: string
 }
 
+/** Profit display unit for session list */
+export type ProfitUnit = 'real' | 'bb' | 'bi'
+
 /** Session data structure for list display */
 export interface Session {
   id: string

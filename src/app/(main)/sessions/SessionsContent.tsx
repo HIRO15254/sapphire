@@ -1,19 +1,22 @@
 'use client'
 
-import { Container, Drawer, Stack } from '@mantine/core'
+import { Container, Drawer, Group, SegmentedControl, Stack } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { usePageTitle } from '~/contexts/PageTitleContext'
+import { GameTypeLabelWithIcon } from '~/components/sessions/GameTypeBadge'
 import {
   type FilterState,
   type NewSessionFormData,
+  type ProfitUnit,
   NewSessionForm,
   SessionFilter,
   SessionList,
   defaultFilters,
   filterSessions,
+  gameTypeOptions,
   hasActiveFilters,
 } from '~/features/sessions'
 import type { RouterOutputs } from '~/trpc/react'
@@ -49,6 +52,14 @@ export function SessionsContent({
   const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
     useDisclosure(false)
   const [isCreating, startCreateTransition] = useTransition()
+  const [profitUnit, setProfitUnit] = useState<ProfitUnit>('real')
+
+  // Reset profitUnit when gameType changes to 'all'
+  useEffect(() => {
+    if (filters.gameType === 'all') {
+      setProfitUnit('real')
+    }
+  }, [filters.gameType])
 
   // Filter sessions client-side
   const filteredSessions = useMemo(
@@ -104,9 +115,57 @@ export function SessionsContent({
           stores={storeOptions}
         />
 
+        <Group gap="sm" justify="space-between">
+          <SegmentedControl
+            data={gameTypeOptions.map((opt) => ({
+              value: opt.value,
+              label:
+                opt.value === 'all' ? (
+                  opt.label
+                ) : (
+                  <GameTypeLabelWithIcon
+                    gameType={opt.value}
+                    iconSize={14}
+                  />
+                ),
+            }))}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                gameType: value as FilterState['gameType'],
+              }))
+            }
+            size="xs"
+            value={filters.gameType}
+          />
+          {filters.gameType === 'cash' && (
+            <SegmentedControl
+              data={[
+                { value: 'real', label: '実収支' },
+                { value: 'bb', label: 'BB' },
+              ]}
+              onChange={(value) => setProfitUnit(value as ProfitUnit)}
+              size="xs"
+              value={profitUnit === 'bi' ? 'real' : profitUnit}
+            />
+          )}
+          {filters.gameType === 'tournament' && (
+            <SegmentedControl
+              data={[
+                { value: 'real', label: '実収支' },
+                { value: 'bi', label: 'BI' },
+              ]}
+              onChange={(value) => setProfitUnit(value as ProfitUnit)}
+              size="xs"
+              value={profitUnit === 'bb' ? 'real' : profitUnit}
+            />
+          )}
+        </Group>
+
         <SessionList
           isFiltered={isFiltered}
           onOpenNewSession={openDrawer}
+          profitUnit={profitUnit}
           sessions={filteredSessions}
         />
       </Stack>

@@ -11,19 +11,37 @@ import { IconCalendar, IconMapPin, IconPlus } from '@tabler/icons-react'
 import Link from 'next/link'
 import { GameTypeBadge } from '~/components/sessions/GameTypeBadge'
 import {
+  formatBBProfitLoss,
+  formatBIProfitLoss,
   formatDate,
   formatDurationShort,
   formatGameName,
   formatProfitLoss,
   getProfitLossColor,
 } from '../lib/format-utils'
-import type { Session } from '../lib/types'
+import type { ProfitUnit, Session } from '../lib/types'
 import { SessionFAB } from './SessionFAB'
 
 interface SessionListProps {
   sessions: Session[]
   isFiltered: boolean
   onOpenNewSession: () => void
+  profitUnit: ProfitUnit
+}
+
+function formatProfit(
+  profitLoss: number | null,
+  session: Session,
+  profitUnit: ProfitUnit,
+): string {
+  switch (profitUnit) {
+    case 'bb':
+      return formatBBProfitLoss(profitLoss, session.cashGame?.bigBlind)
+    case 'bi':
+      return formatBIProfitLoss(profitLoss, session.tournament?.buyIn)
+    default:
+      return formatProfitLoss(profitLoss)
+  }
 }
 
 /**
@@ -35,6 +53,7 @@ export function SessionList({
   sessions,
   isFiltered,
   onOpenNewSession,
+  profitUnit,
 }: SessionListProps) {
   // Empty state
   if (sessions.length === 0) {
@@ -131,7 +150,7 @@ export function SessionList({
                     lh={1.2}
                     size="sm"
                   >
-                    {formatProfitLoss(session.profitLoss)}
+                    {formatProfit(session.profitLoss, session, profitUnit)}
                   </Text>
                   {session.allInSummary &&
                     session.allInSummary.count > 0 &&
@@ -145,9 +164,11 @@ export function SessionList({
                         size="xs"
                       >
                         (EV:{' '}
-                        {formatProfitLoss(
+                        {formatProfit(
                           session.profitLoss -
                             session.allInSummary.evDifference,
+                          session,
+                          profitUnit,
                         )}
                         )
                       </Text>
