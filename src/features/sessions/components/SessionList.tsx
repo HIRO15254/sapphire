@@ -123,7 +123,7 @@ export function SessionList({
                 </Group>
               </Stack>
               {/* Right: Profit/Loss (with EV below) / Duration */}
-              <Group gap="xs" wrap="nowrap">
+              <Group gap="xs" style={{ flexShrink: 0 }} wrap="nowrap">
                 <Stack align="flex-end" gap={0} style={{ lineHeight: 1.2 }}>
                   <Text
                     c={getProfitLossColor(session.profitLoss)}

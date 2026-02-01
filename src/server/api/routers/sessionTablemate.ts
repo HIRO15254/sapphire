@@ -12,6 +12,7 @@ import {
 } from '~/server/db/schema'
 import {
   convertToPlayerSchema,
+  createSelfSessionTablemateSchema,
   createSessionTablemateSchema,
   deleteSessionTablemateSchema,
   linkTablemateToPlayerSchema,
@@ -121,8 +122,8 @@ export const sessionTablemateRouter = createTRPCRouter({
         })
       }
 
-      // Create temporary player
-      const playerName = `Seat ${input.seatNumber}`
+      // Create temporary player with empty name (UI shows "Seat X" as placeholder)
+      const playerName = ''
       const [player] = await ctx.db
         .insert(players)
         .values({
@@ -151,6 +152,77 @@ export const sessionTablemateRouter = createTRPCRouter({
         .returning()
 
       return { tablemate, player }
+    }),
+
+  /**
+   * Create a self-seating tablemate (the user themselves).
+   * No player record is created; playerId is null.
+   * Only one isSelf=true record per session is allowed.
+   */
+  createSelf: protectedProcedure
+    .input(createSelfSessionTablemateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+
+      // Verify session belongs to user
+      const session = await ctx.db.query.pokerSessions.findFirst({
+        where: and(
+          eq(pokerSessions.id, input.sessionId),
+          eq(pokerSessions.userId, userId),
+        ),
+      })
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'セッションが見つかりません',
+        })
+      }
+
+      // Check if self is already seated in this session
+      const existingSelf = await ctx.db.query.sessionTablemates.findFirst({
+        where: and(
+          eq(sessionTablemates.sessionId, input.sessionId),
+          eq(sessionTablemates.userId, userId),
+          eq(sessionTablemates.isSelf, true),
+        ),
+      })
+
+      if (existingSelf) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: '既に自分が着席しています',
+        })
+      }
+
+      // Check if seat is already taken
+      const existingTablemate = await ctx.db.query.sessionTablemates.findFirst({
+        where: and(
+          eq(sessionTablemates.sessionId, input.sessionId),
+          eq(sessionTablemates.seatNumber, input.seatNumber),
+        ),
+      })
+
+      if (existingTablemate) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'この席は既に使用されています',
+        })
+      }
+
+      // Create self tablemate (no player record)
+      const [tablemate] = await ctx.db
+        .insert(sessionTablemates)
+        .values({
+          userId,
+          sessionId: input.sessionId,
+          seatNumber: input.seatNumber,
+          isSelf: true,
+          playerId: null,
+        })
+        .returning()
+
+      return { tablemate }
     }),
 
   /**

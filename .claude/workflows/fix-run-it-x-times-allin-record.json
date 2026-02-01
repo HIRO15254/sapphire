@@ -1,0 +1,30 @@
+{
+  "version": "2.0",
+  "workflowType": "fix",
+  "specName": "fix-run-it-x-times-allin-record",
+  "summary": "AllInModal.tsx で form.getValues() が uncontrolled mode では再レンダリングをトリガーしないため、useRunIt チェックボックスの状態変更がUIに反映されない。form.watch() に置き換えて修正する。",
+  "teamId": "a1f73b50-5c3c-4d04-b700-3124ea1f64a6",
+  "projectId": "6ecc0cc0-53f7-4dc6-a0e1-ae0f8f7eec11",
+  "projectUrl": "https://linear.app/sapphire-poker/project/fix-run-it-x-times-allin-record-f23030c9f28e",
+  "clarificationIssueId": "75f53e65-8a3c-41c5-9a19-916e8c560aee",
+  "phases": null,
+  "issueId": "b32ba4cc-61dd-4d78-870e-da56a68373ec",
+  "issueIdentifier": "SAP-144",
+  "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-144/fix-fix-run-it-x-times-allin-record",
+  "prReviewIssue": {
+    "issueId": "747e49af-f843-424a-a6ae-91eb8c9aa5f5",
+    "issueIdentifier": "SAP-147",
+    "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-147/pr-review-fix-run-it-x-times-allin-record"
+  },
+  "taskIssues": [
+    {
+      "issueId": "624f7227-ead4-4597-a9b7-dadb6de5953f",
+      "issueIdentifier": "SAP-145",
+      "taskNumber": 1,
+      "title": "AllInModal.tsx の form.getValues() を form.watch() に置き換える"
+    }
+  ],
+  "waitingFor": null,
+  "createdAt": "2026-01-31T07:00:38.925Z",
+  "completedAt": "2026-02-01T09:17:00.000Z"
+}

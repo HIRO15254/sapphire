@@ -1,158 +1,92 @@
 'use client'
 
-import {
-  Alert,
-  Button,
-  Card,
-  Checkbox,
-  Container,
-  Group,
-  Loader,
-  Stack,
-  Text,
-} from '@mantine/core'
-import { IconAlertCircle, IconPlus } from '@tabler/icons-react'
-import Link from 'next/link'
-import { useState } from 'react'
+import { Container, Drawer } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
+import { notifications } from '@mantine/notifications'
+import { useRouter } from 'next/navigation'
+import { useMemo, useState, useTransition } from 'react'
 import { usePageTitle } from '~/contexts/PageTitleContext'
+import {
+  CurrencyFAB,
+  CurrencyList,
+  type NewCurrencyFormData,
+  NewCurrencyForm,
+} from '~/features/currencies'
 import type { RouterOutputs } from '~/trpc/react'
-import { api } from '~/trpc/react'
+import { createCurrency } from './actions/index'
 
-type Currency = RouterOutputs['currency']['list']['currencies'][number]
+type CurrencyData = RouterOutputs['currency']['list']['currencies'][number]
 
 interface CurrenciesContentProps {
-  initialCurrencies: Currency[]
+  initialCurrencies: CurrencyData[]
 }
 
-/**
- * Currency list content client component.
- *
- * Displays all currencies with balance information.
- * Uses initial data from server, allows filtering on client.
- */
 export function CurrenciesContent({
   initialCurrencies,
 }: CurrenciesContentProps) {
-  usePageTitle('通貨')
+  usePageTitle('Currencies')
 
+  const router = useRouter()
   const [includeArchived, setIncludeArchived] = useState(false)
+  const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
+    useDisclosure(false)
+  const [isCreating, startCreateTransition] = useTransition()
 
-  // Fetch archived data only when includeArchived is true
-  const { data, isLoading, error } = api.currency.list.useQuery(
-    { includeArchived: true },
-    {
-      enabled: includeArchived,
-    },
+  // Client-side filtering — all currencies (including archived) are fetched on the server
+  const currencies = useMemo(
+    () =>
+      includeArchived
+        ? initialCurrencies
+        : initialCurrencies.filter((c) => !c.isArchived),
+    [initialCurrencies, includeArchived],
   )
 
-  // Use server data by default, switch to query data when includeArchived is true
-  const currencies = includeArchived
-    ? (data?.currencies ?? [])
-    : initialCurrencies
+  const handleCreateCurrency = (formData: NewCurrencyFormData) => {
+    startCreateTransition(async () => {
+      const result = await createCurrency(formData)
 
-  if (includeArchived && isLoading) {
-    return (
-      <Container py="xl" size="md">
-        <Stack align="center" gap="lg">
-          <Loader size="lg" />
-          <Text c="dimmed">読み込み中...</Text>
-        </Stack>
-      </Container>
-    )
-  }
-
-  if (includeArchived && error) {
-    return (
-      <Container py="xl" size="md">
-        <Alert color="red" icon={<IconAlertCircle size={16} />} title="エラー">
-          {error.message}
-        </Alert>
-      </Container>
-    )
+      if (result.success) {
+        notifications.show({
+          title: 'Currency Created',
+          message: 'Your currency has been saved',
+          color: 'green',
+        })
+        closeDrawer()
+        router.push(`/currencies/${result.data.id}`)
+      } else {
+        notifications.show({
+          title: 'Error',
+          message: result.error,
+          color: 'red',
+        })
+      }
+    })
   }
 
   return (
     <Container py="xl" size="md">
-      <Stack gap="lg">
-        {currencies.length > 0 && (
-          <Group justify="flex-end">
-            <Button
-              component={Link}
-              href="/currencies/new"
-              leftSection={<IconPlus size={16} />}
-            >
-              新しい通貨を追加
-            </Button>
-          </Group>
-        )}
+      <CurrencyList
+        currencies={currencies}
+        includeArchived={includeArchived}
+        onIncludeArchivedChange={setIncludeArchived}
+        onOpenNewCurrency={openDrawer}
+      />
 
-        <Checkbox
-          checked={includeArchived}
-          label="アーカイブ済みを表示"
-          onChange={(event) => setIncludeArchived(event.currentTarget.checked)}
+      <CurrencyFAB onOpen={openDrawer} />
+
+      <Drawer
+        onClose={closeDrawer}
+        opened={drawerOpened}
+        position="bottom"
+        size="auto"
+        title="Add Currency"
+      >
+        <NewCurrencyForm
+          isSubmitting={isCreating}
+          onCancel={closeDrawer}
+          onSubmit={handleCreateCurrency}
         />
-
-        {currencies.length === 0 ? (
-          <Card p="xl" radius="md" shadow="sm" withBorder>
-            <Stack align="center" gap="md">
-              <Text c="dimmed" size="lg">
-                通貨が登録されていません
-              </Text>
-              <Text c="dimmed" size="sm">
-                新しい通貨を追加して、ポーカーセッションの記録を始めましょう
-              </Text>
-              <Button
-                component={Link}
-                href="/currencies/new"
-                leftSection={<IconPlus size={16} />}
-                mt="md"
-              >
-                新しい通貨を追加
-              </Button>
-            </Stack>
-          </Card>
-        ) : (
-          <Stack gap="md">
-            {currencies.map((currency) => (
-              <Card
-                component={Link}
-                href={`/currencies/${currency.id}`}
-                key={currency.id}
-                p="lg"
-                radius="md"
-                shadow="sm"
-                style={{ textDecoration: 'none', cursor: 'pointer' }}
-                withBorder
-              >
-                <Group justify="space-between">
-                  <Group gap="sm">
-                    <Text fw={600} size="lg">
-                      {currency.name}
-                    </Text>
-                    {currency.isArchived && (
-                      <Text c="dimmed" size="sm">
-                        （アーカイブ済み）
-                      </Text>
-                    )}
-                  </Group>
-                  <Stack align="flex-end" gap="xs">
-                    <Text c="dimmed" size="sm">
-                      現在残高
-                    </Text>
-                    <Text
-                      c={currency.currentBalance >= 0 ? 'teal' : 'red'}
-                      fw={700}
-                      size="xl"
-                    >
-                      {currency.currentBalance.toLocaleString()}
-                    </Text>
-                  </Stack>
-                </Group>
-              </Card>
-            ))}
-          </Stack>
-        )}
-      </Stack>
+      </Drawer>
     </Container>
   )
 }

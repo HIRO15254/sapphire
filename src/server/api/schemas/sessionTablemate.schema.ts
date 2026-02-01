@@ -75,3 +75,16 @@ export const convertToPlayerSchema = z.object({
 })
 
 export type ConvertToPlayerInput = z.infer<typeof convertToPlayerSchema>
+
+/**
+ * Schema for creating a self-seating tablemate.
+ * No player record is created; playerId will be null.
+ */
+export const createSelfSessionTablemateSchema = z.object({
+  sessionId: z.string().min(1, 'セッションIDは必須です'),
+  seatNumber: z.number().int().min(1).max(10),
+})
+
+export type CreateSelfSessionTablemateInput = z.infer<
+  typeof createSelfSessionTablemateSchema
+>

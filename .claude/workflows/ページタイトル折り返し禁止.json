@@ -1,0 +1,54 @@
+{
+  "version": "2.0",
+  "workflowType": "fix",
+  "specName": "ページタイトル折り返し禁止",
+  "summary": "ヘッダーのページタイトルが長い場合に折り返さず省略表示にし、右側要素を常に表示する",
+  "teamId": "a1f73b50-5c3c-4d04-b700-3124ea1f64a6",
+  "projectId": "db716dc3-1a3c-4c74-945d-a68fa85bf9af",
+  "projectUrl": "https://linear.app/sapphire-poker/project/ページタイトル折り返し禁止-5f7dfa08c3c8",
+  "clarificationIssueId": null,
+  "phases": null,
+  "issueId": "8ea146f7-57ad-4544-8772-d01ce1dd9c91",
+  "issueIdentifier": "SAP-87",
+  "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-87/fix-ページタイトル折り返し禁止",
+  "prReviewIssue": {
+    "issueId": "415a5b96-e4ab-452b-8d3f-c6afa4e5217d",
+    "issueIdentifier": "SAP-93",
+    "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-93/pr-review-ページタイトル折り返し禁止"
+  },
+  "taskIssues": [
+    {
+      "taskId": "1",
+      "issueId": "5a0f1bd8-3e97-4047-af09-84563d0f160f",
+      "issueIdentifier": "SAP-88",
+      "title": "1. ヘッダーの外側 Group に wrap=\"nowrap\" を追加"
+    },
+    {
+      "taskId": "2",
+      "issueId": "085f81f1-e0ec-467b-a748-f42e625d368c",
+      "issueIdentifier": "SAP-89",
+      "title": "2. 左側 Group にフレックスオーバーフロー制御を追加"
+    },
+    {
+      "taskId": "3",
+      "issueId": "ebfea5b6-f959-4292-9229-b04f4e5eabf2",
+      "issueIdentifier": "SAP-90",
+      "title": "3. Title にテキスト省略スタイルを追加"
+    },
+    {
+      "taskId": "4",
+      "issueId": "73bbb3eb-2dee-44fa-ba63-06fad9a88a67",
+      "issueIdentifier": "SAP-91",
+      "title": "4. 右側 Group に flexShrink: 0 を追加"
+    },
+    {
+      "taskId": "5",
+      "issueId": "54e9b41e-2d9f-433e-88d9-77e20c25458f",
+      "issueIdentifier": "SAP-92",
+      "title": "5. ビルド確認"
+    }
+  ],
+  "waitingFor": null,
+  "createdAt": "2026-01-30T05:05:15.137Z",
+  "claudeSessionId": "f8438407-3c69-4016-b738-0db4eeb4b405"
+}

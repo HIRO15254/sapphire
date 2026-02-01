@@ -1,0 +1,37 @@
+{
+  "version": "2.0",
+  "workflowType": "fix",
+  "specName": "サイドバー英語化",
+  "summary": "サイドバーのSession以外の日本語ナビゲーション項目を英語に変更する",
+  "teamId": "a1f73b50-5c3c-4d04-b700-3124ea1f64a6",
+  "projectId": "dae859f6-7126-4980-9d93-ea135e878ea5",
+  "projectUrl": "https://linear.app/sapphire-poker/project/サイドバー英語化-d69f458ef729",
+  "clarificationIssueId": null,
+  "phases": null,
+  "issueId": "c8a8e002-e36b-48f1-826e-feb830fe9438",
+  "issueIdentifier": "SAP-83",
+  "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-83/fix-サイドバー英語化",
+  "taskIssues": [
+    {
+      "taskId": "1",
+      "issueId": "04936f97-6e1c-4731-bfbc-f38a478be0b4",
+      "identifier": "SAP-84",
+      "title": "1. navItems 配列の日本語ラベルを英語に変更"
+    },
+    {
+      "taskId": "2",
+      "issueId": "d0d399b1-7e25-409a-a5e1-a3b010187daa",
+      "identifier": "SAP-85",
+      "title": "2. AppShell内のその他の日本語テキストを英語に変更"
+    },
+    {
+      "taskId": "3",
+      "issueId": "5d00dba9-4fdd-4529-9176-73d739e5910c",
+      "identifier": "SAP-86",
+      "title": "3. ビルド確認"
+    }
+  ],
+  "waitingFor": null,
+  "createdAt": "2026-01-30T04:49:51.360Z",
+  "claudeSessionId": "44f2b986-ed76-4a3d-b38d-da4b40c9ceee"
+}

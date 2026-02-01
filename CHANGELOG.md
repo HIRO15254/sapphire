@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-02-01
+
+### Added
+
+- アカウント設定
+  - 連携ログイン方法（Discord 等）の確認・追加・解除
+  - パスワードの設定・変更
+  - サイドバーにアカウントナビゲーション追加
+
+### Changed
+
+- セッション詳細ページのモバイル対応リワーク
+- 通貨管理ページのリワーク
+
+### Fixed
+
+- AllIn の作成・更新の際 Run it X timesが保存されない問題
+- 同卓者名が空の場合に「Seat X」をプレースホルダーとして表示するよう修正
+- 自分着席（Self-seating）機能の追加と関連 UI の修正
+- テーマトグルをヘッダーからサイドバーに移動
+- ヘッダーのページタイトル折り返し防止
+- セッションカードの右側要素の折り返し防止
+- サイドバーナビゲーションの英語化
+
 ## [1.2.0] - 2026-01-30
 
 ### Added

@@ -2,6 +2,7 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
+import { z } from 'zod'
 import {
   type CreateAllInInput,
   createAllInSchema,
@@ -24,6 +25,7 @@ import {
   allInRecords,
   isNotDeleted,
   pokerSessions,
+  sessionEvents,
   softDelete,
 } from '~/server/db/schema'
 
@@ -386,5 +388,213 @@ export async function deleteAllInRecord(
       return { success: false, error: error.message }
     }
     return { success: false, error: 'オールイン記録の削除に失敗しました' }
+  }
+}
+
+// ============================================================================
+// Session Event Actions
+// ============================================================================
+
+const deleteSessionEventSchema = z.object({
+  eventId: z.string().uuid('有効なイベントIDを指定してください'),
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+})
+
+type DeleteSessionEventInput = z.infer<typeof deleteSessionEventSchema>
+
+/**
+ * Delete a session event.
+ * Cannot delete session_start or session_end events.
+ * For rebuy/addon events, adjusts the session buyIn.
+ *
+ * Revalidates: session-list
+ */
+export async function deleteSessionEvent(
+  input: DeleteSessionEventInput,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, error: '認証が必要です' }
+    }
+
+    // Validate input
+    const validated = deleteSessionEventSchema.parse(input)
+
+    // Verify session ownership
+    const existingSession = await db.query.pokerSessions.findFirst({
+      where: and(
+        eq(pokerSessions.id, validated.sessionId),
+        eq(pokerSessions.userId, session.user.id),
+        isNotDeleted(pokerSessions.deletedAt),
+      ),
+    })
+
+    if (!existingSession) {
+      return { success: false, error: 'セッションが見つかりません' }
+    }
+
+    // Find the event
+    const event = await db.query.sessionEvents.findFirst({
+      where: and(
+        eq(sessionEvents.id, validated.eventId),
+        eq(sessionEvents.sessionId, validated.sessionId),
+        eq(sessionEvents.userId, session.user.id),
+      ),
+    })
+
+    if (!event) {
+      return { success: false, error: 'イベントが見つかりません' }
+    }
+
+    // Cannot delete session_start or session_end
+    if (
+      event.eventType === 'session_start' ||
+      event.eventType === 'session_end'
+    ) {
+      return { success: false, error: 'このイベントは削除できません' }
+    }
+
+    // If rebuy or addon, adjust session buyIn
+    if (event.eventType === 'rebuy' || event.eventType === 'addon') {
+      const eventData = event.eventData as Record<string, unknown> | null
+      const amount = (eventData?.amount as number) ?? 0
+      await db
+        .update(pokerSessions)
+        .set({ buyIn: existingSession.buyIn - amount })
+        .where(eq(pokerSessions.id, validated.sessionId))
+    }
+
+    // Delete the event
+    await db
+      .delete(sessionEvents)
+      .where(eq(sessionEvents.id, validated.eventId))
+
+    revalidateTag('session-list')
+    return { success: true, data: { id: validated.eventId } }
+  } catch (error) {
+    if (error instanceof Error) {
+      return { success: false, error: error.message }
+    }
+    return { success: false, error: 'イベントの削除に失敗しました' }
+  }
+}
+
+const updateSessionEventSchema = z.object({
+  eventId: z.string().uuid('有効なイベントIDを指定してください'),
+  sessionId: z.string().uuid('有効なセッションIDを指定してください'),
+  amount: z
+    .number()
+    .int('金額は整数で入力してください')
+    .min(0, '金額は0以上で入力してください')
+    .optional(),
+  recordedAt: z.date().optional(),
+})
+
+type UpdateSessionEventInput = z.infer<typeof updateSessionEventSchema>
+
+/**
+ * Update a session event's amount and/or time.
+ * Amount editing: stack_update, rebuy, addon only.
+ * For rebuy/addon, also adjusts the session buyIn.
+ *
+ * Revalidates: session-list
+ */
+export async function updateSessionEvent(
+  input: UpdateSessionEventInput,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, error: '認証が必要です' }
+    }
+
+    // Validate input
+    const validated = updateSessionEventSchema.parse(input)
+
+    // Verify session ownership
+    const existingSession = await db.query.pokerSessions.findFirst({
+      where: and(
+        eq(pokerSessions.id, validated.sessionId),
+        eq(pokerSessions.userId, session.user.id),
+        isNotDeleted(pokerSessions.deletedAt),
+      ),
+    })
+
+    if (!existingSession) {
+      return { success: false, error: 'セッションが見つかりません' }
+    }
+
+    // Find the event
+    const event = await db.query.sessionEvents.findFirst({
+      where: and(
+        eq(sessionEvents.id, validated.eventId),
+        eq(sessionEvents.sessionId, validated.sessionId),
+        eq(sessionEvents.userId, session.user.id),
+      ),
+    })
+
+    if (!event) {
+      return { success: false, error: 'イベントが見つかりません' }
+    }
+
+    // Cannot edit session_start or session_end
+    if (
+      event.eventType === 'session_start' ||
+      event.eventType === 'session_end'
+    ) {
+      return { success: false, error: 'このイベントは編集できません' }
+    }
+
+    // Amount editing: only stack_update, rebuy, addon
+    const amountEditableTypes = ['stack_update', 'rebuy', 'addon']
+    if (
+      validated.amount !== undefined &&
+      !amountEditableTypes.includes(event.eventType)
+    ) {
+      return { success: false, error: 'このイベントの金額は編集できません' }
+    }
+
+    // Prepare update data
+    const updateData: { eventData?: { amount: number }; recordedAt?: Date } = {}
+
+    // Handle amount update
+    let amountDiff = 0
+    if (validated.amount !== undefined) {
+      const oldEventData = event.eventData as Record<string, unknown> | null
+      const oldAmount = (oldEventData?.amount as number) ?? 0
+      amountDiff = validated.amount - oldAmount
+      updateData.eventData = { amount: validated.amount }
+    }
+
+    // Handle time update
+    if (validated.recordedAt !== undefined) {
+      updateData.recordedAt = validated.recordedAt
+    }
+
+    // Update event
+    await db
+      .update(sessionEvents)
+      .set(updateData)
+      .where(eq(sessionEvents.id, validated.eventId))
+
+    // If rebuy or addon amount changed, adjust session buyIn
+    if (
+      validated.amount !== undefined &&
+      (event.eventType === 'rebuy' || event.eventType === 'addon')
+    ) {
+      await db
+        .update(pokerSessions)
+        .set({ buyIn: existingSession.buyIn + amountDiff })
+        .where(eq(pokerSessions.id, validated.sessionId))
+    }
+
+    revalidateTag('session-list')
+    return { success: true, data: { id: validated.eventId } }
+  } catch (error) {
+    if (error instanceof Error) {
+      return { success: false, error: error.message }
+    }
+    return { success: false, error: 'イベントの更新に失敗しました' }
   }
 }

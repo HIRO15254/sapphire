@@ -1,0 +1,48 @@
+{
+  "version": "2.0",
+  "workflowType": "fix",
+  "specName": "header-minor-fixes",
+  "summary": "AppShellヘッダーの修正: タイトルリンク削除、テーマトグルをサイドバーに移動",
+  "teamId": "a1f73b50-5c3c-4d04-b700-3124ea1f64a6",
+  "projectId": "d9206e07-9965-4801-bd78-82538de41bcd",
+  "projectUrl": "https://linear.app/sapphire-poker/project/header-minor-fixes-c1b81ce21bfb",
+  "clarificationIssueId": null,
+  "phases": null,
+  "issueId": "fad4d627-a2c2-4e6d-a44c-adaa817e5730",
+  "issueIdentifier": "SAP-100",
+  "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-100/fix-header-minor-fixes",
+  "prReviewIssue": {
+    "issueId": "555d705a-7215-4b75-9667-b5596447c6dd",
+    "issueIdentifier": "SAP-124",
+    "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-124/pr-review-header-minor-fixes-v2"
+  },
+  "taskIssues": [
+    {
+      "taskNumber": 1,
+      "issueId": "f8ba809e-98be-4ecd-84ac-eadd60fc4754",
+      "issueIdentifier": "SAP-107",
+      "title": "ヘッダーの Title から Link ラッパーを削除"
+    },
+    {
+      "taskNumber": 2,
+      "issueId": "48116be2-6f9e-41e0-a00f-41342dfb816d",
+      "issueIdentifier": "SAP-108",
+      "title": "ThemeToggle をヘッダーからサイドバーに移動"
+    },
+    {
+      "taskNumber": 3,
+      "issueId": "e9d82b04-5cd8-492e-9973-a98f8d61b909",
+      "issueIdentifier": "SAP-109",
+      "title": "ライブセッションインジケータの縦幅を拡大"
+    },
+    {
+      "taskNumber": 4,
+      "issueId": "18896afe-f680-462c-a114-10c6041e4ff7",
+      "issueIdentifier": "SAP-110",
+      "title": "ビルド確認"
+    }
+  ],
+  "waitingFor": null,
+  "createdAt": "2026-01-30T06:45:25.413Z",
+  "claudeSessionId": "d80bf5d3-d650-43cb-bcde-e05a65ba1213"
+}

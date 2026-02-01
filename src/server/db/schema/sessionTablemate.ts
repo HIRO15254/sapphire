@@ -55,6 +55,12 @@ export const sessionTablemates = createTable(
     playerId: d
       .varchar('player_id', { length: 255 })
       .references(() => players.id, { onDelete: 'set null' }),
+    /**
+     * Whether this tablemate represents the user themselves.
+     * Only one isSelf=true record per session is allowed (enforced at application level).
+     * When true, playerId is null and no notes/tags are applicable.
+     */
+    isSelf: d.boolean('is_self').notNull().default(false),
     ...timestampColumns(d),
   }),
   (t) => [

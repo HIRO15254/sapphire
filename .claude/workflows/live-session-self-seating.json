@@ -1,0 +1,30 @@
+{
+  "version": "2.0",
+  "workflowType": "fix",
+  "specName": "live-session-self-seating",
+  "summary": "ライブセッションの同卓者タブに自分自身を着席させる機能を追加。isSelfフラグによる自己着席管理、席移動、HandCounterの人数計算調整を含む。",
+  "teamId": "a1f73b50-5c3c-4d04-b700-3124ea1f64a6",
+  "projectId": "15cbc1fa-007d-40f3-b7ce-e2da21f9df68",
+  "projectUrl": "https://linear.app/sapphire-poker/project/live-session-self-seating-2879cb8dcb4f",
+  "clarificationIssueId": null,
+  "phases": null,
+  "issueId": "50ed7f0d-2b6b-4f25-b613-153136f1ccdc",
+  "issueIdentifier": "SAP-98",
+  "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-98/fix-live-session-self-seating",
+  "prReviewIssue": {
+    "issueId": "4b967005-a484-405b-80fb-7a229a67b2b8",
+    "issueIdentifier": "SAP-123",
+    "issueUrl": "https://linear.app/sapphire-poker/issue/SAP-123/pr-review-live-session-self-seating"
+  },
+  "taskIssues": [
+    { "taskId": "1", "issueId": "d7d2f795-dcd6-4307-b8ea-fe67f29767ae", "identifier": "SAP-101", "title": "1. DB スキーマに isSelf カラムを追加" },
+    { "taskId": "2", "issueId": "7c2f91c5-16c2-4d8a-b024-b702c8ae64fe", "identifier": "SAP-102", "title": "2. Zod スキーマに isSelf 関連の変更を追加" },
+    { "taskId": "3", "issueId": "d324d197-90b0-4098-8d0e-3a24b9cd7e53", "identifier": "SAP-103", "title": "3. tRPC ルーターに createSelf プロシージャを追加" },
+    { "taskId": "4", "issueId": "df5e12a3-3c2e-4f6c-ad6e-90ed6ee9edf3", "identifier": "SAP-104", "title": "4. TablematesCard に自分着席 UI を追加" },
+    { "taskId": "5", "issueId": "a309665f-cf1f-4e94-9f8e-a286a17b72f8", "identifier": "SAP-105", "title": "5. HandCounterCard の playerCount 計算を調整" },
+    { "taskId": "6", "issueId": "aba6bc26-dfed-4ef2-a203-b828ebe5d94a", "identifier": "SAP-106", "title": "6. 動作確認・エッジケーステスト" }
+  ],
+  "waitingFor": null,
+  "createdAt": "2026-01-30T06:36:42.207Z",
+  "claudeSessionId": "0938e3b6-3d58-4e0c-a5cd-4e326d38c04e"
+}
