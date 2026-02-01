@@ -1,3 +1,6 @@
+// Components
+export { PlayerFilter } from './components/PlayerFilter'
+
 // Types
 export type {
   PlayerFilterState,
