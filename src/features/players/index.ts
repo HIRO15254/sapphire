@@ -1,5 +1,7 @@
 // Components
 export { PlayerFilter } from './components/PlayerFilter'
+export { PlayerList } from './components/PlayerList'
+export { PlayerFAB } from './components/PlayerFAB'
 
 // Types
 export type {
