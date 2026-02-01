@@ -4,15 +4,26 @@ import { and, eq } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import {
   type CreatePlayerInput,
+  type CreateTagInput,
   createPlayerSchema,
+  createTagSchema,
   type DeletePlayerInput,
+  type DeleteTagInput,
   deletePlayerSchema,
+  deleteTagSchema,
   type UpdatePlayerInput,
+  type UpdateTagInput,
   updatePlayerSchema,
+  updateTagSchema,
 } from '~/server/api/schemas/player.schema'
 import { auth } from '~/server/auth'
 import { db } from '~/server/db'
-import { isNotDeleted, players, softDelete } from '~/server/db/schema'
+import {
+  isNotDeleted,
+  playerTags,
+  players,
+  softDelete,
+} from '~/server/db/schema'
 
 /**
  * Standard result type for Server Actions
@@ -172,6 +183,151 @@ export async function deletePlayer(
         error instanceof Error
           ? error.message
           : 'プレイヤーの削除に失敗しました',
+    }
+  }
+}
+
+// ========== Tag Actions ==========
+
+/**
+ * Create a new player tag.
+ *
+ * Revalidates: player-tags, player-list
+ */
+export async function createTag(
+  input: CreateTagInput,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, error: '認証が必要です' }
+    }
+
+    const validated = createTagSchema.parse(input)
+
+    const [tag] = await db
+      .insert(playerTags)
+      .values({
+        userId: session.user.id,
+        name: validated.name,
+        color: validated.color ?? null,
+      })
+      .returning({ id: playerTags.id })
+
+    if (!tag) {
+      throw new Error('タグの作成に失敗しました')
+    }
+
+    revalidateTag('player-tags')
+    revalidateTag('player-list')
+
+    return { success: true, data: { id: tag.id } }
+  } catch (error) {
+    console.error('Failed to create tag:', error)
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'タグの作成に失敗しました',
+    }
+  }
+}
+
+/**
+ * Update an existing player tag.
+ *
+ * Revalidates: player-tags, player-list
+ */
+export async function updateTag(
+  input: UpdateTagInput,
+): Promise<ActionResult> {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, error: '認証が必要です' }
+    }
+
+    const validated = updateTagSchema.parse(input)
+
+    // Verify ownership
+    const existing = await db.query.playerTags.findFirst({
+      where: and(
+        eq(playerTags.id, validated.id),
+        eq(playerTags.userId, session.user.id),
+        isNotDeleted(playerTags.deletedAt),
+      ),
+    })
+
+    if (!existing) {
+      return { success: false, error: 'タグが見つかりません' }
+    }
+
+    const updateData: Partial<typeof playerTags.$inferInsert> = {}
+    if (validated.name !== undefined) updateData.name = validated.name
+    if (validated.color !== undefined) updateData.color = validated.color
+
+    await db
+      .update(playerTags)
+      .set(updateData)
+      .where(eq(playerTags.id, validated.id))
+
+    revalidateTag('player-tags')
+    revalidateTag('player-list')
+
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('Failed to update tag:', error)
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'タグの更新に失敗しました',
+    }
+  }
+}
+
+/**
+ * Delete a player tag (soft delete).
+ *
+ * Revalidates: player-tags, player-list
+ */
+export async function deleteTag(
+  input: DeleteTagInput,
+): Promise<ActionResult> {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, error: '認証が必要です' }
+    }
+
+    const validated = deleteTagSchema.parse(input)
+
+    // Verify ownership
+    const existing = await db.query.playerTags.findFirst({
+      where: and(
+        eq(playerTags.id, validated.id),
+        eq(playerTags.userId, session.user.id),
+        isNotDeleted(playerTags.deletedAt),
+      ),
+    })
+
+    if (!existing) {
+      return { success: false, error: 'タグが見つかりません' }
+    }
+
+    await db
+      .update(playerTags)
+      .set({ deletedAt: softDelete() })
+      .where(eq(playerTags.id, validated.id))
+
+    revalidateTag('player-tags')
+    revalidateTag('player-list')
+
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('Failed to delete tag:', error)
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'タグの削除に失敗しました',
     }
   }
 }
