@@ -37,6 +37,7 @@ interface AccountContentProps {
   linkedAccounts: {
     providers: LinkedProvider[]
     hasPassword: boolean
+    email: string
   }
 }
 
@@ -121,7 +122,10 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
         confirmPassword: passwordForm.confirmNewPassword,
       })
       if (result.success) {
-        setFeedback({ type: 'success', message: 'Password set successfully' })
+        setFeedback({
+          type: 'success',
+          message: `Password set successfully. You can now sign in with ${linkedAccounts.email} and your password.`,
+        })
         setPasswordForm((prev) => ({
           ...prev,
           password: '',
@@ -251,6 +255,10 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
                   : 'Set Password'}
               </Title>
             </Group>
+
+            <Text c="dimmed" size="sm">
+              Login email: {linkedAccounts.email}
+            </Text>
 
             {linkedAccounts.hasPassword ? (
               <>
