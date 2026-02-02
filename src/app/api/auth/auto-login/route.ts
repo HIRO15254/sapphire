@@ -20,12 +20,13 @@ export async function GET() {
   const email = process.env.PREVIEW_AUTO_LOGIN_EMAIL
   const password = process.env.PREVIEW_AUTO_LOGIN_PASSWORD
 
-  if (!email || !password) {
-    const baseUrl = `https://${process.env.VERCEL_URL}`
-    return NextResponse.redirect(new URL('/auth/signin', baseUrl))
-  }
-
   const baseUrl = `https://${process.env.VERCEL_URL}`
+
+  if (!email || !password) {
+    return NextResponse.redirect(
+      new URL('/auth/signin?auto-login-failed=1', baseUrl),
+    )
+  }
 
   try {
     // NextAuth v5 server-side signIn throws NEXT_REDIRECT on success
@@ -48,7 +49,10 @@ export async function GET() {
       throw error
     }
 
-    // Authentication failed (e.g. account doesn't exist) — fall back to manual sign-in
-    return NextResponse.redirect(new URL('/auth/signin', baseUrl))
+    // Authentication failed (e.g. account doesn't exist) — fall back to manual sign-in.
+    // Use query param to prevent infinite redirect loop with the signin page.
+    return NextResponse.redirect(
+      new URL('/auth/signin?auto-login-failed=1', baseUrl),
+    )
   }
 }
