@@ -64,6 +64,40 @@ export function formatProfitLoss(profitLoss: number | null): string {
 }
 
 /**
+ * Format profit/loss in BB (Big Blind) units.
+ * Falls back to formatProfitLoss when bigBlind is invalid.
+ */
+export function formatBBProfitLoss(
+  profitLoss: number | null,
+  bigBlind: number | null | undefined,
+): string {
+  if (profitLoss === null) return '-'
+  if (!bigBlind) return formatProfitLoss(profitLoss)
+  const bbValue = profitLoss / bigBlind
+  const formatted = Math.abs(bbValue).toFixed(1)
+  if (bbValue > 0) return `+${formatted} BB`
+  if (bbValue < 0) return `-${formatted} BB`
+  return `${formatted} BB`
+}
+
+/**
+ * Format profit/loss in BI (Buy-In) units.
+ * Falls back to formatProfitLoss when buyIn is invalid.
+ */
+export function formatBIProfitLoss(
+  profitLoss: number | null,
+  buyIn: number | null | undefined,
+): string {
+  if (profitLoss === null) return '-'
+  if (!buyIn) return formatProfitLoss(profitLoss)
+  const biValue = profitLoss / buyIn
+  const formatted = Math.abs(biValue).toFixed(2)
+  if (biValue > 0) return `+${formatted} BI`
+  if (biValue < 0) return `-${formatted} BI`
+  return `${formatted} BI`
+}
+
+/**
  * Get color based on profit/loss.
  */
 export function getProfitLossColor(profitLoss: number | null): string {

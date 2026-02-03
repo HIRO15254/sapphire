@@ -4,11 +4,12 @@ import { Container, Drawer, Stack } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { usePageTitle } from '~/contexts/PageTitleContext'
 import {
   type FilterState,
   type NewSessionFormData,
+  type ProfitUnit,
   NewSessionForm,
   SessionFilter,
   SessionList,
@@ -49,6 +50,14 @@ export function SessionsContent({
   const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
     useDisclosure(false)
   const [isCreating, startCreateTransition] = useTransition()
+  const [profitUnit, setProfitUnit] = useState<ProfitUnit>('real')
+
+  // Reset profitUnit when gameType changes to 'all'
+  useEffect(() => {
+    if (filters.gameType === 'all') {
+      setProfitUnit('real')
+    }
+  }, [filters.gameType])
 
   // Filter sessions client-side
   const filteredSessions = useMemo(
@@ -101,12 +110,15 @@ export function SessionsContent({
           currencies={currencyOptions}
           filters={filters}
           onFiltersChange={setFilters}
+          onProfitUnitChange={setProfitUnit}
+          profitUnit={profitUnit}
           stores={storeOptions}
         />
 
         <SessionList
           isFiltered={isFiltered}
           onOpenNewSession={openDrawer}
+          profitUnit={profitUnit}
           sessions={filteredSessions}
         />
       </Stack>

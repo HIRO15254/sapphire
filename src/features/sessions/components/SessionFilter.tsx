@@ -1,10 +1,12 @@
 'use client'
 
 import {
+  Badge,
+  Box,
   Button,
   Drawer,
   Group,
-  Badge,
+  ScrollArea,
   SegmentedControl,
   Select,
   Stack,
@@ -14,6 +16,7 @@ import { DatePickerInput } from '@mantine/dates'
 import { useDisclosure } from '@mantine/hooks'
 import { IconFilter, IconX } from '@tabler/icons-react'
 import { useState } from 'react'
+import { GameTypeIcon } from '~/components/sessions/GameTypeBadge'
 import {
   defaultFilters,
   gameTypeOptions,
@@ -24,6 +27,7 @@ import type {
   CurrencyOption,
   FilterState,
   PeriodPreset,
+  ProfitUnit,
   StoreOption,
 } from '../lib/types'
 
@@ -32,6 +36,8 @@ interface SessionFilterProps {
   currencies: CurrencyOption[]
   filters: FilterState
   onFiltersChange: (filters: FilterState) => void
+  profitUnit: ProfitUnit
+  onProfitUnitChange: (unit: ProfitUnit) => void
 }
 
 /**
@@ -45,6 +51,8 @@ export function SessionFilter({
   currencies,
   filters,
   onFiltersChange,
+  profitUnit,
+  onProfitUnitChange,
 }: SessionFilterProps) {
   // Draft filter state (used in drawer, only applied on "Apply" click)
   const [draftFilters, setDraftFilters] = useState<FilterState>(filters)
@@ -103,10 +111,58 @@ export function SessionFilter({
     label: currency.name,
   }))
 
+  // Quick filter options for SegmentedControl (icons only for Cash/Tournament)
+  const quickFilterData = gameTypeOptions.map((opt) => ({
+    value: opt.value,
+    label:
+      opt.value === 'all' ? (
+        opt.label
+      ) : (
+        <GameTypeIcon gameType={opt.value} size={16} colored />
+      ),
+  }))
+
+  // Determine which profit unit toggle to show
+  const showProfitUnitToggle = filters.gameType !== 'all'
+  const profitUnitOptions =
+    filters.gameType === 'cash'
+      ? [
+          { value: 'real', label: '実収支' },
+          { value: 'bb', label: 'BB' },
+        ]
+      : [
+          { value: 'real', label: '実収支' },
+          { value: 'bi', label: 'BI' },
+        ]
+  // Normalize profitUnit value for current gameType
+  const normalizedProfitUnit =
+    filters.gameType === 'cash' && profitUnit === 'bi'
+      ? 'real'
+      : filters.gameType === 'tournament' && profitUnit === 'bb'
+        ? 'real'
+        : profitUnit
+
+  // Check if there are any active filters to display (excluding gameType which is in quick filter)
+  const hasActiveFilterBadges =
+    filters.periodPreset !== 'all' ||
+    filters.currencyId !== null ||
+    filters.storeId !== null
+
   return (
     <>
-      {/* Filter Button */}
-      <Group gap="sm" justify="flex-end">
+      {/* Row 1: Filter Button + Quick Selector */}
+      <Group gap="sm" justify="space-between">
+        <SegmentedControl
+          data={quickFilterData}
+          onChange={(value) =>
+            onFiltersChange({
+              ...filters,
+              gameType: value as FilterState['gameType'],
+            })
+          }
+          size="xs"
+          value={filters.gameType}
+        />
         <Button
           leftSection={<IconFilter size={16} />}
           onClick={handleOpenDrawer}
@@ -117,83 +173,88 @@ export function SessionFilter({
         </Button>
       </Group>
 
-      {/* Active Filters Display */}
-      {isFiltered && (
-        <Group gap="xs">
-          <Text c="dimmed" size="xs">
-            Filters:
-          </Text>
-          {filters.gameType !== 'all' && (
-            <Badge
-              rightSection={
-                <IconX
-                  onClick={() => removeAppliedFilter('gameType')}
-                  size={12}
-                  style={{ cursor: 'pointer' }}
-                />
-              }
-              size="sm"
-              variant="light"
-            >
-              {gameTypeOptions.find((g) => g.value === filters.gameType)?.label}
-            </Badge>
+      {/* Row 2: Active Filters (scrollable) + Profit Unit Toggle (always visible when applicable) */}
+      {(hasActiveFilterBadges || showProfitUnitToggle) && (
+        <Group gap="sm" wrap="nowrap" justify="space-between">
+          {/* Scrollable active filters area */}
+          <ScrollArea type="scroll" offsetScrollbars scrollbarSize={4} style={{ flex: 1, minWidth: 0 }}>
+            <Group gap="xs" wrap="nowrap">
+              {filters.periodPreset !== 'all' && (
+                <Badge
+                  rightSection={
+                    <IconX
+                      onClick={() => removeAppliedFilter('periodPreset')}
+                      size={12}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  }
+                  size="sm"
+                  variant="light"
+                  style={{ flexShrink: 0 }}
+                >
+                  {
+                    periodOptions.find((p) => p.value === filters.periodPreset)
+                      ?.label
+                  }
+                </Badge>
+              )}
+              {filters.currencyId && (
+                <Badge
+                  rightSection={
+                    <IconX
+                      onClick={() => removeAppliedFilter('currencyId')}
+                      size={12}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  }
+                  size="sm"
+                  variant="light"
+                  style={{ flexShrink: 0 }}
+                >
+                  {currencies.find((c) => c.id === filters.currencyId)?.name}
+                </Badge>
+              )}
+              {filters.storeId && (
+                <Badge
+                  rightSection={
+                    <IconX
+                      onClick={() => removeAppliedFilter('storeId')}
+                      size={12}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  }
+                  size="sm"
+                  variant="light"
+                  style={{ flexShrink: 0 }}
+                >
+                  {stores.find((s) => s.id === filters.storeId)?.name}
+                </Badge>
+              )}
+              {hasActiveFilterBadges && (
+                <Button
+                  color="gray"
+                  onClick={handleClearAppliedFilters}
+                  size="compact-xs"
+                  variant="subtle"
+                  style={{ flexShrink: 0 }}
+                >
+                  Clear
+                </Button>
+              )}
+            </Group>
+          </ScrollArea>
+
+          {/* Profit Unit Toggle - always visible when Cash/Tournament is selected */}
+          {showProfitUnitToggle && (
+            <Box style={{ flexShrink: 0 }}>
+              <SegmentedControl
+                data={profitUnitOptions}
+                onChange={(value) => onProfitUnitChange(value as ProfitUnit)}
+                size="xs"
+                value={normalizedProfitUnit}
+              />
+            </Box>
           )}
-          {filters.periodPreset !== 'all' && (
-            <Badge
-              rightSection={
-                <IconX
-                  onClick={() => removeAppliedFilter('periodPreset')}
-                  size={12}
-                  style={{ cursor: 'pointer' }}
-                />
-              }
-              size="sm"
-              variant="light"
-            >
-              {
-                periodOptions.find((p) => p.value === filters.periodPreset)
-                  ?.label
-              }
-            </Badge>
-          )}
-          {filters.currencyId && (
-            <Badge
-              rightSection={
-                <IconX
-                  onClick={() => removeAppliedFilter('currencyId')}
-                  size={12}
-                  style={{ cursor: 'pointer' }}
-                />
-              }
-              size="sm"
-              variant="light"
-            >
-              {currencies.find((c) => c.id === filters.currencyId)?.name}
-            </Badge>
-          )}
-          {filters.storeId && (
-            <Badge
-              rightSection={
-                <IconX
-                  onClick={() => removeAppliedFilter('storeId')}
-                  size={12}
-                  style={{ cursor: 'pointer' }}
-                />
-              }
-              size="sm"
-              variant="light"
-            >
-              {stores.find((s) => s.id === filters.storeId)?.name}
-            </Badge>
-          )}
-          <Button
-            color="gray"
-            onClick={handleClearAppliedFilters}
-            size="compact-xs"
-            variant="subtle"
-          >
-            Clear all
-          </Button>
         </Group>
       )}
 

@@ -11,6 +11,7 @@ export type {
   StoreOption,
   CurrencyOption,
   PeriodPreset,
+  ProfitUnit,
 } from './lib/types'
 export type { NewSessionFormData } from './components/NewSessionForm'
 
@@ -26,6 +27,8 @@ export {
   formatTime,
   formatDurationShort,
   formatProfitLoss,
+  formatBBProfitLoss,
+  formatBIProfitLoss,
   getProfitLossColor,
 } from './lib/format-utils'
 export { combineDateAndTime, combineEndDateTime } from './lib/date-utils'
