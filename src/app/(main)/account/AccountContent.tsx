@@ -21,8 +21,8 @@ import {
   IconLock,
   IconMail,
 } from '@tabler/icons-react'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState, useTransition } from 'react'
 
 import { usePageTitle } from '~/contexts/PageTitleContext'
 
@@ -39,8 +39,6 @@ interface AccountContentProps {
     hasPassword: boolean
     email: string
   }
-  linkResult: string | null
-  linkError: string | null
 }
 
 const PROVIDER_CONFIG = {
@@ -49,20 +47,62 @@ const PROVIDER_CONFIG = {
 } as const
 
 /**
+ * Isolated component for reading URL search params feedback.
+ * Separated into its own component with Suspense to avoid
+ * useSearchParams() interfering with the parent component's hooks.
+ */
+function LinkFeedback() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [feedback, setFeedback] = useState<{
+    type: 'success' | 'error'
+    message: string
+  } | null>(null)
+
+  useEffect(() => {
+    const linked = searchParams.get('linked')
+    const error = searchParams.get('error')
+    if (linked === 'success') {
+      setFeedback({ type: 'success', message: 'Account linked successfully' })
+      router.replace('/account')
+    } else if (error) {
+      setFeedback({
+        type: 'error',
+        message: `Failed to link account: ${error}`,
+      })
+      router.replace('/account')
+    }
+  }, [searchParams, router])
+
+  if (!feedback) return null
+
+  return (
+    <Paper
+      bg={feedback.type === 'success' ? 'teal.0' : 'red.0'}
+      p="sm"
+      radius="sm"
+    >
+      <Text
+        c={feedback.type === 'success' ? 'teal.8' : 'red.8'}
+        size="sm"
+      >
+        {feedback.message}
+      </Text>
+    </Paper>
+  )
+}
+
+/**
  * Account settings client component.
  * Displays linked login methods and password management.
  */
-export function AccountContent({
-  linkedAccounts,
-  linkResult,
-  linkError,
-}: AccountContentProps) {
+export function AccountContent({ linkedAccounts }: AccountContentProps) {
   usePageTitle('Account')
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  // Feedback from URL params (passed from server component)
-  const [feedback, setFeedback] = useState<{
+  // Feedback from server actions
+  const [actionFeedback, setActionFeedback] = useState<{
     type: 'success' | 'error'
     message: string
   } | null>(null)
@@ -81,19 +121,6 @@ export function AccountContent({
     confirmNewPassword: '',
   })
 
-  useEffect(() => {
-    if (linkResult === 'success') {
-      setFeedback({ type: 'success', message: 'Account linked successfully' })
-      router.replace('/account')
-    } else if (linkError) {
-      setFeedback({
-        type: 'error',
-        message: `Failed to link account: ${linkError}`,
-      })
-      router.replace('/account')
-    }
-  }, [linkResult, linkError, router])
-
   const isProviderLinked = (provider: string) =>
     linkedAccounts.providers.some((p) => p.provider === provider)
 
@@ -107,9 +134,12 @@ export function AccountContent({
     startTransition(async () => {
       const result = await unlinkProvider(providerToUnlink)
       if (result.success) {
-        setFeedback({ type: 'success', message: 'Provider unlinked successfully' })
+        setActionFeedback({
+          type: 'success',
+          message: 'Provider unlinked successfully',
+        })
       } else {
-        setFeedback({ type: 'error', message: result.error })
+        setActionFeedback({ type: 'error', message: result.error })
       }
       closeUnlinkModal()
       setProviderToUnlink(null)
@@ -128,7 +158,7 @@ export function AccountContent({
         confirmPassword: passwordForm.confirmNewPassword,
       })
       if (result.success) {
-        setFeedback({
+        setActionFeedback({
           type: 'success',
           message: `Password set successfully. You can now sign in with ${linkedAccounts.email} and your password.`,
         })
@@ -139,7 +169,7 @@ export function AccountContent({
         }))
         router.refresh()
       } else {
-        setFeedback({ type: 'error', message: result.error })
+        setActionFeedback({ type: 'error', message: result.error })
       }
     })
   }
@@ -152,7 +182,10 @@ export function AccountContent({
         confirmPassword: passwordForm.confirmPassword,
       })
       if (result.success) {
-        setFeedback({ type: 'success', message: 'Password changed successfully' })
+        setActionFeedback({
+          type: 'success',
+          message: 'Password changed successfully',
+        })
         setPasswordForm({
           currentPassword: '',
           newPassword: '',
@@ -161,7 +194,7 @@ export function AccountContent({
           confirmNewPassword: '',
         })
       } else {
-        setFeedback({ type: 'error', message: result.error })
+        setActionFeedback({ type: 'error', message: result.error })
       }
     })
   }
@@ -169,17 +202,21 @@ export function AccountContent({
   return (
     <Container py="xl" size="sm">
       <Stack gap="xl">
-        {feedback && (
+        <Suspense fallback={null}>
+          <LinkFeedback />
+        </Suspense>
+
+        {actionFeedback && (
           <Paper
-            bg={feedback.type === 'success' ? 'teal.0' : 'red.0'}
+            bg={actionFeedback.type === 'success' ? 'teal.0' : 'red.0'}
             p="sm"
             radius="sm"
           >
             <Text
-              c={feedback.type === 'success' ? 'teal.8' : 'red.8'}
+              c={actionFeedback.type === 'success' ? 'teal.8' : 'red.8'}
               size="sm"
             >
-              {feedback.message}
+              {actionFeedback.message}
             </Text>
           </Paper>
         )}
