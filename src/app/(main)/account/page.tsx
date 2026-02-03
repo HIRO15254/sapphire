@@ -1,7 +1,5 @@
 import { Suspense } from 'react'
 
-import { Container, Text } from '@mantine/core'
-
 import { api, HydrateClient } from '~/trpc/server'
 
 import { AccountContent } from './AccountContent'
@@ -18,13 +16,7 @@ export default async function AccountPage() {
 
   return (
     <HydrateClient>
-      <Suspense
-        fallback={
-          <Container py="xl" size="sm">
-            <Text ta="center">Loading...</Text>
-          </Container>
-        }
-      >
+      <Suspense fallback={null}>
         <AccountContent linkedAccounts={linkedAccounts} />
       </Suspense>
     </HydrateClient>
