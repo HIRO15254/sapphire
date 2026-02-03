@@ -21,7 +21,7 @@ import {
   IconLock,
   IconMail,
 } from '@tabler/icons-react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 
 import { usePageTitle } from '~/contexts/PageTitleContext'
@@ -39,6 +39,8 @@ interface AccountContentProps {
     hasPassword: boolean
     email: string
   }
+  linkResult: string | null
+  linkError: string | null
 }
 
 const PROVIDER_CONFIG = {
@@ -50,13 +52,16 @@ const PROVIDER_CONFIG = {
  * Account settings client component.
  * Displays linked login methods and password management.
  */
-export function AccountContent({ linkedAccounts }: AccountContentProps) {
+export function AccountContent({
+  linkedAccounts,
+  linkResult,
+  linkError,
+}: AccountContentProps) {
   usePageTitle('Account')
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
 
-  // Feedback from URL params
+  // Feedback from URL params (passed from server component)
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error'
     message: string
@@ -77,16 +82,17 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
   })
 
   useEffect(() => {
-    const linked = searchParams.get('linked')
-    const error = searchParams.get('error')
-    if (linked === 'success') {
+    if (linkResult === 'success') {
       setFeedback({ type: 'success', message: 'Account linked successfully' })
       router.replace('/account')
-    } else if (error) {
-      setFeedback({ type: 'error', message: `Failed to link account: ${error}` })
+    } else if (linkError) {
+      setFeedback({
+        type: 'error',
+        message: `Failed to link account: ${linkError}`,
+      })
       router.replace('/account')
     }
-  }, [searchParams, router])
+  }, [linkResult, linkError, router])
 
   const isProviderLinked = (provider: string) =>
     linkedAccounts.providers.some((p) => p.provider === provider)
