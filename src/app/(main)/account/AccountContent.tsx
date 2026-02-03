@@ -12,7 +12,9 @@ import {
   Text,
   Title,
 } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
+import { notifications } from '@mantine/notifications'
 import {
   IconBrandDiscord,
   IconBrandGoogle,
@@ -22,7 +24,7 @@ import {
   IconMail,
 } from '@tabler/icons-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { Suspense, useEffect, useState, useTransition } from 'react'
 
 import { usePageTitle } from '~/contexts/PageTitleContext'
 
@@ -47,46 +49,197 @@ const PROVIDER_CONFIG = {
 } as const
 
 /**
+ * Isolated component for reading URL search params feedback.
+ * Wrapped in Suspense to avoid useSearchParams() interfering with parent.
+ */
+function LinkFeedback() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  useEffect(() => {
+    const linked = searchParams.get('linked')
+    const error = searchParams.get('error')
+    if (linked === 'success') {
+      notifications.show({
+        title: 'Success',
+        message: 'Account linked successfully',
+        color: 'green',
+      })
+      router.replace('/account')
+    } else if (error) {
+      notifications.show({
+        title: 'Error',
+        message: `Failed to link account: ${error}`,
+        color: 'red',
+      })
+      router.replace('/account')
+    }
+  }, [searchParams, router])
+
+  return null
+}
+
+/**
+ * Password form for setting a new password (OAuth-only users).
+ * Uses @mantine/form with uncontrolled mode for React 19 compatibility.
+ */
+function SetPasswordForm({
+  email,
+  onComplete,
+}: {
+  email: string
+  onComplete: () => void
+}) {
+  const [isSubmitting, startTransition] = useTransition()
+
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: {
+      password: '',
+      confirmPassword: '',
+    },
+    validate: {
+      password: (value) =>
+        value.length < 8 ? 'Password must be at least 8 characters' : null,
+      confirmPassword: (value, values) =>
+        value !== values.password ? 'Passwords do not match' : null,
+    },
+  })
+
+  const handleSubmit = form.onSubmit((values) => {
+    startTransition(async () => {
+      const result = await setPassword({
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+      })
+      if (result.success) {
+        notifications.show({
+          title: 'Success',
+          message: `Password set successfully. You can now sign in with ${email} and your password.`,
+          color: 'green',
+        })
+        form.reset()
+        onComplete()
+      } else {
+        notifications.show({
+          title: 'Error',
+          message: result.error,
+          color: 'red',
+        })
+      }
+    })
+  })
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack gap="md">
+        <PasswordInput
+          disabled={isSubmitting}
+          label="Password"
+          {...form.getInputProps('password')}
+        />
+        <PasswordInput
+          disabled={isSubmitting}
+          label="Confirm Password"
+          {...form.getInputProps('confirmPassword')}
+        />
+        <Button loading={isSubmitting} type="submit">
+          Set Password
+        </Button>
+      </Stack>
+    </form>
+  )
+}
+
+/**
+ * Password form for changing an existing password.
+ * Uses @mantine/form with uncontrolled mode for React 19 compatibility.
+ */
+function ChangePasswordForm() {
+  const [isSubmitting, startTransition] = useTransition()
+
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    validate: {
+      currentPassword: (value) =>
+        value.length < 1 ? 'Current password is required' : null,
+      newPassword: (value) =>
+        value.length < 8 ? 'New password must be at least 8 characters' : null,
+      confirmPassword: (value, values) =>
+        value !== values.newPassword ? 'Passwords do not match' : null,
+    },
+  })
+
+  const handleSubmit = form.onSubmit((values) => {
+    startTransition(async () => {
+      const result = await changePassword({
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+        confirmPassword: values.confirmPassword,
+      })
+      if (result.success) {
+        notifications.show({
+          title: 'Success',
+          message: 'Password changed successfully',
+          color: 'green',
+        })
+        form.reset()
+      } else {
+        notifications.show({
+          title: 'Error',
+          message: result.error,
+          color: 'red',
+        })
+      }
+    })
+  })
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack gap="md">
+        <PasswordInput
+          disabled={isSubmitting}
+          label="Current Password"
+          {...form.getInputProps('currentPassword')}
+        />
+        <PasswordInput
+          disabled={isSubmitting}
+          label="New Password"
+          {...form.getInputProps('newPassword')}
+        />
+        <PasswordInput
+          disabled={isSubmitting}
+          label="Confirm New Password"
+          {...form.getInputProps('confirmPassword')}
+        />
+        <Button loading={isSubmitting} type="submit">
+          Change Password
+        </Button>
+      </Stack>
+    </form>
+  )
+}
+
+/**
  * Account settings client component.
  * Displays linked login methods and password management.
  */
 export function AccountContent({ linkedAccounts }: AccountContentProps) {
   usePageTitle('Account')
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
 
-  // Feedback from URL params
-  const [feedback, setFeedback] = useState<{
-    type: 'success' | 'error'
-    message: string
-  } | null>(null)
-
   // Unlink confirmation modal
-  const [unlinkModalOpened, { open: openUnlinkModal, close: closeUnlinkModal }] =
-    useDisclosure(false)
+  const [
+    unlinkModalOpened,
+    { open: openUnlinkModal, close: closeUnlinkModal },
+  ] = useDisclosure(false)
   const [providerToUnlink, setProviderToUnlink] = useState<string | null>(null)
-
-  // Password form state
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    password: '',
-    confirmNewPassword: '',
-  })
-
-  useEffect(() => {
-    const linked = searchParams.get('linked')
-    const error = searchParams.get('error')
-    if (linked === 'success') {
-      setFeedback({ type: 'success', message: 'Account linked successfully' })
-      router.replace('/account')
-    } else if (error) {
-      setFeedback({ type: 'error', message: `Failed to link account: ${error}` })
-      router.replace('/account')
-    }
-  }, [searchParams, router])
 
   const isProviderLinked = (provider: string) =>
     linkedAccounts.providers.some((p) => p.provider === provider)
@@ -101,9 +254,17 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
     startTransition(async () => {
       const result = await unlinkProvider(providerToUnlink)
       if (result.success) {
-        setFeedback({ type: 'success', message: 'Provider unlinked successfully' })
+        notifications.show({
+          title: 'Success',
+          message: 'Provider unlinked successfully',
+          color: 'green',
+        })
       } else {
-        setFeedback({ type: 'error', message: result.error })
+        notifications.show({
+          title: 'Error',
+          message: result.error,
+          color: 'red',
+        })
       }
       closeUnlinkModal()
       setProviderToUnlink(null)
@@ -115,68 +276,12 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
     window.location.href = `/api/auth/link/${provider}`
   }
 
-  const handleSetPassword = () => {
-    startTransition(async () => {
-      const result = await setPassword({
-        password: passwordForm.password,
-        confirmPassword: passwordForm.confirmNewPassword,
-      })
-      if (result.success) {
-        setFeedback({
-          type: 'success',
-          message: `Password set successfully. You can now sign in with ${linkedAccounts.email} and your password.`,
-        })
-        setPasswordForm((prev) => ({
-          ...prev,
-          password: '',
-          confirmNewPassword: '',
-        }))
-        router.refresh()
-      } else {
-        setFeedback({ type: 'error', message: result.error })
-      }
-    })
-  }
-
-  const handleChangePassword = () => {
-    startTransition(async () => {
-      const result = await changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-        confirmPassword: passwordForm.confirmPassword,
-      })
-      if (result.success) {
-        setFeedback({ type: 'success', message: 'Password changed successfully' })
-        setPasswordForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-          password: '',
-          confirmNewPassword: '',
-        })
-      } else {
-        setFeedback({ type: 'error', message: result.error })
-      }
-    })
-  }
-
   return (
     <Container py="xl" size="sm">
       <Stack gap="xl">
-        {feedback && (
-          <Paper
-            bg={feedback.type === 'success' ? 'teal.0' : 'red.0'}
-            p="sm"
-            radius="sm"
-          >
-            <Text
-              c={feedback.type === 'success' ? 'teal.8' : 'red.8'}
-              size="sm"
-            >
-              {feedback.message}
-            </Text>
-          </Paper>
-        )}
+        <Suspense fallback={null}>
+          <LinkFeedback />
+        </Suspense>
 
         {/* Linked Login Methods */}
         <Paper p="lg" radius="md" shadow="sm" withBorder>
@@ -261,87 +366,12 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
             </Text>
 
             {linkedAccounts.hasPassword ? (
-              <>
-                <PasswordInput
-                  disabled={isPending}
-                  label="Current Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      currentPassword: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.currentPassword}
-                />
-                <PasswordInput
-                  disabled={isPending}
-                  label="New Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      newPassword: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.newPassword}
-                />
-                <PasswordInput
-                  disabled={isPending}
-                  label="Confirm New Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      confirmPassword: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.confirmPassword}
-                />
-                <Button
-                  disabled={
-                    isPending ||
-                    !passwordForm.currentPassword ||
-                    !passwordForm.newPassword ||
-                    !passwordForm.confirmPassword
-                  }
-                  onClick={handleChangePassword}
-                >
-                  Change Password
-                </Button>
-              </>
+              <ChangePasswordForm />
             ) : (
-              <>
-                <PasswordInput
-                  disabled={isPending}
-                  label="Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      password: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.password}
-                />
-                <PasswordInput
-                  disabled={isPending}
-                  label="Confirm Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      confirmNewPassword: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.confirmNewPassword}
-                />
-                <Button
-                  disabled={
-                    isPending ||
-                    !passwordForm.password ||
-                    !passwordForm.confirmNewPassword
-                  }
-                  onClick={handleSetPassword}
-                >
-                  Set Password
-                </Button>
-              </>
+              <SetPasswordForm
+                email={linkedAccounts.email}
+                onComplete={() => router.refresh()}
+              />
             )}
           </Stack>
         </Paper>
@@ -358,9 +388,8 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
           <Text>
             Are you sure you want to unlink{' '}
             {providerToUnlink &&
-              PROVIDER_CONFIG[
-                providerToUnlink as keyof typeof PROVIDER_CONFIG
-              ]?.label}
+              PROVIDER_CONFIG[providerToUnlink as keyof typeof PROVIDER_CONFIG]
+                ?.label}
             ? You will no longer be able to sign in with this provider.
           </Text>
           <Group justify="flex-end">
