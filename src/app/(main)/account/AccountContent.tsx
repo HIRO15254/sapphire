@@ -12,6 +12,7 @@ import {
   Text,
   Title,
 } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
 import {
   IconBrandDiscord,
@@ -48,8 +49,7 @@ const PROVIDER_CONFIG = {
 
 /**
  * Isolated component for reading URL search params feedback.
- * Separated into its own component with Suspense to avoid
- * useSearchParams() interfering with the parent component's hooks.
+ * Wrapped in Suspense to avoid useSearchParams() interfering with parent.
  */
 function LinkFeedback() {
   const searchParams = useSearchParams()
@@ -82,13 +82,153 @@ function LinkFeedback() {
       p="sm"
       radius="sm"
     >
-      <Text
-        c={feedback.type === 'success' ? 'teal.8' : 'red.8'}
-        size="sm"
-      >
+      <Text c={feedback.type === 'success' ? 'teal.8' : 'red.8'} size="sm">
         {feedback.message}
       </Text>
     </Paper>
+  )
+}
+
+/**
+ * Password form for setting a new password (OAuth-only users).
+ * Uses @mantine/form with uncontrolled mode for React 19 compatibility.
+ */
+function SetPasswordForm({
+  email,
+  isPending,
+  onSuccess,
+  onError,
+}: {
+  email: string
+  isPending: boolean
+  onSuccess: (message: string) => void
+  onError: (message: string) => void
+}) {
+  const [, startTransition] = useTransition()
+
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: {
+      password: '',
+      confirmPassword: '',
+    },
+    validate: {
+      password: (value) =>
+        value.length < 8 ? 'Password must be at least 8 characters' : null,
+      confirmPassword: (value, values) =>
+        value !== values.password ? 'Passwords do not match' : null,
+    },
+  })
+
+  const handleSubmit = form.onSubmit((values) => {
+    startTransition(async () => {
+      const result = await setPassword({
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+      })
+      if (result.success) {
+        onSuccess(
+          `Password set successfully. You can now sign in with ${email} and your password.`,
+        )
+        form.reset()
+      } else {
+        onError(result.error)
+      }
+    })
+  })
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack gap="md">
+        <PasswordInput
+          disabled={isPending}
+          label="Password"
+          {...form.getInputProps('password')}
+        />
+        <PasswordInput
+          disabled={isPending}
+          label="Confirm Password"
+          {...form.getInputProps('confirmPassword')}
+        />
+        <Button disabled={isPending} type="submit">
+          Set Password
+        </Button>
+      </Stack>
+    </form>
+  )
+}
+
+/**
+ * Password form for changing an existing password.
+ * Uses @mantine/form with uncontrolled mode for React 19 compatibility.
+ */
+function ChangePasswordForm({
+  isPending,
+  onSuccess,
+  onError,
+}: {
+  isPending: boolean
+  onSuccess: (message: string) => void
+  onError: (message: string) => void
+}) {
+  const [, startTransition] = useTransition()
+
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    validate: {
+      currentPassword: (value) =>
+        value.length < 1 ? 'Current password is required' : null,
+      newPassword: (value) =>
+        value.length < 8 ? 'New password must be at least 8 characters' : null,
+      confirmPassword: (value, values) =>
+        value !== values.newPassword ? 'Passwords do not match' : null,
+    },
+  })
+
+  const handleSubmit = form.onSubmit((values) => {
+    startTransition(async () => {
+      const result = await changePassword({
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+        confirmPassword: values.confirmPassword,
+      })
+      if (result.success) {
+        onSuccess('Password changed successfully')
+        form.reset()
+      } else {
+        onError(result.error)
+      }
+    })
+  })
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack gap="md">
+        <PasswordInput
+          disabled={isPending}
+          label="Current Password"
+          {...form.getInputProps('currentPassword')}
+        />
+        <PasswordInput
+          disabled={isPending}
+          label="New Password"
+          {...form.getInputProps('newPassword')}
+        />
+        <PasswordInput
+          disabled={isPending}
+          label="Confirm New Password"
+          {...form.getInputProps('confirmPassword')}
+        />
+        <Button disabled={isPending} type="submit">
+          Change Password
+        </Button>
+      </Stack>
+    </form>
   )
 }
 
@@ -101,25 +241,17 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  // Feedback from server actions
-  const [actionFeedback, setActionFeedback] = useState<{
+  const [feedback, setFeedback] = useState<{
     type: 'success' | 'error'
     message: string
   } | null>(null)
 
   // Unlink confirmation modal
-  const [unlinkModalOpened, { open: openUnlinkModal, close: closeUnlinkModal }] =
-    useDisclosure(false)
+  const [
+    unlinkModalOpened,
+    { open: openUnlinkModal, close: closeUnlinkModal },
+  ] = useDisclosure(false)
   const [providerToUnlink, setProviderToUnlink] = useState<string | null>(null)
-
-  // Password form state
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    password: '',
-    confirmNewPassword: '',
-  })
 
   const isProviderLinked = (provider: string) =>
     linkedAccounts.providers.some((p) => p.provider === provider)
@@ -134,12 +266,12 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
     startTransition(async () => {
       const result = await unlinkProvider(providerToUnlink)
       if (result.success) {
-        setActionFeedback({
+        setFeedback({
           type: 'success',
           message: 'Provider unlinked successfully',
         })
       } else {
-        setActionFeedback({ type: 'error', message: result.error })
+        setFeedback({ type: 'error', message: result.error })
       }
       closeUnlinkModal()
       setProviderToUnlink(null)
@@ -151,54 +283,6 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
     window.location.href = `/api/auth/link/${provider}`
   }
 
-  const handleSetPassword = () => {
-    startTransition(async () => {
-      const result = await setPassword({
-        password: passwordForm.password,
-        confirmPassword: passwordForm.confirmNewPassword,
-      })
-      if (result.success) {
-        setActionFeedback({
-          type: 'success',
-          message: `Password set successfully. You can now sign in with ${linkedAccounts.email} and your password.`,
-        })
-        setPasswordForm((prev) => ({
-          ...prev,
-          password: '',
-          confirmNewPassword: '',
-        }))
-        router.refresh()
-      } else {
-        setActionFeedback({ type: 'error', message: result.error })
-      }
-    })
-  }
-
-  const handleChangePassword = () => {
-    startTransition(async () => {
-      const result = await changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-        confirmPassword: passwordForm.confirmPassword,
-      })
-      if (result.success) {
-        setActionFeedback({
-          type: 'success',
-          message: 'Password changed successfully',
-        })
-        setPasswordForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-          password: '',
-          confirmNewPassword: '',
-        })
-      } else {
-        setActionFeedback({ type: 'error', message: result.error })
-      }
-    })
-  }
-
   return (
     <Container py="xl" size="sm">
       <Stack gap="xl">
@@ -206,17 +290,17 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
           <LinkFeedback />
         </Suspense>
 
-        {actionFeedback && (
+        {feedback && (
           <Paper
-            bg={actionFeedback.type === 'success' ? 'teal.0' : 'red.0'}
+            bg={feedback.type === 'success' ? 'teal.0' : 'red.0'}
             p="sm"
             radius="sm"
           >
             <Text
-              c={actionFeedback.type === 'success' ? 'teal.8' : 'red.8'}
+              c={feedback.type === 'success' ? 'teal.8' : 'red.8'}
               size="sm"
             >
-              {actionFeedback.message}
+              {feedback.message}
             </Text>
           </Paper>
         )}
@@ -304,87 +388,23 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
             </Text>
 
             {linkedAccounts.hasPassword ? (
-              <>
-                <PasswordInput
-                  disabled={isPending}
-                  label="Current Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      currentPassword: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.currentPassword}
-                />
-                <PasswordInput
-                  disabled={isPending}
-                  label="New Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      newPassword: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.newPassword}
-                />
-                <PasswordInput
-                  disabled={isPending}
-                  label="Confirm New Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      confirmPassword: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.confirmPassword}
-                />
-                <Button
-                  disabled={
-                    isPending ||
-                    !passwordForm.currentPassword ||
-                    !passwordForm.newPassword ||
-                    !passwordForm.confirmPassword
-                  }
-                  onClick={handleChangePassword}
-                >
-                  Change Password
-                </Button>
-              </>
+              <ChangePasswordForm
+                isPending={isPending}
+                onError={(msg) => setFeedback({ type: 'error', message: msg })}
+                onSuccess={(msg) => {
+                  setFeedback({ type: 'success', message: msg })
+                }}
+              />
             ) : (
-              <>
-                <PasswordInput
-                  disabled={isPending}
-                  label="Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      password: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.password}
-                />
-                <PasswordInput
-                  disabled={isPending}
-                  label="Confirm Password"
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      confirmNewPassword: e.currentTarget.value,
-                    }))
-                  }
-                  value={passwordForm.confirmNewPassword}
-                />
-                <Button
-                  disabled={
-                    isPending ||
-                    !passwordForm.password ||
-                    !passwordForm.confirmNewPassword
-                  }
-                  onClick={handleSetPassword}
-                >
-                  Set Password
-                </Button>
-              </>
+              <SetPasswordForm
+                email={linkedAccounts.email}
+                isPending={isPending}
+                onError={(msg) => setFeedback({ type: 'error', message: msg })}
+                onSuccess={(msg) => {
+                  setFeedback({ type: 'success', message: msg })
+                  router.refresh()
+                }}
+              />
             )}
           </Stack>
         </Paper>
@@ -401,9 +421,8 @@ export function AccountContent({ linkedAccounts }: AccountContentProps) {
           <Text>
             Are you sure you want to unlink{' '}
             {providerToUnlink &&
-              PROVIDER_CONFIG[
-                providerToUnlink as keyof typeof PROVIDER_CONFIG
-              ]?.label}
+              PROVIDER_CONFIG[providerToUnlink as keyof typeof PROVIDER_CONFIG]
+                ?.label}
             ? You will no longer be able to sign in with this provider.
           </Text>
           <Group justify="flex-end">
