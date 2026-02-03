@@ -2,11 +2,10 @@
 
 import {
   ActionIcon,
-  Badge,
   Button,
   ColorInput,
+  Drawer,
   Group,
-  Modal,
   Stack,
   Text,
   TextInput,
@@ -14,11 +13,15 @@ import {
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { IconPencil, IconPlus, IconTrash, IconX } from '@tabler/icons-react'
-import { useState } from 'react'
-import type { RouterOutputs } from '~/trpc/react'
-import { api } from '~/trpc/react'
-
-type Tag = RouterOutputs['playerTag']['list']['tags'][number]
+import { useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
+import {
+  createTag,
+  deleteTag,
+  updateTag,
+} from '~/app/(main)/players/actions'
+import type { TagOption } from '../lib/types'
+import { PlayerTagBadge } from './PlayerTagBadge'
 
 /**
  * Default color swatches for player tags.
@@ -38,17 +41,23 @@ const TAG_COLOR_SWATCHES = [
 interface PlayerTagModalProps {
   opened: boolean
   onClose: () => void
-  tags: Tag[]
+  tags: TagOption[]
 }
 
 /**
  * Tag management modal component.
  *
  * Allows creating, editing, and deleting player tags.
+ * Uses Server Actions for all mutations.
  */
-export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
-  const [editingTag, setEditingTag] = useState<Tag | null>(null)
-  const utils = api.useUtils()
+export function PlayerTagModal({
+  opened,
+  onClose,
+  tags,
+}: PlayerTagModalProps) {
+  const [editingTag, setEditingTag] = useState<TagOption | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   const form = useForm({
     initialValues: {
@@ -57,87 +66,63 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
     },
     validate: {
       name: (value) =>
-        value.trim().length === 0 ? 'タグ名を入力してください' : null,
+        value.trim().length === 0 ? 'Please enter a tag name' : null,
       color: (value) =>
         value && !/^#[0-9A-Fa-f]{6}$/.test(value)
-          ? '有効なカラーコードを入力してください'
+          ? 'Please enter a valid hex color code'
           : null,
     },
   })
 
-  const createMutation = api.playerTag.create.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: '成功',
-        message: 'タグを作成しました',
-        color: 'green',
-      })
-      form.reset()
-      void utils.playerTag.list.invalidate()
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'エラー',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
-
-  const updateMutation = api.playerTag.update.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: '成功',
-        message: 'タグを更新しました',
-        color: 'green',
-      })
-      setEditingTag(null)
-      form.reset()
-      void utils.playerTag.list.invalidate()
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'エラー',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
-
-  const deleteMutation = api.playerTag.delete.useMutation({
-    onSuccess: () => {
-      notifications.show({
-        title: '成功',
-        message: 'タグを削除しました',
-        color: 'green',
-      })
-      void utils.playerTag.list.invalidate()
-    },
-    onError: (error) => {
-      notifications.show({
-        title: 'エラー',
-        message: error.message,
-        color: 'red',
-      })
-    },
-  })
-
   const handleSubmit = (values: typeof form.values) => {
-    if (editingTag) {
-      updateMutation.mutate({
-        id: editingTag.id,
-        name: values.name,
-        color: values.color || null,
-      })
-    } else {
-      createMutation.mutate({
-        name: values.name,
-        color: values.color || undefined,
-      })
-    }
+    startTransition(async () => {
+      if (editingTag) {
+        const result = await updateTag({
+          id: editingTag.id,
+          name: values.name,
+          color: values.color || null,
+        })
+        if (result.success) {
+          notifications.show({
+            title: 'Success',
+            message: 'Tag updated',
+            color: 'green',
+          })
+          setEditingTag(null)
+          form.reset()
+          router.refresh()
+        } else {
+          notifications.show({
+            title: 'Error',
+            message: result.error,
+            color: 'red',
+          })
+        }
+      } else {
+        const result = await createTag({
+          name: values.name,
+          color: values.color || undefined,
+        })
+        if (result.success) {
+          notifications.show({
+            title: 'Success',
+            message: 'Tag created',
+            color: 'green',
+          })
+          form.reset()
+          router.refresh()
+        } else {
+          notifications.show({
+            title: 'Error',
+            message: result.error,
+            color: 'red',
+          })
+        }
+      }
+    })
   }
 
-  const handleEdit = (tag: Tag) => {
+  const handleEdit = (tag: TagOption) => {
     setEditingTag(tag)
     form.setValues({
       name: tag.name,
@@ -151,7 +136,23 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
   }
 
   const handleDelete = (tagId: string) => {
-    deleteMutation.mutate({ id: tagId })
+    startTransition(async () => {
+      const result = await deleteTag({ id: tagId })
+      if (result.success) {
+        notifications.show({
+          title: 'Success',
+          message: 'Tag deleted',
+          color: 'green',
+        })
+        router.refresh()
+      } else {
+        notifications.show({
+          title: 'Error',
+          message: result.error,
+          color: 'red',
+        })
+      }
+    })
   }
 
   const handleClose = () => {
@@ -161,23 +162,29 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
   }
 
   return (
-    <Modal onClose={handleClose} opened={opened} size="md" title="タグ管理">
-      <Stack gap="lg">
+    <Drawer
+      onClose={handleClose}
+      opened={opened}
+      position="bottom"
+      size="auto"
+      title="Manage Tags"
+    >
+      <Stack gap="lg" pb="md">
         {/* Tag form */}
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="sm">
             <TextInput
-              label="タグ名"
-              placeholder="例: アグレッシブ"
+              label="Tag Name"
+              placeholder="e.g. Aggressive"
               required
               {...form.getInputProps('name')}
             />
             <ColorInput
               format="hex"
-              label="カラー"
-              placeholder="カラーを選択"
+              label="Color"
+              placeholder="Pick a color"
               swatches={TAG_COLOR_SWATCHES}
-              swatchesPerRow={8}
+              swatchesPerRow={5}
               {...form.getInputProps('color')}
             />
             <Group gap="sm" justify="flex-end">
@@ -187,17 +194,21 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
                   onClick={handleCancelEdit}
                   variant="subtle"
                 >
-                  キャンセル
+                  Cancel
                 </Button>
               )}
               <Button
                 leftSection={
-                  editingTag ? <IconPencil size={16} /> : <IconPlus size={16} />
+                  editingTag ? (
+                    <IconPencil size={16} />
+                  ) : (
+                    <IconPlus size={16} />
+                  )
                 }
-                loading={createMutation.isPending || updateMutation.isPending}
+                loading={isPending}
                 type="submit"
               >
-                {editingTag ? '更新' : '追加'}
+                {editingTag ? 'Update' : 'Add'}
               </Button>
             </Group>
           </Stack>
@@ -207,21 +218,11 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
         {tags.length > 0 && (
           <Stack gap="xs">
             <Text fw={500} size="sm">
-              既存のタグ
+              Existing Tags
             </Text>
             {tags.map((tag) => (
               <Group justify="space-between" key={tag.id}>
-                <Badge
-                  color={tag.color ? undefined : 'gray'}
-                  size="lg"
-                  style={
-                    tag.color
-                      ? { backgroundColor: tag.color, color: '#fff' }
-                      : undefined
-                  }
-                >
-                  {tag.name}
-                </Badge>
+                <PlayerTagBadge size="lg" tag={tag} />
                 <Group gap="xs">
                   <ActionIcon
                     disabled={editingTag?.id === tag.id}
@@ -232,7 +233,7 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
                   </ActionIcon>
                   <ActionIcon
                     color="red"
-                    loading={deleteMutation.isPending}
+                    loading={isPending}
                     onClick={() => handleDelete(tag.id)}
                     variant="subtle"
                   >
@@ -244,6 +245,6 @@ export function PlayerTagModal({ opened, onClose, tags }: PlayerTagModalProps) {
           </Stack>
         )}
       </Stack>
-    </Modal>
+    </Drawer>
   )
 }

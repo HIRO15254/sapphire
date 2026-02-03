@@ -1,108 +1,116 @@
 'use client'
 
 import {
-  Alert,
-  Badge,
   Button,
-  Card,
   Container,
+  Drawer,
   Group,
-  Loader,
   Stack,
-  TagsInput,
-  Text,
   TextInput,
 } from '@mantine/core'
-import { useDebouncedValue } from '@mantine/hooks'
-import {
-  IconAlertCircle,
-  IconPlus,
-  IconSearch,
-  IconSettings,
-  IconUser,
-} from '@tabler/icons-react'
-import Link from 'next/link'
-import { useState } from 'react'
+import { useForm } from '@mantine/form'
+import { useDisclosure } from '@mantine/hooks'
+import { notifications } from '@mantine/notifications'
+import { IconSettings } from '@tabler/icons-react'
+import { useRouter } from 'next/navigation'
+import { useMemo, useState, useTransition } from 'react'
 import { usePageTitle } from '~/contexts/PageTitleContext'
+import {
+  type PlayerFilterState,
+  PlayerFAB,
+  PlayerFilter,
+  PlayerList,
+  PlayerTagModal,
+  defaultPlayerFilters,
+  filterPlayers,
+  hasActivePlayerFilters,
+} from '~/features/players'
 import type { RouterOutputs } from '~/trpc/react'
-import { api } from '~/trpc/react'
-
-import { PlayerTagModal } from './PlayerTagModal'
+import { createPlayer } from './actions'
 
 type Player = RouterOutputs['player']['list']['players'][number]
 type Tag = RouterOutputs['playerTag']['list']['tags'][number]
 
 interface PlayersContentProps {
-  initialPlayers: Player[]
-  initialTags: Tag[]
+  players: Player[]
+  tags: Tag[]
 }
 
 /**
  * Player list content client component.
  *
- * Displays all players with search and tag filtering.
+ * Orchestrates filter, list, and tag management components with client-side filtering.
  */
-export function PlayersContent({
-  initialPlayers,
-  initialTags,
-}: PlayersContentProps) {
+export function PlayersContent({ players, tags }: PlayersContentProps) {
   usePageTitle('プレイヤー')
 
-  const [search, setSearch] = useState('')
-  const [selectedTagNames, setSelectedTagNames] = useState<string[]>([])
+  const router = useRouter()
+  const [filters, setFilters] = useState<PlayerFilterState>(defaultPlayerFilters)
+  const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
+    useDisclosure(false)
   const [tagModalOpen, setTagModalOpen] = useState(false)
-  const [debouncedSearch] = useDebouncedValue(search, 300)
+  const [isCreating, startCreateTransition] = useTransition()
 
-  // Fetch tags for filter dropdown (use initial data, refetch when modal closes)
-  const { data: tagsData } = api.playerTag.list.useQuery(undefined, {
-    initialData: { tags: initialTags },
-  })
+  // Map tags to TagOption format for feature components
+  const tagOptions = tags.map((tag) => ({
+    id: tag.id,
+    name: tag.name,
+    color: tag.color,
+  }))
 
-  const tags = tagsData?.tags ?? initialTags
-
-  // Convert selected tag names to IDs for API query
-  const selectedTagIds = selectedTagNames
-    .map((name) => tags.find((t) => t.name === name)?.id)
-    .filter((id): id is string => id !== undefined)
-
-  // Determine if filtering is active
-  const hasFilters = Boolean(debouncedSearch) || selectedTagIds.length > 0
-
-  // Fetch filtered data when filters are applied
-  const { data, isLoading, error } = api.player.list.useQuery(
-    {
-      search: debouncedSearch || undefined,
-      tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
-    },
-    {
-      enabled: hasFilters,
-    },
+  // Filter players client-side
+  const filteredPlayers = useMemo(
+    () => filterPlayers(players, filters),
+    [players, filters],
   )
 
-  const players = hasFilters ? (data?.players ?? []) : initialPlayers
+  const isFiltered = hasActivePlayerFilters(filters)
 
-  // Create tag options for TagsInput (use names as values)
-  const tagOptions = tags.map((tag) => tag.name)
+  // Map players to PlayerListItem format
+  const playerListItems = filteredPlayers.map((player) => ({
+    id: player.id,
+    name: player.name,
+    tags: player.tags.map((tag) => ({
+      id: tag.id,
+      name: tag.name,
+      color: tag.color,
+    })),
+    createdAt: new Date(player.createdAt),
+    updatedAt: player.updatedAt ? new Date(player.updatedAt) : null,
+  }))
 
-  if (hasFilters && isLoading) {
-    return (
-      <Container py="xl" size="md">
-        <Stack align="center" gap="lg">
-          <Loader size="lg" />
-          <Text c="dimmed">検索中...</Text>
-        </Stack>
-      </Container>
-    )
-  }
+  // New player form
+  const form = useForm({
+    initialValues: {
+      name: '',
+    },
+    validate: {
+      name: (value) =>
+        value.trim().length === 0 ? 'プレイヤー名を入力してください' : null,
+    },
+  })
 
-  if (hasFilters && error) {
-    return (
-      <Container py="xl" size="md">
-        <Alert color="red" icon={<IconAlertCircle size={16} />} title="エラー">
-          {error.message}
-        </Alert>
-      </Container>
-    )
+  const handleSubmitNewPlayer = (values: typeof form.values) => {
+    startCreateTransition(async () => {
+      const result = await createPlayer({ name: values.name.trim() })
+
+      if (result.success) {
+        notifications.show({
+          title: '成功',
+          message: 'プレイヤーを追加しました',
+          color: 'green',
+        })
+        form.reset()
+        closeDrawer()
+        router.refresh()
+      } else {
+        notifications.show({
+          title: 'エラー',
+          message: result.error,
+          color: 'red',
+        })
+      }
+    })
   }
 
   return (
@@ -112,115 +120,61 @@ export function PlayersContent({
           <Button
             leftSection={<IconSettings size={16} />}
             onClick={() => setTagModalOpen(true)}
+            size="xs"
             variant="light"
           >
-            タグ管理
+            Manage Tags
           </Button>
-          {initialPlayers.length > 0 && (
-            <Button
-              component={Link}
-              href="/players/new"
-              leftSection={<IconPlus size={16} />}
-            >
-              新しいプレイヤーを追加
-            </Button>
-          )}
         </Group>
 
-        {/* Search and Filter */}
-        <Group grow>
-          <TextInput
-            leftSection={<IconSearch size={16} />}
-            onChange={(e) => setSearch(e.currentTarget.value)}
-            placeholder="プレイヤーを検索"
-            value={search}
-          />
-          <TagsInput
-            clearable
-            data={tagOptions}
-            onChange={setSelectedTagNames}
-            placeholder="タグでフィルター"
-            value={selectedTagNames}
-          />
-        </Group>
+        <PlayerFilter
+          filters={filters}
+          onFiltersChange={setFilters}
+          tags={tagOptions}
+        />
 
-        {players.length === 0 ? (
-          <Card p="xl" radius="md" shadow="sm" withBorder>
-            <Stack align="center" gap="md">
-              <Text c="dimmed" size="lg">
-                {hasFilters
-                  ? '該当するプレイヤーが見つかりません'
-                  : 'プレイヤーが登録されていません'}
-              </Text>
-              {!hasFilters && (
-                <>
-                  <Text c="dimmed" size="sm">
-                    対戦相手のプレイヤーを追加して、プレイスタイルやノートを記録しましょう
-                  </Text>
-                  <Button
-                    component={Link}
-                    href="/players/new"
-                    leftSection={<IconPlus size={16} />}
-                    mt="md"
-                  >
-                    新しいプレイヤーを追加
-                  </Button>
-                </>
-              )}
-            </Stack>
-          </Card>
-        ) : (
-          <Stack gap="md">
-            {players.map((player) => (
-              <Card
-                component={Link}
-                href={`/players/${player.id}`}
-                key={player.id}
-                p="lg"
-                radius="md"
-                shadow="sm"
-                style={{ textDecoration: 'none', cursor: 'pointer' }}
-                withBorder
-              >
-                <Group justify="space-between">
-                  <Stack gap="xs">
-                    <Group gap="sm">
-                      <IconUser size={20} style={{ color: 'gray' }} />
-                      <Text fw={600} size="lg">
-                        {player.name}
-                      </Text>
-                    </Group>
-                    {player.tags.length > 0 && (
-                      <Group gap="xs">
-                        {player.tags.map((tag) => (
-                          <Badge
-                            color={tag.color ? undefined : 'gray'}
-                            key={tag.id}
-                            size="sm"
-                            style={
-                              tag.color
-                                ? { backgroundColor: tag.color, color: '#fff' }
-                                : undefined
-                            }
-                          >
-                            {tag.name}
-                          </Badge>
-                        ))}
-                      </Group>
-                    )}
-                  </Stack>
-                </Group>
-              </Card>
-            ))}
-          </Stack>
-        )}
+        <PlayerList
+          isFiltered={isFiltered}
+          onOpenNewPlayer={openDrawer}
+          players={playerListItems}
+        />
       </Stack>
+
+      <PlayerFAB onOpen={openDrawer} />
+
+      {/* New Player Drawer */}
+      <Drawer
+        onClose={closeDrawer}
+        opened={drawerOpened}
+        position="bottom"
+        size="auto"
+        title="新しいプレイヤーを追加"
+      >
+        <form onSubmit={form.onSubmit(handleSubmitNewPlayer)}>
+          <Stack gap="md" pb="md">
+            <TextInput
+              label="プレイヤー名"
+              placeholder="名前を入力"
+              required
+              {...form.getInputProps('name')}
+            />
+            <Group gap="sm" justify="flex-end">
+              <Button onClick={closeDrawer} variant="subtle">
+                キャンセル
+              </Button>
+              <Button loading={isCreating} type="submit">
+                追加
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Drawer>
 
       {/* Tag Management Modal */}
       <PlayerTagModal
         onClose={() => setTagModalOpen(false)}
         opened={tagModalOpen}
-        tags={tags}
+        tags={tagOptions}
       />
     </Container>
   )

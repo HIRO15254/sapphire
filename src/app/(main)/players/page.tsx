@@ -8,10 +8,10 @@ export const dynamic = 'force-dynamic'
 /**
  * Player list page (Server Component).
  *
- * Fetches initial player and tag data on the server and passes to client component.
+ * Fetches all player and tag data on the server and passes to client component.
  */
 export default async function PlayersPage() {
-  // Fetch initial data on server
+  // Fetch all data on server (client-side filtering)
   const [playersData, tagsData] = await Promise.all([
     api.player.list({}),
     api.playerTag.list(),
@@ -20,8 +20,8 @@ export default async function PlayersPage() {
   return (
     <HydrateClient>
       <PlayersContent
-        initialPlayers={playersData.players}
-        initialTags={tagsData.tags}
+        players={playersData.players}
+        tags={tagsData.tags}
       />
     </HydrateClient>
   )
