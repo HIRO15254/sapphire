@@ -20,6 +20,9 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),
+    // Auto-login for Vercel preview deployments
+    PREVIEW_AUTO_LOGIN_EMAIL: z.string().optional(),
+    PREVIEW_AUTO_LOGIN_PASSWORD: z.string().optional(),
   },
 
   /**
@@ -43,6 +46,8 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    PREVIEW_AUTO_LOGIN_EMAIL: process.env.PREVIEW_AUTO_LOGIN_EMAIL,
+    PREVIEW_AUTO_LOGIN_PASSWORD: process.env.PREVIEW_AUTO_LOGIN_PASSWORD,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

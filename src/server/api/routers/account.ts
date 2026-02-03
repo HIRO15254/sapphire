@@ -24,7 +24,7 @@ export const accountRouter = createTRPCRouter({
         .where(eq(accounts.userId, userId)),
       ctx.db.query.users.findFirst({
         where: eq(users.id, userId),
-        columns: { passwordHash: true },
+        columns: { passwordHash: true, email: true },
       }),
     ])
 
@@ -34,6 +34,7 @@ export const accountRouter = createTRPCRouter({
         providerAccountId: a.providerAccountId,
       })),
       hasPassword: !!user?.passwordHash,
+      email: user?.email ?? '',
     }
   }),
 })
